@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dustwalker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-layer">
+            <!-- Title Screen -->
+            <div id="title-screen" class="screen active">
+                <div class="title-content">
+                    <h1 class="game-title">DUSTWALKER</h1>
+                    <p class="game-subtitle">The Wasteland Awaits</p>
+                    <div class="menu-buttons">
+                        <button id="btn-new-game" class="menu-btn">New Game</button>
+                        <button id="btn-load-game" class="menu-btn">Load Game</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Character Creation -->
+            <div id="char-creation" class="screen">
+                <div class="creation-panel">
+                    <h2>Create Your Character</h2>
+                    <div class="creation-layout">
+                        <div class="creation-left">
+                            <label>Name: <input type="text" id="char-name" value="Wanderer" maxlength="20"></label>
+                            <div class="stats-section">
+                                <h3>S.P.E.C.I.A.L. <span id="stat-points-remaining">5</span> points remaining</h3>
+                                <div id="special-stats"></div>
+                            </div>
+                        </div>
+                        <div class="creation-right">
+                            <h3>Tag Skills (pick 3)</h3>
+                            <div id="tag-skills"></div>
+                        </div>
+                    </div>
+                    <div class="creation-buttons">
+                        <button id="btn-start-game" class="menu-btn">Enter the Wasteland</button>
+                        <button id="btn-back-title" class="menu-btn secondary">Back</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game HUD -->
+            <div id="game-hud" class="screen">
+                <!-- Top bar -->
+                <div id="hud-top">
+                    <div id="hud-location">Dusthaven Village</div>
+                    <div id="hud-time">Day 1 - 08:00</div>
+                </div>
+
+                <!-- Action bar (bottom) -->
+                <div id="hud-bottom">
+                    <div id="hud-portrait">
+                        <div id="portrait-name">Wanderer</div>
+                        <div class="bar-container">
+                            <div id="hp-bar" class="stat-bar hp"><span>HP</span></div>
+                        </div>
+                        <div class="bar-container">
+                            <div id="ap-bar" class="stat-bar ap"><span>AP</span></div>
+                        </div>
+                    </div>
+                    <div id="hud-actions">
+                        <button class="action-btn" data-action="move" title="Move (M)">Move</button>
+                        <button class="action-btn" data-action="attack" title="Attack (A)">Attack</button>
+                        <button class="action-btn" data-action="use" title="Use Item (U)">Use</button>
+                        <button class="action-btn" data-action="talk" title="Talk (T)">Talk</button>
+                        <button class="action-btn" data-action="look" title="Look (L)">Look</button>
+                        <button class="action-btn" data-action="end-turn" title="End Turn (Space)">End Turn</button>
+                    </div>
+                    <div id="hud-quick-slots">
+                        <div class="quick-slot" data-slot="0">1</div>
+                        <div class="quick-slot" data-slot="1">2</div>
+                        <div class="quick-slot" data-slot="2">3</div>
+                        <div class="quick-slot" data-slot="3">4</div>
+                    </div>
+                    <div id="hud-menu-buttons">
+                        <button class="hud-btn" id="btn-inventory" title="Inventory (I)">INV</button>
+                        <button class="hud-btn" id="btn-character" title="Character (C)">CHAR</button>
+                        <button class="hud-btn" id="btn-pipboy" title="PipBoy (P)">MAP</button>
+                        <button class="hud-btn" id="btn-save" title="Save (F5)">SAVE</button>
+                    </div>
+                </div>
+
+                <!-- Message log -->
+                <div id="message-log">
+                    <div id="message-log-content"></div>
+                </div>
+            </div>
+
+            <!-- Inventory Screen -->
+            <div id="inventory-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>Inventory</h2>
+                    <div class="inventory-layout">
+                        <div id="equipped-items">
+                            <h3>Equipped</h3>
+                            <div class="equip-slot" data-slot="weapon">Weapon: <span>—</span></div>
+                            <div class="equip-slot" data-slot="armor">Armor: <span>—</span></div>
+                            <div class="equip-slot" data-slot="accessory">Accessory: <span>—</span></div>
+                        </div>
+                        <div id="inventory-items">
+                            <h3>Items <span id="inv-weight">0/100 lbs</span></h3>
+                            <div id="inventory-list"></div>
+                        </div>
+                        <div id="item-details">
+                            <h3>Details</h3>
+                            <div id="item-detail-content">Select an item</div>
+                        </div>
+                    </div>
+                    <button class="close-btn" data-close="inventory-screen">Close (Esc)</button>
+                </div>
+            </div>
+
+            <!-- Character Sheet -->
+            <div id="character-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>Character Sheet</h2>
+                    <div class="char-sheet-layout">
+                        <div id="char-stats-display"></div>
+                        <div id="char-skills-display"></div>
+                        <div id="char-perks-display">
+                            <h3>Perks</h3>
+                            <div id="perks-list">None yet</div>
+                        </div>
+                    </div>
+                    <button class="close-btn" data-close="character-screen">Close (Esc)</button>
+                </div>
+            </div>
+
+            <!-- Dialogue Screen -->
+            <div id="dialogue-screen" class="screen overlay">
+                <div class="dialogue-panel">
+                    <div id="dialogue-npc-name"></div>
+                    <div id="dialogue-text"></div>
+                    <div id="dialogue-options"></div>
+                </div>
+            </div>
+
+            <!-- Level Up Screen -->
+            <div id="levelup-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>Level Up!</h2>
+                    <div id="levelup-content">
+                        <p>You are now level <span id="new-level">2</span></p>
+                        <h3>Distribute <span id="skill-points-available">0</span> skill points</h3>
+                        <div id="levelup-skills"></div>
+                    </div>
+                    <button id="btn-confirm-levelup" class="menu-btn">Confirm</button>
+                </div>
+            </div>
+
+            <!-- Map Screen -->
+            <div id="map-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>World Map</h2>
+                    <div id="world-map">
+                        <canvas id="map-canvas" width="400" height="300"></canvas>
+                    </div>
+                    <button class="close-btn" data-close="map-screen">Close (Esc)</button>
+                </div>
+            </div>
+
+            <!-- Loot/Container Screen -->
+            <div id="loot-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2 id="loot-title">Container</h2>
+                    <div id="loot-items"></div>
+                    <button id="btn-take-all" class="menu-btn">Take All</button>
+                    <button class="close-btn" data-close="loot-screen">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Scripts -->
+    <script src="src/engine/utils.js"></script>
+    <script src="src/engine/renderer.js"></script>
+    <script src="src/engine/input.js"></script>
+    <script src="src/engine/audio.js"></script>
+    <script src="src/systems/character.js"></script>
+    <script src="src/systems/combat.js"></script>
+    <script src="src/systems/inventory.js"></script>
+    <script src="src/systems/dialogue.js"></script>
+    <script src="src/systems/ai.js"></script>
+    <script src="src/data/items.js"></script>
+    <script src="src/data/enemies.js"></script>
+    <script src="src/data/dialogues.js"></script>
+    <script src="src/areas/village.js"></script>
+    <script src="src/areas/cave.js"></script>
+    <script src="src/ui/hud.js"></script>
+    <script src="src/ui/screens.js"></script>
+    <script src="src/engine/game.js"></script>
+</body>
+</html>

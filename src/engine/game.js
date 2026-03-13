@@ -1,0 +1,768 @@
+// ============================================
+// Dustwalker - Main Game Controller
+// ============================================
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('game-canvas');
+        this.renderer = new IsometricRenderer(this.canvas);
+        this.input = new InputHandler(this.canvas, this.renderer);
+        this.audio = new AudioManager();
+        this.combat = new CombatSystem(this);
+        this.dialogue = new DialogueSystem(this);
+        this.ai = new AISystem(this);
+        this.hud = new HUDManager(this);
+        this.screens = new ScreenManager(this);
+
+        this.player = null;
+        this.currentArea = null;
+        this.entities = [];
+        this.areas = {};
+
+        this.state = 'title'; // title, creation, exploration, playerTurn, enemyTurn, dialogue
+        this.currentAction = 'move'; // move, attack, use, talk, look
+
+        this.gameTime = { day: 1, hour: 8 };
+        this.floatingTexts = [];
+        this.highlights = [];
+        this.hoverTile = null;
+        this.selectedEntity = null;
+
+        this.areaStates = {}; // Persist entity states when switching areas
+
+        this.setupUI();
+        this.setupInput();
+        this.gameLoop();
+    }
+
+    setupUI() {
+        // Title screen buttons
+        document.getElementById('btn-new-game').addEventListener('click', () => {
+            this.audio.init();
+            this.audio.playSfx('click');
+            this.screens.setupCharCreation();
+            this.showScreen('char-creation');
+        });
+
+        document.getElementById('btn-load-game').addEventListener('click', () => {
+            this.audio.init();
+            this.loadGame();
+        });
+
+        // Action buttons
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.audio.playSfx('click');
+                this.setAction(btn.dataset.action);
+            });
+        });
+
+        // HUD buttons
+        document.getElementById('btn-inventory').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.hud.updateInventoryScreen();
+            this.showScreen('inventory-screen');
+        });
+
+        document.getElementById('btn-character').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.hud.updateCharacterScreen();
+            this.showScreen('character-screen');
+        });
+
+        document.getElementById('btn-pipboy').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.screens.drawWorldMap();
+            this.showScreen('map-screen');
+        });
+
+        document.getElementById('btn-save').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.saveGame();
+        });
+
+        // Close buttons
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.audio.playSfx('click');
+                this.hideScreen(btn.dataset.close);
+            });
+        });
+
+        // Equip slot clicks (unequip)
+        document.querySelectorAll('.equip-slot').forEach(el => {
+            el.addEventListener('click', () => {
+                const slot = el.dataset.slot;
+                if (this.player && this.player.equipment[slot]) {
+                    InventorySystem.unequip(this.player, slot);
+                    this.hud.updateInventoryScreen();
+                    this.addMessage(`Unequipped ${slot}.`, 'info');
+                }
+            });
+        });
+    }
+
+    setupInput() {
+        this.input.on('click', (data) => {
+            if (this.state === 'title' || this.state === 'creation') return;
+            this.handleClick(data.gridX, data.gridY);
+        });
+
+        this.input.on('mousemove', (data) => {
+            if (this.state === 'exploration' || this.state === 'playerTurn') {
+                this.hoverTile = { x: data.gridX, y: data.gridY };
+                this.updateHighlights();
+            }
+        });
+
+        this.input.on('rightclick', () => {
+            this.setAction('move');
+        });
+
+        this.input.on('keydown', (key) => {
+            this.handleKey(key);
+        });
+    }
+
+    handleKey(key) {
+        // Screen shortcuts
+        if (key === 'escape') {
+            // Close any open overlay
+            document.querySelectorAll('.overlay.active').forEach(el => {
+                el.classList.remove('active');
+            });
+            if (this.dialogue.active) this.dialogue.endDialogue();
+            return;
+        }
+
+        if (this.state !== 'exploration' && this.state !== 'playerTurn') return;
+
+        switch (key) {
+            case 'i':
+                this.hud.updateInventoryScreen();
+                this.showScreen('inventory-screen');
+                break;
+            case 'c':
+                this.hud.updateCharacterScreen();
+                this.showScreen('character-screen');
+                break;
+            case 'p':
+                this.screens.drawWorldMap();
+                this.showScreen('map-screen');
+                break;
+            case 'm': this.setAction('move'); break;
+            case 'a': this.setAction('attack'); break;
+            case 'u': this.setAction('use'); break;
+            case 't': this.setAction('talk'); break;
+            case 'l': this.setAction('look'); break;
+            case ' ':
+                if (this.combat.active) {
+                    this.combat.endTurn();
+                }
+                break;
+            case 'f5':
+                this.saveGame();
+                break;
+            case '1': case '2': case '3': case '4':
+                this.useQuickSlot(parseInt(key) - 1);
+                break;
+        }
+    }
+
+    handleClick(gridX, gridY) {
+        if (this.dialogue.active) return;
+
+        switch (this.currentAction) {
+            case 'move':
+                this.handleMove(gridX, gridY);
+                break;
+            case 'attack':
+                this.handleAttack(gridX, gridY);
+                break;
+            case 'talk':
+                this.handleTalk(gridX, gridY);
+                break;
+            case 'look':
+                this.handleLook(gridX, gridY);
+                break;
+            case 'use':
+                this.handleUse(gridX, gridY);
+                break;
+            case 'end-turn':
+                if (this.combat.active) this.combat.endTurn();
+                break;
+        }
+    }
+
+    handleMove(gridX, gridY) {
+        if (!this.isWalkable(gridX, gridY)) {
+            // Check for transitions
+            const transition = this.checkTransition(gridX, gridY);
+            if (transition) {
+                this.transitionArea(transition);
+                return;
+            }
+            return;
+        }
+
+        if (this.combat.active) {
+            // Combat movement (costs AP)
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (dist <= this.player.stats.ap) {
+                this.combat.combatMove(this.player, gridX, gridY);
+                this.renderer.centerOn(this.player.x, this.player.y);
+                this.hud.update();
+            }
+        } else {
+            // Free movement (pathfinding)
+            const path = Utils.findPath(
+                this.player.x, this.player.y, gridX, gridY,
+                (x, y) => this.isWalkable(x, y),
+                40
+            );
+
+            if (path && path.length > 0) {
+                this.animateMovement(path);
+            }
+
+            // Check for transition at destination
+            const transition = this.checkTransition(gridX, gridY);
+            if (transition) {
+                this.transitionArea(transition);
+            }
+        }
+    }
+
+    animateMovement(path) {
+        let step = 0;
+        const animate = () => {
+            if (step >= path.length) {
+                // Check for aggro after moving
+                this.checkCombatTrigger();
+                return;
+            }
+
+            this.player.x = path[step].x;
+            this.player.y = path[step].y;
+            this.renderer.centerOn(this.player.x, this.player.y);
+            this.audio.playSfx('step');
+            step++;
+
+            // Check transition mid-path
+            const t = this.checkTransition(this.player.x, this.player.y);
+            if (t) {
+                this.transitionArea(t);
+                return;
+            }
+
+            // Check aggro mid-path
+            const hostiles = this.ai.checkAggro(this.entities, this.player, 5);
+            if (hostiles.length > 0) {
+                this.startCombatWith(hostiles);
+                return;
+            }
+
+            setTimeout(animate, 100);
+        };
+        animate();
+    }
+
+    handleAttack(gridX, gridY) {
+        const target = this.getEntityAt(gridX, gridY);
+        if (!target) {
+            this.addMessage('Nothing to attack there.', 'info');
+            return;
+        }
+
+        if (target.type === 'npc' && !target.isHostile) {
+            this.addMessage(`${target.name} is not hostile.`, 'info');
+            return;
+        }
+
+        if (target.type === 'container') {
+            this.addMessage('You can\'t attack a container.', 'info');
+            return;
+        }
+
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        const range = weapon ? (weapon.range || 1) : 1;
+        const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+
+        if (dist > range) {
+            this.addMessage('Target is out of range.', 'combat');
+            return;
+        }
+
+        if (!this.combat.active) {
+            // Start combat
+            this.startCombatWith([target]);
+        }
+
+        if (this.state === 'playerTurn') {
+            this.combat.attack(this.player, target, weapon);
+            this.hud.update();
+        }
+    }
+
+    handleTalk(gridX, gridY) {
+        const target = this.getEntityAt(gridX, gridY);
+        if (!target) {
+            this.addMessage('No one to talk to there.', 'info');
+            return;
+        }
+
+        const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+        if (dist > 2) {
+            this.addMessage('Too far away to talk.', 'info');
+            return;
+        }
+
+        if (target.type === 'npc' && target.dialogueId) {
+            this.dialogue.startDialogue(target);
+        } else if (target.type === 'container') {
+            this.hud.showLootScreen(target);
+        } else {
+            this.addMessage(`${target.name} doesn't want to talk.`, 'dialogue');
+        }
+    }
+
+    handleLook(gridX, gridY) {
+        const target = this.getEntityAt(gridX, gridY);
+        if (target) {
+            let info = `${target.name}`;
+            if (target.stats && target.stats.hp !== undefined) {
+                info += ` - HP: ${target.stats.hp}/${target.stats.maxHp}`;
+            }
+            if (target.type === 'enemy') {
+                info += ` (Hostile)`;
+            }
+            if (target.type === 'container') {
+                info += ` (Container - ${target.items.length} items)`;
+            }
+            this.addMessage(info, 'info');
+        } else {
+            const tile = this.getTileAt(gridX, gridY);
+            if (tile) {
+                this.addMessage(`You see: ${tile.replace('_', ' ')}`, 'info');
+            }
+        }
+    }
+
+    handleUse(gridX, gridY) {
+        const target = this.getEntityAt(gridX, gridY);
+        if (target && target.type === 'container') {
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (dist <= 2) {
+                this.hud.showLootScreen(target);
+            } else {
+                this.addMessage('Too far away.', 'info');
+            }
+        } else {
+            this.addMessage('Nothing to use here.', 'info');
+        }
+    }
+
+    // ---- Game State Management ----
+
+    startNewGame(name, special, tagSkills) {
+        this.player = CharacterSystem.createPlayer(name, special, tagSkills);
+
+        // Starting equipment
+        InventorySystem.addItem(this.player, ItemDatabase.knife, 1);
+        InventorySystem.addItem(this.player, ItemDatabase.healing_powder, 3);
+        InventorySystem.addItem(this.player, ItemDatabase.bottle_caps, 50);
+        InventorySystem.addItem(this.player, ItemDatabase.nuka_cola, 2);
+        InventorySystem.addItem(this.player, ItemDatabase.tribal_garb, 1);
+
+        // Equip starting gear
+        const knife = this.player.inventory.find(i => i.id === 'knife');
+        if (knife) InventorySystem.equip(this.player, knife.uid);
+        const garb = this.player.inventory.find(i => i.id === 'tribal_garb');
+        if (garb) InventorySystem.equip(this.player, garb.uid);
+
+        // Generate areas
+        this.areas = {
+            village: createVillageArea(),
+            cave: createCaveArea(),
+        };
+
+        // Load starting area
+        this.loadArea('village');
+
+        this.showScreen('game-hud');
+        this.state = 'exploration';
+        this.addMessage('Welcome to Dusthaven, Wanderer. The wasteland stretches endlessly in every direction.', 'info');
+        this.addMessage('Talk to the villagers to learn about this place. Elder Mara may have work for you.', 'info');
+    }
+
+    loadArea(areaId) {
+        // Save current area state
+        if (this.currentArea) {
+            this.areaStates[this.currentArea.id] = {
+                entities: this.entities.filter(e => e.type !== 'player').map(e => Utils.deepClone(e))
+            };
+        }
+
+        const area = this.areas[areaId];
+        if (!area) return;
+
+        this.currentArea = area;
+
+        // Restore saved state or use fresh
+        if (this.areaStates[areaId]) {
+            this.entities = this.areaStates[areaId].entities.map(e => Utils.deepClone(e));
+        } else {
+            this.entities = area.entities.map(e => Utils.deepClone(e));
+        }
+
+        // Add player
+        this.entities.push(this.player);
+
+        // Center camera
+        this.renderer.centerOn(this.player.x, this.player.y);
+    }
+
+    transitionArea(transition) {
+        this.audio.playSfx('door');
+
+        // Set player position for new area
+        this.player.x = transition.targetX;
+        this.player.y = transition.targetY;
+
+        // End combat if active
+        if (this.combat.active) {
+            this.combat.endCombat();
+        }
+
+        this.loadArea(transition.targetArea);
+        this.addMessage(`Entered: ${this.currentArea.name}`, 'info');
+        this.hud.update();
+
+        // Advance time
+        this.advanceTime(1);
+    }
+
+    checkTransition(x, y) {
+        if (!this.currentArea || !this.currentArea.transitions) return null;
+        return this.currentArea.transitions.find(t => t.x === x && t.y === y);
+    }
+
+    // ---- Entity Management ----
+
+    addEntity(entity) {
+        this.entities.push(entity);
+    }
+
+    removeEntity(entity) {
+        const idx = this.entities.indexOf(entity);
+        if (idx !== -1) this.entities.splice(idx, 1);
+    }
+
+    getEntityAt(x, y) {
+        return this.entities.find(e => e.x === x && e.y === y && e !== this.player);
+    }
+
+    // ---- Map Queries ----
+
+    getTileAt(x, y) {
+        if (!this.currentArea) return null;
+        const map = this.currentArea.map;
+        if (y < 0 || y >= map.length || x < 0 || x >= map[0].length) return null;
+        return map[y][x];
+    }
+
+    isWalkable(x, y) {
+        const tile = this.getTileAt(x, y);
+        if (!tile) return false;
+        if (this.currentArea.blocked.has(tile)) return false;
+        // Check for blocking entities (other characters, but not containers)
+        const ent = this.getEntityAt(x, y);
+        if (ent && (ent.type === 'enemy' || ent.type === 'npc')) return false;
+        return true;
+    }
+
+    // ---- Combat ----
+
+    checkCombatTrigger() {
+        if (this.combat.active) return;
+        const hostiles = this.ai.checkAggro(this.entities, this.player, 5);
+        if (hostiles.length > 0) {
+            this.startCombatWith(hostiles);
+        }
+    }
+
+    startCombatWith(enemies) {
+        const participants = [this.player, ...enemies];
+        this.combat.startCombat(participants);
+    }
+
+    // ---- Inventory Actions (called from UI) ----
+
+    useItem(itemId) {
+        InventorySystem.useItem(this.player, itemId, this);
+        this.hud.updateInventoryScreen();
+        this.hud.update();
+    }
+
+    equipItem(itemUid) {
+        InventorySystem.equip(this.player, itemUid);
+        this.hud.updateInventoryScreen();
+        this.hud.update();
+        this.addMessage('Equipment changed.', 'info');
+    }
+
+    dropItem(itemId) {
+        const item = this.player.inventory.find(i => i.uid === itemId || i.id === itemId);
+        if (item) {
+            this.addMessage(`Dropped ${item.name}.`, 'info');
+            InventorySystem.removeItem(this.player, itemId);
+            this.hud.updateInventoryScreen();
+        }
+    }
+
+    takeItem(container, index) {
+        if (index < 0 || index >= container.items.length) return;
+        const item = container.items[index];
+        const result = InventorySystem.addItem(this.player, item, item.quantity || 1);
+
+        if (result.success) {
+            container.items.splice(index, 1);
+            this.addMessage(`Picked up: ${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''}`, 'loot');
+            this.audio.playSfx('pickup');
+
+            // Check if it's the cave crystal (quest item)
+            if (item.id === 'cave_crystal') {
+                this.player.questFlags.cave_crystal_returned = true;
+                this.addMessage('You found the Dust Crystal! Return it to Elder Mara.', 'xp');
+            }
+        } else {
+            this.addMessage('Inventory full! Too much weight.', 'info');
+        }
+    }
+
+    takeAllItems(container) {
+        const toRemove = [];
+        for (let i = 0; i < container.items.length; i++) {
+            const item = container.items[i];
+            const result = InventorySystem.addItem(this.player, item, item.quantity || 1);
+            if (result.success) {
+                toRemove.push(i);
+                this.addMessage(`Picked up: ${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''}`, 'loot');
+
+                if (item.id === 'cave_crystal') {
+                    this.player.questFlags.cave_crystal_returned = true;
+                    this.addMessage('You found the Dust Crystal! Return it to Elder Mara.', 'xp');
+                }
+            }
+        }
+        // Remove in reverse to maintain indices
+        for (let i = toRemove.length - 1; i >= 0; i--) {
+            container.items.splice(toRemove[i], 1);
+        }
+        if (toRemove.length > 0) this.audio.playSfx('pickup');
+    }
+
+    useQuickSlot(index) {
+        // Quick slots can hold consumables
+        const consumables = this.player.inventory.filter(i => i.usable);
+        if (index < consumables.length) {
+            InventorySystem.useItem(this.player, consumables[index].uid, this);
+            this.hud.update();
+        }
+    }
+
+    // ---- UI Helpers ----
+
+    setState(newState) {
+        this.state = newState;
+    }
+
+    setAction(action) {
+        if (action === 'end-turn' && this.combat.active) {
+            this.combat.endTurn();
+            return;
+        }
+        this.currentAction = action;
+        this.updateHighlights();
+        this.hud.update();
+
+        // Update cursor
+        this.canvas.className = '';
+        if (action === 'move') this.canvas.classList.add('cursor-move');
+        if (action === 'attack') this.canvas.classList.add('cursor-attack');
+        if (action === 'talk') this.canvas.classList.add('cursor-talk');
+        if (action === 'look') this.canvas.classList.add('cursor-look');
+    }
+
+    updateHighlights() {
+        this.highlights = [];
+
+        if (this.combat.active && this.state === 'playerTurn') {
+            if (this.currentAction === 'move') {
+                const range = this.combat.getMovementRange(this.player);
+                this.highlights = range.map(t => ({ ...t, type: 'move' }));
+            } else if (this.currentAction === 'attack') {
+                const weapon = InventorySystem.getEquippedWeapon(this.player);
+                const range = this.combat.getAttackRange(this.player, weapon);
+                this.highlights = range.map(t => ({ ...t, type: 'attack' }));
+            }
+        }
+    }
+
+    showScreen(screenId) {
+        const screen = document.getElementById(screenId);
+        if (screen) screen.classList.add('active');
+    }
+
+    hideScreen(screenId) {
+        const screen = document.getElementById(screenId);
+        if (screen) screen.classList.remove('active');
+    }
+
+    showLevelUp() {
+        this.screens.setupLevelUpScreen();
+    }
+
+    addMessage(text, type = 'info') {
+        const log = document.getElementById('message-log-content');
+        const msg = document.createElement('div');
+        msg.className = `msg-${type}`;
+        msg.textContent = `> ${text}`;
+        log.appendChild(msg);
+
+        // Keep only last 50 messages
+        while (log.children.length > 50) {
+            log.removeChild(log.firstChild);
+        }
+
+        // Scroll to bottom
+        const logContainer = document.getElementById('message-log');
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    addFloatingText(x, y, text, color = '#fff') {
+        this.floatingTexts.push({
+            x, y, text, color,
+            offsetY: 0,
+            life: 60
+        });
+    }
+
+    advanceTime(hours) {
+        this.gameTime.hour += hours;
+        while (this.gameTime.hour >= 24) {
+            this.gameTime.hour -= 24;
+            this.gameTime.day++;
+            // Heal on rest/day change
+            CharacterSystem.heal(this.player, this.player.stats.healRate);
+        }
+    }
+
+    gameOver() {
+        this.addMessage('Game Over. You have died in the wasteland.', 'combat');
+        this.addMessage('Load a save or start a new game.', 'info');
+        // Could show a game over screen here
+    }
+
+    // ---- Save/Load ----
+
+    saveGame() {
+        // Save current area state first
+        if (this.currentArea) {
+            this.areaStates[this.currentArea.id] = {
+                entities: this.entities.filter(e => e.type !== 'player').map(e => {
+                    const clone = Utils.deepClone(e);
+                    // Remove functions from entities for serialization
+                    return clone;
+                })
+            };
+        }
+
+        const saveData = {
+            player: Utils.deepClone(this.player),
+            currentAreaId: this.currentArea.id,
+            areaStates: Utils.deepClone(this.areaStates),
+            gameTime: { ...this.gameTime },
+            version: 1
+        };
+
+        try {
+            localStorage.setItem('dustwalker_save', JSON.stringify(saveData));
+            this.addMessage('Game saved.', 'info');
+        } catch (e) {
+            this.addMessage('Failed to save game.', 'combat');
+        }
+    }
+
+    loadGame() {
+        try {
+            const data = localStorage.getItem('dustwalker_save');
+            if (!data) {
+                this.addMessage('No save file found.', 'info');
+                alert('No save file found. Start a new game.');
+                return;
+            }
+
+            const saveData = JSON.parse(data);
+            this.player = saveData.player;
+            this.areaStates = saveData.areaStates || {};
+            this.gameTime = saveData.gameTime || { day: 1, hour: 8 };
+
+            // Regenerate areas (maps are procedural)
+            this.areas = {
+                village: createVillageArea(),
+                cave: createCaveArea(),
+            };
+
+            // Load the saved area
+            this.loadArea(saveData.currentAreaId || 'village');
+
+            this.showScreen('game-hud');
+            this.state = 'exploration';
+            this.addMessage('Game loaded.', 'info');
+            this.hud.update();
+        } catch (e) {
+            alert('Failed to load save. Start a new game.');
+        }
+    }
+
+    // ---- Main Game Loop ----
+
+    gameLoop() {
+        // Update floating texts
+        this.floatingTexts = this.floatingTexts.filter(ft => {
+            ft.life--;
+            ft.offsetY -= 0.5;
+            return ft.life > 0;
+        });
+
+        // Render
+        if (this.currentArea && this.state !== 'title' && this.state !== 'creation') {
+            const gameState = {
+                selectedEntity: this.selectedEntity,
+                highlights: this.highlights,
+                hoverTile: this.hoverTile,
+                floatingTexts: this.floatingTexts,
+            };
+
+            this.renderer.renderArea(
+                this.currentArea,
+                this.entities,
+                { x: this.player.x, y: this.player.y },
+                gameState
+            );
+        }
+
+        // Update HUD
+        if (this.state === 'exploration' || this.state === 'playerTurn') {
+            this.hud.update();
+        }
+
+        requestAnimationFrame(() => this.gameLoop());
+    }
+}
+
+// ---- Initialize Game ----
+window.addEventListener('DOMContentLoaded', () => {
+    window.game = new Game();
+});
