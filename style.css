@@ -787,3 +787,236 @@ canvas {
 .cursor-attack { cursor: crosshair; }
 .cursor-talk { cursor: help; }
 .cursor-look { cursor: zoom-in; }
+
+/* ==========================================
+   MOBILE / TOUCH RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 36px;
+        letter-spacing: 6px;
+    }
+    .game-subtitle {
+        font-size: 14px;
+        margin-bottom: 40px;
+    }
+    .menu-btn {
+        font-size: 14px;
+        padding: 10px 30px;
+        min-width: 200px;
+    }
+
+    /* Character Creation */
+    .creation-panel {
+        padding: 15px;
+        width: 95%;
+        max-height: 95vh;
+    }
+    .creation-panel h2 {
+        font-size: 20px;
+    }
+    .creation-layout {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .stat-row .stat-name {
+        width: 80px;
+        font-size: 12px;
+    }
+    .stat-row .stat-desc {
+        display: none;
+    }
+    .stat-row button {
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+    }
+    .skill-tag {
+        padding: 6px;
+        font-size: 13px;
+    }
+
+    /* HUD - Bottom bar stacks vertically on small screens */
+    #hud-bottom {
+        flex-wrap: wrap;
+        padding: 6px;
+        gap: 6px;
+    }
+    #hud-portrait {
+        min-width: 100px;
+        padding: 5px;
+        order: 1;
+    }
+    #portrait-name {
+        font-size: 10px;
+    }
+    #hud-actions {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+    }
+    .action-btn {
+        font-size: 11px;
+        padding: 8px 10px;
+        flex: 1;
+        text-align: center;
+        min-height: 36px;
+    }
+    #hud-quick-slots {
+        order: 4;
+        display: none; /* Hide quick slots on mobile — use inventory instead */
+    }
+    #hud-menu-buttons {
+        order: 2;
+        margin-left: auto;
+        gap: 3px;
+    }
+    .hud-btn {
+        font-size: 10px;
+        padding: 8px 8px;
+        min-height: 36px;
+    }
+
+    /* Message log */
+    #message-log {
+        bottom: 120px;
+        left: 5px;
+        right: 5px;
+        width: auto;
+        max-height: 80px;
+    }
+    #message-log-content {
+        font-size: 11px;
+    }
+
+    /* Top bar */
+    #hud-top {
+        padding: 5px 10px;
+    }
+    #hud-location, #hud-time {
+        font-size: 11px;
+    }
+
+    /* Overlay panels */
+    .overlay-panel {
+        padding: 15px;
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    /* Inventory - stack vertically */
+    .inventory-layout {
+        flex-direction: column;
+        min-height: auto;
+    }
+    #equipped-items {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #4a3a20;
+        padding-right: 0;
+        padding-bottom: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .equip-slot {
+        padding: 8px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+    #inventory-list {
+        max-height: 150px;
+    }
+    .inv-item {
+        padding: 8px;
+        min-height: 36px;
+    }
+    #item-details {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #4a3a20;
+        padding-left: 0;
+        padding-top: 10px;
+    }
+    .detail-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .detail-actions button {
+        padding: 8px 14px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+
+    /* Character sheet - stack */
+    .char-sheet-layout {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Dialogue */
+    .dialogue-panel {
+        width: 95%;
+        bottom: 130px;
+        padding: 12px;
+    }
+    #dialogue-npc-name {
+        font-size: 14px;
+    }
+    #dialogue-text {
+        font-size: 13px;
+        min-height: 40px;
+    }
+    .dialogue-option {
+        padding: 10px;
+        font-size: 13px;
+        min-height: 40px;
+    }
+
+    /* Level up */
+    .levelup-skill-row {
+        width: 100%;
+    }
+    .levelup-skill-row button {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    /* Loot */
+    .loot-item {
+        padding: 10px 8px;
+        min-height: 40px;
+    }
+    .loot-item button {
+        padding: 6px 14px;
+        font-size: 12px;
+    }
+
+    /* Close buttons bigger for touch */
+    .close-btn {
+        padding: 10px 30px;
+        font-size: 14px;
+        min-height: 40px;
+    }
+}
+
+/* Extra small phones */
+@media (max-width: 400px) {
+    .game-title {
+        font-size: 28px;
+        letter-spacing: 4px;
+    }
+    .action-btn {
+        font-size: 10px;
+        padding: 6px 6px;
+    }
+    .hud-btn {
+        padding: 6px 6px;
+        font-size: 9px;
+    }
+    .dialogue-panel {
+        bottom: 110px;
+    }
+}
