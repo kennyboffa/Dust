@@ -195,6 +195,29 @@ class Game {
     }
 
     handleMove(gridX, gridY) {
+        // Auto-interact: clicking an NPC talks, clicking a container loots
+        const target = this.getEntityAt(gridX, gridY);
+        if (target) {
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (target.type === 'npc' && target.dialogueId && dist <= 2) {
+                this.dialogue.startDialogue(target);
+                return;
+            }
+            if (target.type === 'container' && dist <= 2) {
+                this.hud.showLootScreen(target);
+                return;
+            }
+            if (target.type === 'npc' && target.dialogueId && dist > 2) {
+                // Walk closer then talk
+                this.walkToAndInteract(target);
+                return;
+            }
+            if (target.type === 'container' && dist > 2) {
+                this.walkToAndInteract(target);
+                return;
+            }
+        }
+
         if (!this.isWalkable(gridX, gridY)) {
             // Check for transitions
             const transition = this.checkTransition(gridX, gridY);
@@ -212,6 +235,7 @@ class Game {
                 this.combat.combatMove(this.player, gridX, gridY);
                 this.renderer.centerOn(this.player.x, this.player.y);
                 this.hud.update();
+                this.checkAutoEndTurn();
             }
         } else {
             // Free movement (pathfinding)
@@ -267,6 +291,51 @@ class Game {
         animate();
     }
 
+    walkToAndInteract(target) {
+        // Find a walkable tile adjacent to the target
+        const dirs = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+        let bestTile = null;
+        let bestDist = Infinity;
+        for (const [dx, dy] of dirs) {
+            const nx = target.x + dx;
+            const ny = target.y + dy;
+            if (this.isWalkable(nx, ny)) {
+                const d = Utils.gridDistance(this.player.x, this.player.y, nx, ny);
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestTile = { x: nx, y: ny };
+                }
+            }
+        }
+        if (!bestTile) return;
+
+        const path = Utils.findPath(
+            this.player.x, this.player.y, bestTile.x, bestTile.y,
+            (x, y) => this.isWalkable(x, y), 40
+        );
+        if (!path || path.length === 0) return;
+
+        let step = 0;
+        const animate = () => {
+            if (step >= path.length) {
+                // Interact on arrival
+                if (target.type === 'npc' && target.dialogueId) {
+                    this.dialogue.startDialogue(target);
+                } else if (target.type === 'container') {
+                    this.hud.showLootScreen(target);
+                }
+                return;
+            }
+            this.player.x = path[step].x;
+            this.player.y = path[step].y;
+            this.renderer.centerOn(this.player.x, this.player.y);
+            this.audio.playSfx('step');
+            step++;
+            setTimeout(animate, 100);
+        };
+        animate();
+    }
+
     handleAttack(gridX, gridY) {
         const target = this.getEntityAt(gridX, gridY);
         if (!target) {
@@ -301,6 +370,7 @@ class Game {
         if (this.state === 'playerTurn') {
             this.combat.attack(this.player, target, weapon);
             this.hud.update();
+            this.checkAutoEndTurn();
         }
     }
 
@@ -484,6 +554,14 @@ class Game {
     }
 
     // ---- Combat ----
+
+    checkAutoEndTurn() {
+        if (!this.combat.active || this.state !== 'playerTurn') return;
+        if (this.player.stats.ap <= 0) {
+            this.addMessage('No AP remaining. Ending turn.', 'info');
+            setTimeout(() => this.combat.endTurn(), 500);
+        }
+    }
 
     checkCombatTrigger() {
         if (this.combat.active) return;
