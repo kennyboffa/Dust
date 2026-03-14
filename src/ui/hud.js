@@ -46,6 +46,35 @@ class HUDManager {
         // Combat indicator
         const hud = document.getElementById('game-hud');
         hud.classList.toggle('combat-active', this.game.combat.active);
+
+        // Combat overlay bar
+        let combatBar = document.getElementById('combat-bar');
+        if (this.game.combat.active) {
+            if (!combatBar) {
+                combatBar = document.createElement('div');
+                combatBar.id = 'combat-bar';
+                combatBar.innerHTML = `
+                    <span id="combat-status">COMBAT</span>
+                    <span id="combat-ap-display">AP: 0</span>
+                    <button id="combat-end-turn-btn">END TURN</button>
+                `;
+                document.getElementById('game-hud').appendChild(combatBar);
+                document.getElementById('combat-end-turn-btn').addEventListener('click', () => {
+                    this.game.audio.playSfx('click');
+                    this.game.combat.endTurn();
+                });
+            }
+            combatBar.style.display = 'flex';
+            const isPlayerTurn = this.game.state === 'playerTurn';
+            document.getElementById('combat-status').textContent =
+                isPlayerTurn ? 'YOUR TURN' : 'ENEMY TURN';
+            document.getElementById('combat-ap-display').textContent =
+                `AP: ${player.stats.ap}/${player.stats.maxAp}`;
+            document.getElementById('combat-end-turn-btn').style.display =
+                isPlayerTurn ? 'block' : 'none';
+        } else if (combatBar) {
+            combatBar.style.display = 'none';
+        }
     }
 
     updateInventoryScreen() {

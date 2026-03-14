@@ -778,6 +778,58 @@ body {
     border-top: 2px solid #c44a3a;
 }
 
+/* Combat bar */
+#combat-bar {
+    position: absolute;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(140, 30, 30, 0.85);
+    border: 2px solid #c44a3a;
+    padding: 8px 20px;
+    pointer-events: all;
+    z-index: 10;
+}
+
+#combat-status {
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ff6644;
+    letter-spacing: 3px;
+    text-shadow: 0 0 8px rgba(255, 60, 30, 0.5);
+}
+
+#combat-ap-display {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #ffcc44;
+    letter-spacing: 1px;
+}
+
+#combat-end-turn-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 8px 24px;
+    background: #8b2020;
+    color: #ffcc44;
+    border: 2px solid #ffcc44;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.15s;
+}
+
+#combat-end-turn-btn:hover {
+    background: #aa3030;
+    border-color: #fff;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255, 255, 100, 0.5);
+}
+
 /* Tile hover highlight */
 canvas {
     cursor: default;

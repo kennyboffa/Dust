@@ -5,22 +5,24 @@
 function createVillageArea() {
     // 25x25 tile map - a small desert village with buildings, a well, garden, and paths
     // Legend:
-    // d=dirt, s=sand, g=grass, r=road, S=stone, w=wall, W=wall_top, D=door, t=water, v=void, o=wood
+    // d=dirt, s=sand, g=grass, r=road, S=stone, w=wall, D=door, t=water, v=void, o=wood
     const tileKey = {
         'd': 'dirt',    's': 'sand',     'g': 'grass',   'r': 'road',
-        'S': 'stone',   'w': 'wall',     'W': 'wall_top','D': 'door',
+        'S': 'stone',   'w': 'wall',     'D': 'door',
         't': 'water',   'v': 'void',     'o': 'wood',
     };
 
+    // Buildings now have wood (o) floors inside, walls around edges
+    // Doors (D) provide entry
     const mapRaw = [
         'sssssssssssssssssssssssss',
         'ssssddddddsssssdddddddsss',
         'sssddddddddsssdddddddddss',
         'ssddddddddddrdddddddddddss',
         'ssddwwwwddddrdddddwwwwddss',
-        'ssdwWWWWwdddrdddddwWWWwdss',
-        'ssdwWWWWwdddrddddgwWWWwdss',
-        'ssdwWDWWwdddrddddgwWDWwdss',
+        'ssdwoooowd ddrdddddwooowd ss',
+        'ssdwoooowdddrddddgwooowd ss',
+        'ssdwoDoowd ddrddddgwoDowdss',
         'ssdddDddddddrddddgddDddss',
         'ssddddddddddrdddggddddddss',
         'sssdddddddddrdddgggdddddss',
@@ -28,9 +30,9 @@ function createVillageArea() {
         'sssddddrddddddddrddddddss',
         'ssdddddrddttttddrdddddddss',
         'ssdddddrdtttttddrddwwwwdss',
-        'ssdddddrdtttttddrddwWWwdss',
-        'ssdddddrdddttdddrdwWWWwdss',
-        'ssdddddrddddddddrdwWDWwdss',
+        'ssdddddrdtttttddrddwoowdss',
+        'ssdddddrdddttdddrdwooowd ss',
+        'ssdddddrddddddddrdwoDowdss',
         'sssddddrrrrrrrrrrddddddss',
         'sssdddddddddddddddddddsss',
         'ssssddddddddddddddddddsss',
@@ -41,36 +43,34 @@ function createVillageArea() {
     ];
 
     const map = mapRaw.map(row =>
-        row.split('').map(c => tileKey[c] || 'sand')
+        row.split('').map(c => tileKey[c.trim()] || 'sand')
     );
 
-    // Heights - walls are raised
+    // Heights - only walls are raised
     const heights = mapRaw.map(row =>
         row.split('').map(c => {
             if (c === 'w') return 2;
-            if (c === 'W') return 3;
-            if (c === 'D') return 0;
             return 0;
         })
     );
 
-    // Walkability: walls and water are not walkable
-    const blocked = new Set(['wall', 'wall_top', 'water', 'void']);
+    // Walkability: walls and water are not walkable (wood floors & doors ARE walkable now)
+    const blocked = new Set(['wall', 'water', 'void']);
 
-    // NPCs
+    // NPCs - move elder inside building
     const entities = [
         CharacterSystem.createNPC({
             id: 'elder_mara',
             name: 'Elder Mara',
             spriteType: 'elder',
-            x: 6, y: 6,
+            x: 5, y: 6,
             dialogueId: 'elder_mara',
         }),
         CharacterSystem.createNPC({
             id: 'merchant_hank',
             name: 'Hank the Merchant',
             spriteType: 'merchant',
-            x: 19, y: 16,
+            x: 20, y: 16,
             dialogueId: 'merchant_hank',
         }),
         CharacterSystem.createNPC({
@@ -101,9 +101,9 @@ function createVillageArea() {
         }),
     ];
 
-    // Containers
+    // Containers - place inside buildings
     entities.push(CharacterSystem.createContainer(
-        'village_crate1', 'Supply Crate', 5, 5,
+        'village_crate1', 'Supply Crate', 4, 5,
         [
             { ...ItemDatabase.healing_powder, quantity: 2 },
             { ...ItemDatabase.bottle_caps, quantity: 30 },
@@ -112,7 +112,7 @@ function createVillageArea() {
     ));
 
     entities.push(CharacterSystem.createContainer(
-        'village_chest', 'Old Chest', 20, 6,
+        'village_chest', 'Old Chest', 20, 5,
         [
             { ...ItemDatabase.knife, quantity: 1 },
             { ...ItemDatabase.ragged_clothes, quantity: 1 },

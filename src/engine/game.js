@@ -195,10 +195,17 @@ class Game {
     }
 
     handleMove(gridX, gridY) {
-        // Auto-interact: clicking an NPC talks, clicking a container loots
+        // Auto-interact: clicking an NPC talks, clicking a container loots, clicking enemy attacks
         const target = this.getEntityAt(gridX, gridY);
         if (target) {
             const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+
+            // Auto-attack hostile enemies
+            if (target.isHostile || target.type === 'enemy') {
+                this.handleAttack(gridX, gridY);
+                return;
+            }
+
             if (target.type === 'npc' && target.dialogueId && dist <= 2) {
                 this.dialogue.startDialogue(target);
                 return;
@@ -207,12 +214,7 @@ class Game {
                 this.hud.showLootScreen(target);
                 return;
             }
-            if (target.type === 'npc' && target.dialogueId && dist > 2) {
-                // Walk closer then talk
-                this.walkToAndInteract(target);
-                return;
-            }
-            if (target.type === 'container' && dist > 2) {
+            if ((target.type === 'npc' && target.dialogueId) || target.type === 'container') {
                 this.walkToAndInteract(target);
                 return;
             }
