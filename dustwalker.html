@@ -1,0 +1,5365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dustwalker</title>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@font-face {
+    font-family: 'Dustwalker';
+    src: local('Courier New');
+}
+
+body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    color: #e0d5c0;
+    user-select: none;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+#game-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.screen {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.screen.active {
+    display: flex;
+    pointer-events: all;
+}
+
+/* Title Screen */
+#title-screen {
+    background: linear-gradient(180deg, #1a0e00 0%, #3d2200 40%, #6b3a00 70%, #1a0e00 100%);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.title-content {
+    text-align: center;
+}
+
+.game-title {
+    font-size: 72px;
+    color: #c4943a;
+    text-shadow: 0 0 20px #c4943a55, 0 4px 8px #000;
+    letter-spacing: 12px;
+    margin-bottom: 10px;
+}
+
+.game-subtitle {
+    font-size: 18px;
+    color: #8a7a60;
+    letter-spacing: 6px;
+    margin-bottom: 60px;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+}
+
+.menu-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    padding: 12px 40px;
+    background: #2a1f0e;
+    color: #c4943a;
+    border: 2px solid #6b4e1f;
+    cursor: pointer;
+    letter-spacing: 3px;
+    transition: all 0.2s;
+    min-width: 250px;
+}
+
+.menu-btn:hover {
+    background: #3d2e15;
+    border-color: #c4943a;
+    text-shadow: 0 0 10px #c4943a88;
+}
+
+.menu-btn.secondary {
+    background: #1a1209;
+    color: #8a7a60;
+    border-color: #4a3a20;
+}
+
+/* Character Creation */
+#char-creation {
+    background: rgba(10, 6, 0, 0.95);
+    justify-content: center;
+    align-items: center;
+}
+
+.creation-panel {
+    background: #1a1209;
+    border: 2px solid #6b4e1f;
+    padding: 30px;
+    max-width: 900px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.creation-panel h2 {
+    color: #c4943a;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 28px;
+    letter-spacing: 4px;
+}
+
+.creation-layout {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.creation-left, .creation-right {
+    flex: 1;
+}
+
+.creation-left label {
+    display: block;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.creation-left input {
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    padding: 6px 10px;
+    background: #0a0600;
+    color: #c4943a;
+    border: 1px solid #4a3a20;
+    width: 200px;
+}
+
+.stats-section h3,
+.creation-right h3 {
+    color: #c4943a;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 8px;
+}
+
+.stat-row .stat-name {
+    width: 130px;
+    font-size: 14px;
+}
+
+.stat-row button {
+    font-family: 'Courier New', monospace;
+    width: 24px;
+    height: 24px;
+    background: #2a1f0e;
+    color: #c4943a;
+    border: 1px solid #4a3a20;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.stat-row button:hover {
+    background: #3d2e15;
+    border-color: #c4943a;
+}
+
+.stat-row .stat-value {
+    width: 24px;
+    text-align: center;
+    font-size: 16px;
+    color: #c4943a;
+}
+
+.stat-row .stat-desc {
+    font-size: 11px;
+    color: #6b5a3a;
+    margin-left: 5px;
+}
+
+.skill-tag {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    cursor: pointer;
+    padding: 3px 6px;
+}
+
+.skill-tag:hover {
+    background: #2a1f0e;
+}
+
+.skill-tag.tagged {
+    color: #c4943a;
+}
+
+.skill-tag input {
+    margin-right: 8px;
+    accent-color: #c4943a;
+}
+
+.creation-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* Game HUD */
+#game-hud {
+    pointer-events: none;
+}
+
+#game-hud.active {
+    display: block;
+}
+
+#hud-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 15px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    pointer-events: all;
+}
+
+#hud-location, #hud-time {
+    font-size: 14px;
+    color: #c4943a;
+    text-shadow: 1px 1px 2px #000;
+}
+
+#hud-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background: linear-gradient(180deg, transparent 0%, rgba(10,6,0,0.9) 30%);
+    gap: 10px;
+    pointer-events: all;
+}
+
+#hud-portrait {
+    background: #1a1209;
+    border: 1px solid #4a3a20;
+    padding: 8px;
+    min-width: 140px;
+}
+
+#portrait-name {
+    font-size: 12px;
+    color: #c4943a;
+    margin-bottom: 4px;
+    text-align: center;
+}
+
+.bar-container {
+    height: 14px;
+    background: #0a0600;
+    border: 1px solid #4a3a20;
+    margin-bottom: 3px;
+    position: relative;
+}
+
+.stat-bar {
+    height: 100%;
+    width: 100%;
+    transition: width 0.3s;
+    display: flex;
+    align-items: center;
+    padding-left: 4px;
+}
+
+.stat-bar span {
+    font-size: 10px;
+    position: relative;
+    z-index: 1;
+    text-shadow: 1px 1px 1px #000;
+}
+
+.stat-bar.hp {
+    background: #8b2020;
+}
+
+.stat-bar.ap {
+    background: #1a6b1a;
+}
+
+#hud-actions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    padding: 6px 12px;
+    background: #2a1f0e;
+    color: #c4943a;
+    border: 1px solid #4a3a20;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.action-btn:hover, .action-btn.active {
+    background: #3d2e15;
+    border-color: #c4943a;
+    text-shadow: 0 0 8px #c4943a88;
+}
+
+.action-btn.active {
+    background: #4a3520;
+}
+
+#hud-quick-slots {
+    display: flex;
+    gap: 4px;
+}
+
+.quick-slot {
+    width: 36px;
+    height: 36px;
+    background: #1a1209;
+    border: 1px solid #4a3a20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #6b5a3a;
+    cursor: pointer;
+}
+
+.quick-slot:hover {
+    border-color: #c4943a;
+}
+
+.quick-slot.has-item {
+    color: #c4943a;
+    font-size: 10px;
+}
+
+#hud-menu-buttons {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.hud-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+    background: #2a1f0e;
+    color: #c4943a;
+    border: 1px solid #4a3a20;
+    cursor: pointer;
+}
+
+.hud-btn:hover {
+    background: #3d2e15;
+    border-color: #c4943a;
+}
+
+/* Message Log */
+#message-log {
+    position: absolute;
+    bottom: 70px;
+    left: 10px;
+    width: 400px;
+    max-height: 150px;
+    overflow-y: auto;
+    background: rgba(10, 6, 0, 0.75);
+    border: 1px solid #4a3a2044;
+    padding: 6px 8px;
+    pointer-events: all;
+    scrollbar-width: thin;
+    scrollbar-color: #4a3a20 #0a0600;
+}
+
+#message-log-content {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.msg-combat { color: #c44a3a; }
+.msg-info { color: #8a9a6a; }
+.msg-loot { color: #c4943a; }
+.msg-xp { color: #6a9ac4; }
+.msg-skill { color: #9a6ac4; }
+.msg-dialogue { color: #c4c4c4; }
+
+/* Overlay Screens */
+.overlay {
+    background: rgba(10, 6, 0, 0.85);
+    justify-content: center;
+    align-items: center;
+}
+
+.overlay-panel {
+    background: #1a1209;
+    border: 2px solid #6b4e1f;
+    padding: 25px;
+    max-width: 800px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.overlay-panel h2 {
+    color: #c4943a;
+    text-align: center;
+    margin-bottom: 15px;
+    letter-spacing: 4px;
+}
+
+.overlay-panel h3 {
+    color: #c4943a;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.close-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    padding: 6px 20px;
+    background: #2a1f0e;
+    color: #8a7a60;
+    border: 1px solid #4a3a20;
+    cursor: pointer;
+    display: block;
+    margin: 15px auto 0;
+}
+
+.close-btn:hover {
+    color: #c4943a;
+    border-color: #c4943a;
+}
+
+/* Inventory */
+.inventory-layout {
+    display: flex;
+    gap: 15px;
+    min-height: 300px;
+}
+
+#equipped-items {
+    width: 180px;
+    border-right: 1px solid #4a3a20;
+    padding-right: 15px;
+}
+
+.equip-slot {
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px solid #2a1f0e;
+    cursor: pointer;
+}
+
+.equip-slot:hover {
+    color: #c4943a;
+}
+
+.equip-slot span {
+    color: #6b5a3a;
+}
+
+#inventory-items {
+    flex: 1;
+}
+
+#inv-weight {
+    font-size: 12px;
+    color: #6b5a3a;
+}
+
+#inventory-list {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.inv-item {
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #1a1209;
+}
+
+.inv-item:hover {
+    background: #2a1f0e;
+}
+
+.inv-item.selected {
+    background: #3d2e15;
+    border-color: #4a3a20;
+}
+
+.inv-item .item-qty {
+    color: #6b5a3a;
+    font-size: 11px;
+}
+
+#item-details {
+    width: 200px;
+    border-left: 1px solid #4a3a20;
+    padding-left: 15px;
+}
+
+#item-detail-content {
+    font-size: 13px;
+    color: #8a7a60;
+}
+
+.detail-stat {
+    margin: 4px 0;
+    font-size: 12px;
+}
+
+.detail-actions {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-actions button {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 4px 8px;
+    background: #2a1f0e;
+    color: #c4943a;
+    border: 1px solid #4a3a20;
+    cursor: pointer;
+}
+
+.detail-actions button:hover {
+    background: #3d2e15;
+    border-color: #c4943a;
+}
+
+/* Character Sheet */
+.char-sheet-layout {
+    display: flex;
+    gap: 20px;
+}
+
+#char-stats-display, #char-skills-display, #char-perks-display {
+    flex: 1;
+}
+
+.cs-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 13px;
+}
+
+.cs-stat .cs-val {
+    color: #c4943a;
+}
+
+.cs-skill {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    font-size: 12px;
+}
+
+.cs-skill .cs-val {
+    color: #8a9a6a;
+}
+
+/* Dialogue */
+.dialogue-panel {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    background: #1a1209ee;
+    border: 2px solid #6b4e1f;
+    padding: 20px;
+    pointer-events: all;
+}
+
+#dialogue-npc-name {
+    color: #c4943a;
+    font-size: 16px;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+#dialogue-text {
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    color: #c4c4c4;
+    min-height: 60px;
+}
+
+#dialogue-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dialogue-option {
+    padding: 6px 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #8a9a6a;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: none;
+    text-align: left;
+    display: block;
+    width: 100%;
+}
+
+.dialogue-option:hover {
+    color: #c4943a;
+    background: #2a1f0e;
+    border-color: #4a3a2044;
+}
+
+.dialogue-option .skill-req {
+    color: #9a6ac4;
+    font-size: 11px;
+}
+
+.dialogue-option .skill-fail {
+    color: #6b5a3a;
+}
+
+/* Level Up */
+#levelup-content {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+#levelup-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 15px;
+    text-align: left;
+}
+
+.levelup-skill-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 220px;
+}
+
+.levelup-skill-row .skill-name {
+    flex: 1;
+    font-size: 12px;
+}
+
+.levelup-skill-row .skill-val {
+    width: 30px;
+    text-align: center;
+    color: #c4943a;
+}
+
+.levelup-skill-row button {
+    font-family: 'Courier New', monospace;
+    width: 20px;
+    height: 20px;
+    background: #2a1f0e;
+    color: #c4943a;
+    border: 1px solid #4a3a20;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* World Map */
+#world-map {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+
+#map-canvas {
+    border: 1px solid #4a3a20;
+    background: #0a0600;
+}
+
+/* Loot Screen */
+#loot-items {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+.loot-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.loot-item:hover {
+    background: #2a1f0e;
+}
+
+.loot-item button {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    background: #2a1f0e;
+    color: #c4943a;
+    border: 1px solid #4a3a20;
+    cursor: pointer;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #0a0600;
+}
+::-webkit-scrollbar-thumb {
+    background: #4a3a20;
+}
+
+/* Combat indicators */
+.combat-active #hud-bottom {
+    border-top: 2px solid #c44a3a;
+}
+
+/* Tile hover highlight */
+canvas {
+    cursor: default;
+}
+
+.cursor-move { cursor: pointer; }
+.cursor-attack { cursor: crosshair; }
+.cursor-talk { cursor: help; }
+.cursor-look { cursor: zoom-in; }
+
+/* ==========================================
+   MOBILE / TOUCH RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 36px;
+        letter-spacing: 6px;
+    }
+    .game-subtitle {
+        font-size: 14px;
+        margin-bottom: 40px;
+    }
+    .menu-btn {
+        font-size: 14px;
+        padding: 10px 30px;
+        min-width: 200px;
+    }
+
+    /* Character Creation */
+    .creation-panel {
+        padding: 15px;
+        width: 95%;
+        max-height: 95vh;
+    }
+    .creation-panel h2 {
+        font-size: 20px;
+    }
+    .creation-layout {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .stat-row .stat-name {
+        width: 80px;
+        font-size: 12px;
+    }
+    .stat-row .stat-desc {
+        display: none;
+    }
+    .stat-row button {
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+    }
+    .skill-tag {
+        padding: 6px;
+        font-size: 13px;
+    }
+
+    /* HUD - Bottom bar stacks vertically on small screens */
+    #hud-bottom {
+        flex-wrap: wrap;
+        padding: 6px;
+        gap: 6px;
+    }
+    #hud-portrait {
+        min-width: 100px;
+        padding: 5px;
+        order: 1;
+    }
+    #portrait-name {
+        font-size: 10px;
+    }
+    #hud-actions {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+    }
+    .action-btn {
+        font-size: 11px;
+        padding: 8px 10px;
+        flex: 1;
+        text-align: center;
+        min-height: 36px;
+    }
+    #hud-quick-slots {
+        order: 4;
+        display: none; /* Hide quick slots on mobile — use inventory instead */
+    }
+    #hud-menu-buttons {
+        order: 2;
+        margin-left: auto;
+        gap: 3px;
+    }
+    .hud-btn {
+        font-size: 10px;
+        padding: 8px 8px;
+        min-height: 36px;
+    }
+
+    /* Message log */
+    #message-log {
+        bottom: 120px;
+        left: 5px;
+        right: 5px;
+        width: auto;
+        max-height: 80px;
+    }
+    #message-log-content {
+        font-size: 11px;
+    }
+
+    /* Top bar */
+    #hud-top {
+        padding: 5px 10px;
+    }
+    #hud-location, #hud-time {
+        font-size: 11px;
+    }
+
+    /* Overlay panels */
+    .overlay-panel {
+        padding: 15px;
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    /* Inventory - stack vertically */
+    .inventory-layout {
+        flex-direction: column;
+        min-height: auto;
+    }
+    #equipped-items {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #4a3a20;
+        padding-right: 0;
+        padding-bottom: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .equip-slot {
+        padding: 8px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+    #inventory-list {
+        max-height: 150px;
+    }
+    .inv-item {
+        padding: 8px;
+        min-height: 36px;
+    }
+    #item-details {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #4a3a20;
+        padding-left: 0;
+        padding-top: 10px;
+    }
+    .detail-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .detail-actions button {
+        padding: 8px 14px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+
+    /* Character sheet - stack */
+    .char-sheet-layout {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Dialogue */
+    .dialogue-panel {
+        width: 95%;
+        bottom: 130px;
+        padding: 12px;
+    }
+    #dialogue-npc-name {
+        font-size: 14px;
+    }
+    #dialogue-text {
+        font-size: 13px;
+        min-height: 40px;
+    }
+    .dialogue-option {
+        padding: 10px;
+        font-size: 13px;
+        min-height: 40px;
+    }
+
+    /* Level up */
+    .levelup-skill-row {
+        width: 100%;
+    }
+    .levelup-skill-row button {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    /* Loot */
+    .loot-item {
+        padding: 10px 8px;
+        min-height: 40px;
+    }
+    .loot-item button {
+        padding: 6px 14px;
+        font-size: 12px;
+    }
+
+    /* Close buttons bigger for touch */
+    .close-btn {
+        padding: 10px 30px;
+        font-size: 14px;
+        min-height: 40px;
+    }
+}
+
+/* Extra small phones */
+@media (max-width: 400px) {
+    .game-title {
+        font-size: 28px;
+        letter-spacing: 4px;
+    }
+    .action-btn {
+        font-size: 10px;
+        padding: 6px 6px;
+    }
+    .hud-btn {
+        padding: 6px 6px;
+        font-size: 9px;
+    }
+    .dialogue-panel {
+        bottom: 110px;
+    }
+}
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-layer">
+            <!-- Title Screen -->
+            <div id="title-screen" class="screen active">
+                <div class="title-content">
+                    <h1 class="game-title">DUSTWALKER</h1>
+                    <p class="game-subtitle">The Wasteland Awaits</p>
+                    <div class="menu-buttons">
+                        <button id="btn-new-game" class="menu-btn">New Game</button>
+                        <button id="btn-load-game" class="menu-btn">Load Game</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Character Creation -->
+            <div id="char-creation" class="screen">
+                <div class="creation-panel">
+                    <h2>Create Your Character</h2>
+                    <div class="creation-layout">
+                        <div class="creation-left">
+                            <label>Name: <input type="text" id="char-name" value="Wanderer" maxlength="20"></label>
+                            <div class="stats-section">
+                                <h3>S.P.E.C.I.A.L. <span id="stat-points-remaining">5</span> points remaining</h3>
+                                <div id="special-stats"></div>
+                            </div>
+                        </div>
+                        <div class="creation-right">
+                            <h3>Tag Skills (pick 3)</h3>
+                            <div id="tag-skills"></div>
+                        </div>
+                    </div>
+                    <div class="creation-buttons">
+                        <button id="btn-start-game" class="menu-btn">Enter the Wasteland</button>
+                        <button id="btn-back-title" class="menu-btn secondary">Back</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game HUD -->
+            <div id="game-hud" class="screen">
+                <!-- Top bar -->
+                <div id="hud-top">
+                    <div id="hud-location">Dusthaven Village</div>
+                    <div id="hud-time">Day 1 - 08:00</div>
+                </div>
+
+                <!-- Action bar (bottom) -->
+                <div id="hud-bottom">
+                    <div id="hud-portrait">
+                        <div id="portrait-name">Wanderer</div>
+                        <div class="bar-container">
+                            <div id="hp-bar" class="stat-bar hp"><span>HP</span></div>
+                        </div>
+                        <div class="bar-container">
+                            <div id="ap-bar" class="stat-bar ap"><span>AP</span></div>
+                        </div>
+                    </div>
+                    <div id="hud-actions">
+                        <button class="action-btn" data-action="move" title="Move (M)">Move</button>
+                        <button class="action-btn" data-action="attack" title="Attack (A)">Attack</button>
+                        <button class="action-btn" data-action="use" title="Use Item (U)">Use</button>
+                        <button class="action-btn" data-action="talk" title="Talk (T)">Talk</button>
+                        <button class="action-btn" data-action="look" title="Look (L)">Look</button>
+                        <button class="action-btn" data-action="end-turn" title="End Turn (Space)">End Turn</button>
+                    </div>
+                    <div id="hud-quick-slots">
+                        <div class="quick-slot" data-slot="0">1</div>
+                        <div class="quick-slot" data-slot="1">2</div>
+                        <div class="quick-slot" data-slot="2">3</div>
+                        <div class="quick-slot" data-slot="3">4</div>
+                    </div>
+                    <div id="hud-menu-buttons">
+                        <button class="hud-btn" id="btn-inventory" title="Inventory (I)">INV</button>
+                        <button class="hud-btn" id="btn-character" title="Character (C)">CHAR</button>
+                        <button class="hud-btn" id="btn-pipboy" title="PipBoy (P)">MAP</button>
+                        <button class="hud-btn" id="btn-save" title="Save (F5)">SAVE</button>
+                    </div>
+                </div>
+
+                <!-- Message log -->
+                <div id="message-log">
+                    <div id="message-log-content"></div>
+                </div>
+            </div>
+
+            <!-- Inventory Screen -->
+            <div id="inventory-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>Inventory</h2>
+                    <div class="inventory-layout">
+                        <div id="equipped-items">
+                            <h3>Equipped</h3>
+                            <div class="equip-slot" data-slot="weapon">Weapon: <span>—</span></div>
+                            <div class="equip-slot" data-slot="armor">Armor: <span>—</span></div>
+                            <div class="equip-slot" data-slot="accessory">Accessory: <span>—</span></div>
+                        </div>
+                        <div id="inventory-items">
+                            <h3>Items <span id="inv-weight">0/100 lbs</span></h3>
+                            <div id="inventory-list"></div>
+                        </div>
+                        <div id="item-details">
+                            <h3>Details</h3>
+                            <div id="item-detail-content">Select an item</div>
+                        </div>
+                    </div>
+                    <button class="close-btn" data-close="inventory-screen">Close (Esc)</button>
+                </div>
+            </div>
+
+            <!-- Character Sheet -->
+            <div id="character-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>Character Sheet</h2>
+                    <div class="char-sheet-layout">
+                        <div id="char-stats-display"></div>
+                        <div id="char-skills-display"></div>
+                        <div id="char-perks-display">
+                            <h3>Perks</h3>
+                            <div id="perks-list">None yet</div>
+                        </div>
+                    </div>
+                    <button class="close-btn" data-close="character-screen">Close (Esc)</button>
+                </div>
+            </div>
+
+            <!-- Dialogue Screen -->
+            <div id="dialogue-screen" class="screen overlay">
+                <div class="dialogue-panel">
+                    <div id="dialogue-npc-name"></div>
+                    <div id="dialogue-text"></div>
+                    <div id="dialogue-options"></div>
+                </div>
+            </div>
+
+            <!-- Level Up Screen -->
+            <div id="levelup-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>Level Up!</h2>
+                    <div id="levelup-content">
+                        <p>You are now level <span id="new-level">2</span></p>
+                        <h3>Distribute <span id="skill-points-available">0</span> skill points</h3>
+                        <div id="levelup-skills"></div>
+                    </div>
+                    <button id="btn-confirm-levelup" class="menu-btn">Confirm</button>
+                </div>
+            </div>
+
+            <!-- Map Screen -->
+            <div id="map-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>World Map</h2>
+                    <div id="world-map">
+                        <canvas id="map-canvas" width="400" height="300"></canvas>
+                    </div>
+                    <button class="close-btn" data-close="map-screen">Close (Esc)</button>
+                </div>
+            </div>
+
+            <!-- Loot/Container Screen -->
+            <div id="loot-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2 id="loot-title">Container</h2>
+                    <div id="loot-items"></div>
+                    <button id="btn-take-all" class="menu-btn">Take All</button>
+                    <button class="close-btn" data-close="loot-screen">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+// ---- utils.js ----
+// ============================================
+// Dustwalker - Utility Functions
+// ============================================
+
+const Utils = {
+    // Isometric coordinate conversion
+    // World coords (grid x,y) -> Screen coords (pixel x,y)
+    toScreen(gridX, gridY, tileWidth, tileHeight) {
+        return {
+            x: (gridX - gridY) * (tileWidth / 2),
+            y: (gridX + gridY) * (tileHeight / 2)
+        };
+    },
+
+    // Screen coords -> World grid coords
+    toGrid(screenX, screenY, tileWidth, tileHeight) {
+        const gx = (screenX / (tileWidth / 2) + screenY / (tileHeight / 2)) / 2;
+        const gy = (screenY / (tileHeight / 2) - screenX / (tileWidth / 2)) / 2;
+        return { x: Math.floor(gx), y: Math.floor(gy) };
+    },
+
+    // Distance between two grid points
+    gridDistance(x1, y1, x2, y2) {
+        return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+    },
+
+    // Manhattan distance
+    manhattanDistance(x1, y1, x2, y2) {
+        return Math.abs(x2 - x1) + Math.abs(y2 - y1);
+    },
+
+    // Dice roll: "2d6+3" format
+    rollDice(formula) {
+        const match = formula.match(/(\d+)d(\d+)([+-]\d+)?/);
+        if (!match) return parseInt(formula) || 0;
+        const [, count, sides, modifier] = match;
+        let total = 0;
+        for (let i = 0; i < parseInt(count); i++) {
+            total += Math.floor(Math.random() * parseInt(sides)) + 1;
+        }
+        return total + (parseInt(modifier) || 0);
+    },
+
+    // Random integer [min, max] inclusive
+    randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    },
+
+    // Random element from array
+    randChoice(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    },
+
+    // Percentage check
+    percentCheck(chance) {
+        return Math.random() * 100 < chance;
+    },
+
+    // Clamp value
+    clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+    },
+
+    // Lerp
+    lerp(a, b, t) {
+        return a + (b - a) * t;
+    },
+
+    // Simple A* pathfinding
+    findPath(startX, startY, endX, endY, isWalkable, maxSteps = 50) {
+        const openSet = [];
+        const closedSet = new Set();
+        const start = { x: startX, y: startY, g: 0, h: 0, f: 0, parent: null };
+        start.h = Utils.manhattanDistance(startX, startY, endX, endY);
+        start.f = start.h;
+        openSet.push(start);
+
+        while (openSet.length > 0) {
+            // Find lowest f
+            let lowestIdx = 0;
+            for (let i = 1; i < openSet.length; i++) {
+                if (openSet[i].f < openSet[lowestIdx].f) lowestIdx = i;
+            }
+            const current = openSet.splice(lowestIdx, 1)[0];
+
+            if (current.x === endX && current.y === endY) {
+                const path = [];
+                let node = current;
+                while (node.parent) {
+                    path.unshift({ x: node.x, y: node.y });
+                    node = node.parent;
+                }
+                return path;
+            }
+
+            closedSet.add(`${current.x},${current.y}`);
+
+            // 8-directional neighbors
+            const dirs = [
+                [-1,0],[1,0],[0,-1],[0,1],
+                [-1,-1],[-1,1],[1,-1],[1,1]
+            ];
+
+            for (const [dx, dy] of dirs) {
+                const nx = current.x + dx;
+                const ny = current.y + dy;
+                const key = `${nx},${ny}`;
+
+                if (closedSet.has(key) || !isWalkable(nx, ny)) continue;
+
+                const g = current.g + (dx !== 0 && dy !== 0 ? 1.4 : 1);
+                const existing = openSet.find(n => n.x === nx && n.y === ny);
+
+                if (!existing) {
+                    const h = Utils.manhattanDistance(nx, ny, endX, endY);
+                    openSet.push({ x: nx, y: ny, g, h, f: g + h, parent: current });
+                } else if (g < existing.g) {
+                    existing.g = g;
+                    existing.f = g + existing.h;
+                    existing.parent = current;
+                }
+            }
+
+            if (closedSet.size > maxSteps) return null; // Too far
+        }
+
+        return null; // No path found
+    },
+
+    // Deep clone
+    deepClone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    },
+
+    // Generate unique ID
+    uid() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    }
+};
+
+// ---- renderer.js ----
+// ============================================
+// Dustwalker - Isometric Renderer
+// ============================================
+
+class IsometricRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.tileWidth = 64;
+        this.tileHeight = 32;
+        this.camera = { x: 0, y: 0, zoom: 1 };
+        this.animationFrame = 0;
+        this.animationTimer = 0;
+
+        // Tile color palette
+        this.tileColors = {
+            // Village tiles
+            'dirt':        { top: '#8B7355', left: '#6B5335', right: '#7B6345', stroke: '#5B4325' },
+            'sand':        { top: '#C2B280', left: '#A29260', right: '#B2A270', stroke: '#928250' },
+            'grass':       { top: '#5B7B3A', left: '#3B5B1A', right: '#4B6B2A', stroke: '#2B4B0A' },
+            'stone':       { top: '#808080', left: '#606060', right: '#707070', stroke: '#505050' },
+            'wood':        { top: '#8B6914', left: '#6B4904', right: '#7B590A', stroke: '#5B3900' },
+            'water':       { top: '#2244AA', left: '#1234AA', right: '#1A3CAA', stroke: '#0A24AA' },
+            'road':        { top: '#6B6B5B', left: '#4B4B3B', right: '#5B5B4B', stroke: '#3B3B2B' },
+            // Cave tiles
+            'cave_floor':  { top: '#4A4040', left: '#3A3030', right: '#403838', stroke: '#2A2020' },
+            'cave_wall':   { top: '#5A5050', left: '#3A3030', right: '#4A4040', stroke: '#2A2020' },
+            'cave_rock':   { top: '#656058', left: '#454038', right: '#555048', stroke: '#353028' },
+            'lava':        { top: '#CC4400', left: '#AA2200', right: '#BB3300', stroke: '#881100' },
+            'crystal':     { top: '#66AACC', left: '#4488AA', right: '#5599BB', stroke: '#337799' },
+            // Shared
+            'wall':        { top: '#9A8A6A', left: '#6A5A3A', right: '#7A6A4A', stroke: '#5A4A2A' },
+            'wall_top':    { top: '#AA9A7A', left: '#7A6A4A', right: '#8A7A5A', stroke: '#6A5A3A' },
+            'door':        { top: '#6B4914', left: '#4B2904', right: '#5B390A', stroke: '#3B1900' },
+            'void':        { top: '#000000', left: '#000000', right: '#000000', stroke: '#000000' },
+        };
+
+        // Entity sprites (drawn procedurally)
+        this.entityColors = {
+            'player':     { body: '#C4943A', head: '#E0C080', outline: '#6B4E1F' },
+            'villager':   { body: '#8899AA', head: '#CCBB99', outline: '#556677' },
+            'merchant':   { body: '#AA8855', head: '#CCBB99', outline: '#665533' },
+            'elder':      { body: '#9966CC', head: '#CCBB99', outline: '#664499' },
+            'guard':      { body: '#668844', head: '#CCBB99', outline: '#445522' },
+            'rat':        { body: '#6B5B4B', head: '#7B6B5B', outline: '#4B3B2B' },
+            'scorpion':   { body: '#8B4513', head: '#A0522D', outline: '#5B2503' },
+            'raider':     { body: '#8B0000', head: '#CC9977', outline: '#5B0000' },
+            'mutant':     { body: '#4B8B00', head: '#6BAB20', outline: '#2B5B00' },
+            'cave_spider':{ body: '#2B2B2B', head: '#3B3B3B', outline: '#1B1B1B' },
+            'chest':      { body: '#8B6914', head: '#AA8834', outline: '#5B3900' },
+            'crate':      { body: '#7B5B0A', head: '#8B6B1A', outline: '#4B3B00' },
+            'bones':      { body: '#CCBBAA', head: '#DDCCBB', outline: '#998877' },
+        };
+
+        this.resize();
+    }
+
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+
+    clear() {
+        this.ctx.fillStyle = '#0a0600';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    // Convert world grid position to screen position with camera
+    worldToScreen(gx, gy) {
+        const iso = Utils.toScreen(gx, gy, this.tileWidth, this.tileHeight);
+        return {
+            x: (iso.x - this.camera.x) * this.camera.zoom + this.canvas.width / 2,
+            y: (iso.y - this.camera.y) * this.camera.zoom + this.canvas.height / 2
+        };
+    }
+
+    // Convert screen position to world grid
+    screenToWorld(sx, sy) {
+        const worldX = (sx - this.canvas.width / 2) / this.camera.zoom + this.camera.x;
+        const worldY = (sy - this.canvas.height / 2) / this.camera.zoom + this.camera.y;
+        return Utils.toGrid(worldX, worldY, this.tileWidth, this.tileHeight);
+    }
+
+    // Center camera on grid position
+    centerOn(gx, gy) {
+        const iso = Utils.toScreen(gx, gy, this.tileWidth, this.tileHeight);
+        this.camera.x = iso.x;
+        this.camera.y = iso.y;
+    }
+
+    // Draw an isometric tile
+    drawTile(gx, gy, tileType, height = 0) {
+        const colors = this.tileColors[tileType] || this.tileColors['dirt'];
+        const screen = this.worldToScreen(gx, gy);
+        const tw = this.tileWidth * this.camera.zoom / 2;
+        const th = this.tileHeight * this.camera.zoom / 2;
+        const hOffset = height * 8 * this.camera.zoom;
+
+        const ctx = this.ctx;
+
+        // Top face
+        ctx.beginPath();
+        ctx.moveTo(screen.x, screen.y - th - hOffset);
+        ctx.lineTo(screen.x + tw, screen.y - hOffset);
+        ctx.lineTo(screen.x, screen.y + th - hOffset);
+        ctx.lineTo(screen.x - tw, screen.y - hOffset);
+        ctx.closePath();
+        ctx.fillStyle = colors.top;
+        ctx.fill();
+        ctx.strokeStyle = colors.stroke;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+
+        if (height > 0) {
+            // Left face
+            ctx.beginPath();
+            ctx.moveTo(screen.x - tw, screen.y - hOffset);
+            ctx.lineTo(screen.x, screen.y + th - hOffset);
+            ctx.lineTo(screen.x, screen.y + th);
+            ctx.lineTo(screen.x - tw, screen.y);
+            ctx.closePath();
+            ctx.fillStyle = colors.left;
+            ctx.fill();
+            ctx.strokeStyle = colors.stroke;
+            ctx.stroke();
+
+            // Right face
+            ctx.beginPath();
+            ctx.moveTo(screen.x + tw, screen.y - hOffset);
+            ctx.lineTo(screen.x, screen.y + th - hOffset);
+            ctx.lineTo(screen.x, screen.y + th);
+            ctx.lineTo(screen.x + tw, screen.y);
+            ctx.closePath();
+            ctx.fillStyle = colors.right;
+            ctx.fill();
+            ctx.strokeStyle = colors.stroke;
+            ctx.stroke();
+        }
+    }
+
+    // Draw a highlighted tile (for movement range, targeting, etc.)
+    drawTileHighlight(gx, gy, color = 'rgba(196, 148, 58, 0.3)', borderColor = 'rgba(196, 148, 58, 0.6)') {
+        const screen = this.worldToScreen(gx, gy);
+        const tw = this.tileWidth * this.camera.zoom / 2;
+        const th = this.tileHeight * this.camera.zoom / 2;
+
+        const ctx = this.ctx;
+        ctx.beginPath();
+        ctx.moveTo(screen.x, screen.y - th);
+        ctx.lineTo(screen.x + tw, screen.y);
+        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x - tw, screen.y);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    // Draw entity (character, NPC, enemy, object)
+    drawEntity(gx, gy, entityType, facing = 'south', isSelected = false, hp = null, maxHp = null) {
+        const colors = this.entityColors[entityType] || this.entityColors['villager'];
+        const screen = this.worldToScreen(gx, gy);
+        const ctx = this.ctx;
+        const z = this.camera.zoom;
+
+        // Selection indicator
+        if (isSelected) {
+            this.drawTileHighlight(gx, gy, 'rgba(100, 200, 100, 0.2)', 'rgba(100, 200, 100, 0.5)');
+        }
+
+        if (entityType === 'chest' || entityType === 'crate') {
+            // Draw container as a small box
+            const bw = 12 * z;
+            const bh = 10 * z;
+            ctx.fillStyle = colors.body;
+            ctx.fillRect(screen.x - bw/2, screen.y - bh - 4*z, bw, bh);
+            ctx.fillStyle = colors.head;
+            ctx.fillRect(screen.x - bw/2, screen.y - bh - 4*z, bw, 3*z);
+            ctx.strokeStyle = colors.outline;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(screen.x - bw/2, screen.y - bh - 4*z, bw, bh);
+            return;
+        }
+
+        if (entityType === 'bones') {
+            ctx.fillStyle = colors.body;
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y - 4*z, 4*z, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = colors.outline;
+            ctx.fillRect(screen.x - 6*z, screen.y - 2*z, 12*z, 1.5*z);
+            return;
+        }
+
+        const isSmallCreature = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
+        const bodyW = isSmallCreature ? 8 * z : 10 * z;
+        const bodyH = isSmallCreature ? 6 * z : 16 * z;
+        const headR = isSmallCreature ? 3 * z : 5 * z;
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(screen.x, screen.y, 8 * z, 4 * z, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body
+        ctx.fillStyle = colors.body;
+        ctx.fillRect(screen.x - bodyW/2, screen.y - bodyH - 2*z, bodyW, bodyH);
+
+        // Head
+        ctx.fillStyle = colors.head;
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y - bodyH - 2*z - headR, headR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Outline
+        ctx.strokeStyle = colors.outline;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(screen.x - bodyW/2, screen.y - bodyH - 2*z, bodyW, bodyH);
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y - bodyH - 2*z - headR, headR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // HP bar (if applicable and damaged)
+        if (hp !== null && maxHp !== null && hp < maxHp) {
+            const barW = 20 * z;
+            const barH = 3 * z;
+            const barY = screen.y - bodyH - 2*z - headR * 2 - 6*z;
+
+            ctx.fillStyle = '#333';
+            ctx.fillRect(screen.x - barW/2, barY, barW, barH);
+
+            const hpRatio = hp / maxHp;
+            ctx.fillStyle = hpRatio > 0.5 ? '#4a4' : hpRatio > 0.25 ? '#aa4' : '#a44';
+            ctx.fillRect(screen.x - barW/2, barY, barW * hpRatio, barH);
+
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 0.5;
+            ctx.strokeRect(screen.x - barW/2, barY, barW, barH);
+        }
+    }
+
+    // Draw floating text (damage numbers, XP gained, etc.)
+    drawFloatingText(gx, gy, text, color = '#fff', offsetY = 0) {
+        const screen = this.worldToScreen(gx, gy);
+        const ctx = this.ctx;
+        const z = this.camera.zoom;
+
+        ctx.font = `bold ${12 * z}px 'Courier New'`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#000';
+        ctx.fillText(text, screen.x + 1, screen.y - 30 * z + offsetY + 1);
+        ctx.fillStyle = color;
+        ctx.fillText(text, screen.x, screen.y - 30 * z + offsetY);
+    }
+
+    // Draw path indicator
+    drawPath(path, color = 'rgba(100, 200, 100, 0.4)') {
+        for (const point of path) {
+            this.drawTileHighlight(point.x, point.y, color, 'rgba(100, 200, 100, 0.6)');
+        }
+    }
+
+    // Draw movement range
+    drawMovementRange(tiles, color = 'rgba(100, 200, 100, 0.15)') {
+        for (const tile of tiles) {
+            this.drawTileHighlight(tile.x, tile.y, color, 'rgba(100, 200, 100, 0.3)');
+        }
+    }
+
+    // Draw attack range
+    drawAttackRange(tiles) {
+        for (const tile of tiles) {
+            this.drawTileHighlight(tile.x, tile.y, 'rgba(200, 50, 50, 0.15)', 'rgba(200, 50, 50, 0.4)');
+        }
+    }
+
+    // Draw area transition indicator
+    drawTransition(gx, gy, label) {
+        const screen = this.worldToScreen(gx, gy);
+        const ctx = this.ctx;
+        const z = this.camera.zoom;
+
+        // Glowing tile
+        this.drawTileHighlight(gx, gy,
+            `rgba(100, 150, 255, ${0.2 + Math.sin(Date.now() / 500) * 0.1})`,
+            'rgba(100, 150, 255, 0.6)'
+        );
+
+        // Label
+        ctx.font = `${10 * z}px 'Courier New'`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#6a9ac4';
+        ctx.fillText(label, screen.x, screen.y - 8 * z);
+    }
+
+    // Render the complete area
+    renderArea(area, entities, playerPos, gameState) {
+        this.clear();
+        this.updateAnimation();
+
+        const map = area.map;
+        const heights = area.heights;
+
+        // Calculate visible tile range for culling
+        const margin = 4;
+        const topLeft = this.screenToWorld(0, 0);
+        const bottomRight = this.screenToWorld(this.canvas.width, this.canvas.height);
+
+        // Collect all renderable items and sort by depth
+        const renderList = [];
+
+        // Add tiles
+        for (let y = 0; y < map.length; y++) {
+            for (let x = 0; x < map[0].length; x++) {
+                const tile = map[y][x];
+                if (tile === 'void') continue;
+                const h = heights ? (heights[y] ? heights[y][x] || 0 : 0) : 0;
+                renderList.push({
+                    type: 'tile',
+                    x, y,
+                    depth: x + y,
+                    tileType: tile,
+                    height: h
+                });
+            }
+        }
+
+        // Add entities
+        for (const ent of entities) {
+            renderList.push({
+                type: 'entity',
+                x: ent.x,
+                y: ent.y,
+                depth: ent.x + ent.y + 0.5,
+                entity: ent
+            });
+        }
+
+        // Sort by depth (back to front)
+        renderList.sort((a, b) => a.depth - b.depth);
+
+        // Render
+        for (const item of renderList) {
+            if (item.type === 'tile') {
+                this.drawTile(item.x, item.y, item.tileType, item.height);
+            } else if (item.type === 'entity') {
+                const ent = item.entity;
+                this.drawEntity(
+                    ent.x, ent.y,
+                    ent.spriteType || ent.type,
+                    ent.facing || 'south',
+                    ent === gameState.selectedEntity,
+                    ent.stats ? ent.stats.hp : null,
+                    ent.stats ? ent.stats.maxHp : null
+                );
+            }
+        }
+
+        // Draw transitions
+        if (area.transitions) {
+            for (const t of area.transitions) {
+                this.drawTransition(t.x, t.y, t.label || 'Exit');
+            }
+        }
+
+        // Draw highlights based on game mode
+        if (gameState.highlights) {
+            for (const h of gameState.highlights) {
+                if (h.type === 'move') {
+                    this.drawTileHighlight(h.x, h.y, 'rgba(100, 200, 100, 0.15)', 'rgba(100, 200, 100, 0.3)');
+                } else if (h.type === 'attack') {
+                    this.drawTileHighlight(h.x, h.y, 'rgba(200, 50, 50, 0.15)', 'rgba(200, 50, 50, 0.4)');
+                } else if (h.type === 'path') {
+                    this.drawTileHighlight(h.x, h.y, 'rgba(100, 200, 100, 0.3)', 'rgba(100, 200, 100, 0.5)');
+                }
+            }
+        }
+
+        // Hover tile
+        if (gameState.hoverTile) {
+            this.drawTileHighlight(
+                gameState.hoverTile.x, gameState.hoverTile.y,
+                'rgba(196, 148, 58, 0.15)', 'rgba(196, 148, 58, 0.4)'
+            );
+        }
+
+        // Floating texts
+        if (gameState.floatingTexts) {
+            for (const ft of gameState.floatingTexts) {
+                this.drawFloatingText(ft.x, ft.y, ft.text, ft.color, ft.offsetY);
+            }
+        }
+    }
+
+    updateAnimation() {
+        this.animationTimer++;
+        if (this.animationTimer >= 30) {
+            this.animationTimer = 0;
+            this.animationFrame = (this.animationFrame + 1) % 4;
+        }
+    }
+
+    // Draw the world map
+    drawWorldMap(ctx, locations, currentLocation) {
+        ctx.fillStyle = '#1a1209';
+        ctx.fillRect(0, 0, 400, 300);
+
+        // Draw wasteland background
+        ctx.fillStyle = '#2a1f0e';
+        for (let i = 0; i < 50; i++) {
+            const x = (i * 37) % 400;
+            const y = (i * 53) % 300;
+            ctx.fillRect(x, y, 2, 2);
+        }
+
+        for (const loc of locations) {
+            const isCurrent = loc.id === currentLocation;
+
+            // Draw connection lines
+            if (loc.connections) {
+                for (const connId of loc.connections) {
+                    const conn = locations.find(l => l.id === connId);
+                    if (conn) {
+                        ctx.beginPath();
+                        ctx.moveTo(loc.mapX, loc.mapY);
+                        ctx.lineTo(conn.mapX, conn.mapY);
+                        ctx.strokeStyle = '#4a3a20';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([4, 4]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+            }
+
+            // Location dot
+            ctx.beginPath();
+            ctx.arc(loc.mapX, loc.mapY, isCurrent ? 8 : 5, 0, Math.PI * 2);
+            ctx.fillStyle = isCurrent ? '#c4943a' : (loc.discovered ? '#6b5a3a' : '#3a2a1a');
+            ctx.fill();
+            ctx.strokeStyle = isCurrent ? '#e0d5c0' : '#4a3a20';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Label
+            if (loc.discovered || isCurrent) {
+                ctx.font = '10px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = isCurrent ? '#c4943a' : '#6b5a3a';
+                ctx.fillText(loc.name, loc.mapX, loc.mapY + 18);
+            }
+        }
+    }
+}
+
+// ---- input.js ----
+// ============================================
+// Dustwalker - Input Handler
+// ============================================
+
+class InputHandler {
+    constructor(canvas, renderer) {
+        this.canvas = canvas;
+        this.renderer = renderer;
+        this.mouse = { x: 0, y: 0, gridX: 0, gridY: 0, down: false };
+        this.keys = {};
+        this.callbacks = {};
+        this.isDragging = false;
+        this.dragStart = { x: 0, y: 0, camX: 0, camY: 0 };
+        this.enabled = true;
+
+        this.setupListeners();
+    }
+
+    setupListeners() {
+        // Mouse events
+        this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
+        this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+        this.canvas.addEventListener('click', (e) => this.onClick(e));
+        this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.emit('rightclick', this.mouse);
+        });
+        this.canvas.addEventListener('wheel', (e) => this.onWheel(e));
+
+        // Touch events
+        this.touchState = {
+            startX: 0, startY: 0,
+            lastX: 0, lastY: 0,
+            startTime: 0,
+            moved: false,
+            pinchStartDist: 0,
+            pinchStartZoom: 1,
+            numTouches: 0,
+        };
+
+        this.canvas.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
+        this.canvas.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+        this.canvas.addEventListener('touchend', (e) => this.onTouchEnd(e), { passive: false });
+
+        // Keyboard
+        window.addEventListener('keydown', (e) => this.onKeyDown(e));
+        window.addEventListener('keyup', (e) => this.onKeyUp(e));
+        window.addEventListener('resize', () => this.renderer.resize());
+    }
+
+    onMouseMove(e) {
+        if (!this.enabled) return;
+        this.mouse.x = e.clientX;
+        this.mouse.y = e.clientY;
+
+        const grid = this.renderer.screenToWorld(e.clientX, e.clientY);
+        this.mouse.gridX = grid.x;
+        this.mouse.gridY = grid.y;
+
+        if (this.isDragging) {
+            const dx = e.clientX - this.dragStart.x;
+            const dy = e.clientY - this.dragStart.y;
+            this.renderer.camera.x = this.dragStart.camX - dx / this.renderer.camera.zoom;
+            this.renderer.camera.y = this.dragStart.camY - dy / this.renderer.camera.zoom;
+        }
+
+        this.emit('mousemove', this.mouse);
+    }
+
+    onMouseDown(e) {
+        if (!this.enabled) return;
+        this.mouse.down = true;
+
+        if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+            this.isDragging = true;
+            this.dragStart = {
+                x: e.clientX, y: e.clientY,
+                camX: this.renderer.camera.x,
+                camY: this.renderer.camera.y
+            };
+        }
+    }
+
+    onMouseUp(e) {
+        this.mouse.down = false;
+        this.isDragging = false;
+    }
+
+    onClick(e) {
+        if (!this.enabled) return;
+        if (this.isDragging) return;
+
+        const grid = this.renderer.screenToWorld(e.clientX, e.clientY);
+        this.emit('click', { x: e.clientX, y: e.clientY, gridX: grid.x, gridY: grid.y });
+    }
+
+    onWheel(e) {
+        if (!this.enabled) return;
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        this.renderer.camera.zoom = Utils.clamp(this.renderer.camera.zoom + delta, 0.5, 2.5);
+        this.emit('zoom', this.renderer.camera.zoom);
+    }
+
+    onKeyDown(e) {
+        if (!this.enabled) return;
+        // Don't capture keys when typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        this.keys[e.key.toLowerCase()] = true;
+        this.emit('keydown', e.key.toLowerCase());
+
+        // Prevent default for game keys
+        const gameKeys = [' ', 'tab', 'escape'];
+        if (gameKeys.includes(e.key.toLowerCase())) {
+            e.preventDefault();
+        }
+    }
+
+    onKeyUp(e) {
+        this.keys[e.key.toLowerCase()] = false;
+    }
+
+    // ---- Touch Handlers ----
+
+    onTouchStart(e) {
+        if (!this.enabled) return;
+        e.preventDefault();
+
+        const ts = this.touchState;
+        ts.numTouches = e.touches.length;
+
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            ts.startX = touch.clientX;
+            ts.startY = touch.clientY;
+            ts.lastX = touch.clientX;
+            ts.lastY = touch.clientY;
+            ts.startTime = Date.now();
+            ts.moved = false;
+
+            // Start drag for camera pan
+            this.dragStart = {
+                x: touch.clientX, y: touch.clientY,
+                camX: this.renderer.camera.x,
+                camY: this.renderer.camera.y
+            };
+
+            // Update hover position
+            const grid = this.renderer.screenToWorld(touch.clientX, touch.clientY);
+            this.mouse.x = touch.clientX;
+            this.mouse.y = touch.clientY;
+            this.mouse.gridX = grid.x;
+            this.mouse.gridY = grid.y;
+            this.emit('mousemove', this.mouse);
+        }
+
+        if (e.touches.length === 2) {
+            // Pinch zoom start
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            ts.pinchStartDist = Math.sqrt(dx * dx + dy * dy);
+            ts.pinchStartZoom = this.renderer.camera.zoom;
+            ts.moved = true; // Prevent tap on pinch
+        }
+    }
+
+    onTouchMove(e) {
+        if (!this.enabled) return;
+        e.preventDefault();
+
+        const ts = this.touchState;
+
+        if (e.touches.length === 1 && ts.numTouches === 1) {
+            const touch = e.touches[0];
+            const dx = touch.clientX - ts.startX;
+            const dy = touch.clientY - ts.startY;
+
+            // If moved more than 10px, it's a drag (camera pan), not a tap
+            if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                ts.moved = true;
+                this.renderer.camera.x = this.dragStart.camX - dx / this.renderer.camera.zoom;
+                this.renderer.camera.y = this.dragStart.camY - dy / this.renderer.camera.zoom;
+            }
+
+            ts.lastX = touch.clientX;
+            ts.lastY = touch.clientY;
+        }
+
+        if (e.touches.length === 2) {
+            // Pinch zoom
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const scale = dist / ts.pinchStartDist;
+            this.renderer.camera.zoom = Utils.clamp(ts.pinchStartZoom * scale, 0.5, 2.5);
+            this.emit('zoom', this.renderer.camera.zoom);
+        }
+    }
+
+    onTouchEnd(e) {
+        if (!this.enabled) return;
+        e.preventDefault();
+
+        const ts = this.touchState;
+
+        // Single-finger tap (not a drag or pinch)
+        if (!ts.moved && ts.numTouches === 1) {
+            const elapsed = Date.now() - ts.startTime;
+
+            if (elapsed < 300) {
+                // Short tap = click
+                const grid = this.renderer.screenToWorld(ts.startX, ts.startY);
+                this.emit('click', {
+                    x: ts.startX, y: ts.startY,
+                    gridX: grid.x, gridY: grid.y
+                });
+            } else {
+                // Long press = right click (look/context)
+                this.emit('rightclick', this.mouse);
+            }
+        }
+
+        ts.numTouches = e.touches.length;
+        ts.moved = false;
+    }
+
+    isKeyDown(key) {
+        return this.keys[key.toLowerCase()] || false;
+    }
+
+    on(event, callback) {
+        if (!this.callbacks[event]) this.callbacks[event] = [];
+        this.callbacks[event].push(callback);
+    }
+
+    emit(event, data) {
+        if (this.callbacks[event]) {
+            for (const cb of this.callbacks[event]) {
+                cb(data);
+            }
+        }
+    }
+}
+
+// ---- audio.js ----
+// ============================================
+// Dustwalker - Audio Manager (Web Audio API)
+// ============================================
+
+class AudioManager {
+    constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.musicVolume = 0.3;
+        this.sfxVolume = 0.5;
+        this.currentMusic = null;
+    }
+
+    init() {
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            this.enabled = false;
+        }
+    }
+
+    // Generate a simple tone-based sound effect
+    playSfx(type) {
+        if (!this.enabled || !this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        switch (type) {
+            case 'click':
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+                gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+                break;
+            case 'hit':
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+                gain.gain.setValueAtTime(this.sfxVolume * 0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+                break;
+            case 'miss':
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+                gain.gain.setValueAtTime(this.sfxVolume * 0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+                break;
+            case 'death':
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.5);
+                gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+                break;
+            case 'levelup':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(500, now + 0.1);
+                osc.frequency.setValueAtTime(600, now + 0.2);
+                osc.frequency.setValueAtTime(800, now + 0.3);
+                gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+                break;
+            case 'pickup':
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(900, now + 0.08);
+                gain.gain.setValueAtTime(this.sfxVolume * 0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+                break;
+            case 'door':
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.setValueAtTime(200, now + 0.1);
+                gain.gain.setValueAtTime(this.sfxVolume * 0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+                break;
+            case 'step':
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(100 + Math.random() * 50, now);
+                gain.gain.setValueAtTime(this.sfxVolume * 0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+                break;
+        }
+    }
+}
+
+// ---- character.js ----
+// ============================================
+// Dustwalker - Character System (S.P.E.C.I.A.L.)
+// ============================================
+
+const SPECIAL_STATS = {
+    strength:     { abbr: 'STR', desc: 'Raw physical power. Melee damage, carry weight.' },
+    perception:   { abbr: 'PER', desc: 'Awareness and accuracy. Ranged attacks, detection.' },
+    endurance:    { abbr: 'END', desc: 'Stamina and resilience. HP, resistances.' },
+    charisma:     { abbr: 'CHR', desc: 'Social influence. Barter prices, dialogue options.' },
+    intelligence: { abbr: 'INT', desc: 'Mental acuity. Skill points per level, skill checks.' },
+    agility:      { abbr: 'AGI', desc: 'Speed and reflexes. Action Points, dodge chance.' },
+    luck:         { abbr: 'LCK', desc: 'Fortune favors the bold. Critical chance, random finds.' }
+};
+
+const SKILLS = {
+    // Combat
+    smallGuns:    { name: 'Small Guns',    base: (s) => 5 + s.agility * 4,        category: 'Combat' },
+    bigGuns:      { name: 'Big Guns',      base: (s) => 2 + s.agility * 2,        category: 'Combat' },
+    energyWeapons:{ name: 'Energy Weapons',base: (s) => 2 + s.perception * 2,     category: 'Combat' },
+    melee:        { name: 'Melee',         base: (s) => 20 + s.strength * 2 + s.agility * 2, category: 'Combat' },
+    unarmed:      { name: 'Unarmed',       base: (s) => 30 + s.strength * 2 + s.agility * 2, category: 'Combat' },
+    throwing:     { name: 'Throwing',      base: (s) => 4 * s.agility,            category: 'Combat' },
+    // Support
+    firstAid:     { name: 'First Aid',     base: (s) => 2 * (s.perception + s.intelligence), category: 'Support' },
+    doctor:       { name: 'Doctor',        base: (s) => 5 + s.perception + s.intelligence,   category: 'Support' },
+    sneak:        { name: 'Sneak',         base: (s) => 5 + 3 * s.agility,        category: 'Support' },
+    lockpick:     { name: 'Lockpick',      base: (s) => 10 + s.perception + s.agility, category: 'Support' },
+    steal:        { name: 'Steal',         base: (s) => 3 * s.agility,            category: 'Support' },
+    traps:        { name: 'Traps',         base: (s) => 10 + s.perception + s.agility, category: 'Support' },
+    science:      { name: 'Science',       base: (s) => 4 * s.intelligence,       category: 'Support' },
+    repair:       { name: 'Repair',        base: (s) => 3 * s.intelligence,       category: 'Support' },
+    // Social
+    speech:       { name: 'Speech',        base: (s) => 5 * s.charisma,           category: 'Social' },
+    barter:       { name: 'Barter',        base: (s) => 4 * s.charisma,           category: 'Social' },
+    // Knowledge
+    outdoorsman:  { name: 'Outdoorsman',   base: (s) => 2 * (s.endurance + s.intelligence), category: 'Knowledge' },
+};
+
+class CharacterSystem {
+    static createPlayer(name, special, tagSkills) {
+        const player = {
+            id: 'player',
+            name: name,
+            type: 'player',
+            spriteType: 'player',
+            x: 0,
+            y: 0,
+            facing: 'south',
+
+            level: 1,
+            xp: 0,
+            xpToNext: 1000,
+
+            special: { ...special },
+            tagSkills: [...tagSkills],
+            skillPoints: 0,
+            skillBonuses: {},  // extra points invested
+
+            stats: {},
+            perks: [],
+
+            equipment: {
+                weapon: null,
+                armor: null,
+                accessory: null
+            },
+
+            inventory: [],
+            maxCarryWeight: 0,
+
+            questFlags: {},
+            killedEnemies: {},
+        };
+
+        CharacterSystem.recalcStats(player);
+        player.stats.hp = player.stats.maxHp;
+        player.stats.ap = player.stats.maxAp;
+
+        return player;
+    }
+
+    static recalcStats(char) {
+        const s = char.special;
+
+        // Derived stats
+        char.stats.maxHp = 15 + s.strength + (s.endurance * 2) + (char.level * (2 + Math.floor(s.endurance / 2)));
+        char.stats.maxAp = 5 + Math.floor(s.agility / 2);
+        char.maxCarryWeight = 25 + s.strength * 25;
+
+        // Combat stats
+        char.stats.meleeDmg = Math.max(1, s.strength - 5);
+        char.stats.critChance = s.luck;
+        char.stats.armorClass = s.agility;
+        char.stats.damageResist = 0;
+        char.stats.poisonResist = s.endurance * 5;
+        char.stats.radiationResist = (s.endurance - 1) * 2;
+        char.stats.sequence = 2 * s.perception;
+        char.stats.healRate = Math.max(1, Math.floor(s.endurance / 3));
+
+        // Apply armor bonuses
+        if (char.equipment && char.equipment.armor) {
+            const armor = char.equipment.armor;
+            char.stats.armorClass += armor.armorClass || 0;
+            char.stats.damageResist += armor.damageResist || 0;
+        }
+
+        // Calculate skills
+        char.skills = {};
+        for (const [key, skill] of Object.entries(SKILLS)) {
+            let value = skill.base(s);
+            if (char.tagSkills.includes(key)) value += 20;
+            value += (char.skillBonuses[key] || 0);
+            char.skills[key] = Math.min(200, value);
+        }
+
+        // Skill points per level
+        char.stats.skillPointsPerLevel = 5 + (s.intelligence * 2);
+
+        // Clamp HP
+        if (char.stats.hp !== undefined) {
+            char.stats.hp = Math.min(char.stats.hp, char.stats.maxHp);
+        }
+    }
+
+    static getSkillValue(char, skillName) {
+        return char.skills[skillName] || 0;
+    }
+
+    static skillCheck(char, skillName, difficulty) {
+        const skill = CharacterSystem.getSkillValue(char, skillName);
+        const roll = Utils.randInt(1, 100);
+        const success = roll <= skill - difficulty;
+        return {
+            success,
+            roll,
+            skill,
+            difficulty,
+            margin: skill - difficulty - roll
+        };
+    }
+
+    static addXP(char, amount) {
+        char.xp += amount;
+        const leveled = char.xp >= char.xpToNext;
+        if (leveled) {
+            char.level++;
+            char.xp -= char.xpToNext;
+            char.xpToNext = char.level * 1000;
+            char.skillPoints += char.stats.skillPointsPerLevel;
+            char.stats.hp = char.stats.maxHp;
+            CharacterSystem.recalcStats(char);
+        }
+        return leveled;
+    }
+
+    static investSkillPoint(char, skillName) {
+        if (char.skillPoints <= 0) return false;
+        if (!char.skillBonuses[skillName]) char.skillBonuses[skillName] = 0;
+        // Tag skills get 2 points per investment
+        const amount = char.tagSkills.includes(skillName) ? 2 : 1;
+        char.skillBonuses[skillName] += amount;
+        char.skillPoints--;
+        CharacterSystem.recalcStats(char);
+        return true;
+    }
+
+    static createNPC(template) {
+        const npc = {
+            id: template.id || Utils.uid(),
+            name: template.name,
+            type: 'npc',
+            spriteType: template.spriteType || 'villager',
+            x: template.x,
+            y: template.y,
+            facing: template.facing || 'south',
+            dialogueId: template.dialogueId || null,
+            isHostile: false,
+            stats: {
+                hp: template.hp || 30,
+                maxHp: template.hp || 30,
+            },
+            schedule: template.schedule || null,
+            flags: template.flags || {},
+        };
+        return npc;
+    }
+
+    static createEnemy(template, x, y) {
+        const enemy = {
+            id: Utils.uid(),
+            name: template.name,
+            type: 'enemy',
+            spriteType: template.spriteType,
+            x: x !== undefined ? x : template.x,
+            y: y !== undefined ? y : template.y,
+            facing: 'south',
+            isHostile: true,
+            aiType: template.aiType || 'aggressive',
+
+            special: template.special || { strength: 5, perception: 5, endurance: 5, charisma: 1, intelligence: 2, agility: 5, luck: 5 },
+            stats: {
+                hp: template.hp,
+                maxHp: template.hp,
+                ap: template.ap || 8,
+                maxAp: template.ap || 8,
+                armorClass: template.armorClass || 0,
+                damageResist: template.damageResist || 0,
+                meleeDmg: template.meleeDmg || 0,
+                sequence: template.sequence || 10,
+                critChance: template.critChance || 5,
+            },
+
+            skills: template.skills || { melee: 50, unarmed: 50 },
+            damage: template.damage || '1d4',
+            damageType: template.damageType || 'normal',
+            xpReward: template.xpReward || 50,
+            loot: template.loot || [],
+            attackRange: template.attackRange || 1,
+            moveSpeed: template.moveSpeed || 1,
+        };
+        return enemy;
+    }
+
+    static createContainer(id, name, x, y, items, spriteType = 'chest') {
+        return {
+            id,
+            name,
+            type: 'container',
+            spriteType,
+            x, y,
+            facing: 'south',
+            isHostile: false,
+            items: items.map(i => ({ ...i })),
+            locked: false,
+            lockDifficulty: 0,
+        };
+    }
+
+    static heal(char, amount) {
+        char.stats.hp = Math.min(char.stats.maxHp, char.stats.hp + amount);
+    }
+
+    static takeDamage(char, amount) {
+        // Apply damage resist
+        const resist = char.stats.damageResist || 0;
+        const actualDmg = Math.max(1, amount - Math.floor(amount * resist / 100));
+        char.stats.hp -= actualDmg;
+        return { damage: actualDmg, killed: char.stats.hp <= 0 };
+    }
+
+    static restoreAP(char) {
+        char.stats.ap = char.stats.maxAp;
+    }
+
+    static useAP(char, cost) {
+        if (char.stats.ap < cost) return false;
+        char.stats.ap -= cost;
+        return true;
+    }
+
+    static getCarryWeight(char) {
+        if (!char.inventory) return 0;
+        return char.inventory.reduce((sum, item) => sum + (item.weight || 0) * (item.quantity || 1), 0);
+    }
+}
+
+// ---- combat.js ----
+// ============================================
+// Dustwalker - Turn-Based Combat System
+// ============================================
+
+class CombatSystem {
+    constructor(game) {
+        this.game = game;
+        this.active = false;
+        this.turnOrder = [];
+        this.currentTurnIndex = 0;
+        this.combatLog = [];
+        this.pendingAnimations = [];
+    }
+
+    // Start combat when enemies are nearby
+    startCombat(participants) {
+        this.active = true;
+        this.turnOrder = [];
+
+        // Determine turn order by sequence (2 * PER)
+        for (const p of participants) {
+            const seq = p.stats.sequence || 10;
+            this.turnOrder.push({
+                entity: p,
+                sequence: seq + Utils.randInt(0, 5)
+            });
+        }
+        this.turnOrder.sort((a, b) => b.sequence - a.sequence);
+        this.currentTurnIndex = 0;
+
+        // Restore AP for all
+        for (const t of this.turnOrder) {
+            CharacterSystem.restoreAP(t.entity);
+        }
+
+        this.game.addMessage('Combat begins!', 'combat');
+        this.game.audio.playSfx('click');
+
+        this.startTurn();
+    }
+
+    getCurrentEntity() {
+        if (!this.active || this.turnOrder.length === 0) return null;
+        return this.turnOrder[this.currentTurnIndex].entity;
+    }
+
+    startTurn() {
+        const entity = this.getCurrentEntity();
+        if (!entity) return;
+
+        CharacterSystem.restoreAP(entity);
+
+        if (entity.type === 'player') {
+            this.game.addMessage(`Your turn. AP: ${entity.stats.ap}`, 'info');
+            this.game.setState('playerTurn');
+        } else {
+            this.game.addMessage(`${entity.name}'s turn.`, 'combat');
+            // AI takes its turn
+            setTimeout(() => this.game.ai.executeTurn(entity), 500);
+        }
+    }
+
+    endTurn() {
+        // Remove dead entities
+        this.turnOrder = this.turnOrder.filter(t => t.entity.stats.hp > 0);
+
+        if (this.turnOrder.length === 0) {
+            this.endCombat();
+            return;
+        }
+
+        // Check if combat is over
+        const hasEnemies = this.turnOrder.some(t => t.entity.isHostile);
+        const hasPlayer = this.turnOrder.some(t => t.entity.type === 'player');
+
+        if (!hasEnemies) {
+            this.game.addMessage('All enemies defeated!', 'combat');
+            this.endCombat();
+            return;
+        }
+
+        if (!hasPlayer) {
+            this.game.addMessage('You have been defeated...', 'combat');
+            this.endCombat();
+            this.game.gameOver();
+            return;
+        }
+
+        this.currentTurnIndex = (this.currentTurnIndex) % this.turnOrder.length;
+        if (this.currentTurnIndex >= this.turnOrder.length) this.currentTurnIndex = 0;
+
+        // Move to next
+        this.currentTurnIndex = (this.currentTurnIndex + 1) % this.turnOrder.length;
+        this.startTurn();
+    }
+
+    // Calculate hit chance
+    calculateHitChance(attacker, defender, weapon) {
+        let skill = 50;
+        if (attacker.skills) {
+            if (weapon && weapon.skill) {
+                skill = attacker.skills[weapon.skill] || 50;
+            } else {
+                skill = attacker.skills.unarmed || attacker.skills.melee || 50;
+            }
+        }
+
+        const distance = Utils.gridDistance(attacker.x, attacker.y, defender.x, defender.y);
+        const distPenalty = weapon && weapon.type === 'ranged' ? (distance - 1) * 4 : 0;
+        const acBonus = defender.stats.armorClass || 0;
+
+        return Utils.clamp(skill - distPenalty - acBonus, 5, 95);
+    }
+
+    // Perform an attack
+    attack(attacker, defender, weapon) {
+        const apCost = weapon ? (weapon.apCost || 4) : 3;
+
+        if (!CharacterSystem.useAP(attacker, apCost)) {
+            if (attacker.type === 'player') {
+                this.game.addMessage('Not enough AP!', 'combat');
+            }
+            return { success: false, reason: 'no_ap' };
+        }
+
+        const hitChance = this.calculateHitChance(attacker, defender, weapon);
+        const roll = Utils.randInt(1, 100);
+        const hit = roll <= hitChance;
+
+        if (!hit) {
+            this.game.addMessage(
+                `${attacker.name} misses ${defender.name}! (${hitChance}% chance)`,
+                'combat'
+            );
+            this.game.audio.playSfx('miss');
+            this.game.addFloatingText(defender.x, defender.y, 'MISS', '#aaa');
+            return { success: true, hit: false };
+        }
+
+        // Calculate damage
+        let damage;
+        if (weapon) {
+            damage = Utils.rollDice(weapon.damage || '1d4');
+            if (weapon.type === 'melee') {
+                damage += attacker.stats.meleeDmg || 0;
+            }
+        } else {
+            // Unarmed
+            damage = 1 + (attacker.stats.meleeDmg || 0);
+        }
+
+        // Critical hit check
+        const critChance = attacker.stats.critChance || 5;
+        const isCrit = Utils.randInt(1, 100) <= critChance;
+        if (isCrit) {
+            damage = Math.floor(damage * 2);
+        }
+
+        // Apply damage
+        const result = CharacterSystem.takeDamage(defender, damage);
+
+        const critText = isCrit ? ' CRITICAL!' : '';
+        this.game.addMessage(
+            `${attacker.name} hits ${defender.name} for ${result.damage} damage!${critText}`,
+            'combat'
+        );
+
+        this.game.audio.playSfx('hit');
+        this.game.addFloatingText(
+            defender.x, defender.y,
+            `${isCrit ? 'CRIT! ' : ''}-${result.damage}`,
+            isCrit ? '#ff4' : '#f44'
+        );
+
+        if (result.killed) {
+            this.onEntityKilled(attacker, defender);
+        }
+
+        return { success: true, hit: true, damage: result.damage, killed: result.killed, critical: isCrit };
+    }
+
+    onEntityKilled(killer, victim) {
+        this.game.addMessage(`${victim.name} is dead.`, 'combat');
+        this.game.audio.playSfx('death');
+
+        // XP reward
+        if (killer.type === 'player' && victim.xpReward) {
+            const leveled = CharacterSystem.addXP(killer, victim.xpReward);
+            this.game.addMessage(`+${victim.xpReward} XP`, 'xp');
+            this.game.addFloatingText(killer.x, killer.y, `+${victim.xpReward} XP`, '#6af');
+
+            if (leveled) {
+                this.game.addMessage(`Level up! You are now level ${killer.level}!`, 'xp');
+                this.game.audio.playSfx('levelup');
+                this.game.showLevelUp();
+            }
+
+            // Track kill
+            killer.killedEnemies[victim.name] = (killer.killedEnemies[victim.name] || 0) + 1;
+        }
+
+        // Drop loot
+        if (victim.loot && victim.loot.length > 0) {
+            const lootItems = [];
+            for (const lootEntry of victim.loot) {
+                if (Utils.percentCheck(lootEntry.chance || 100)) {
+                    const item = Utils.deepClone(ItemDatabase[lootEntry.id]);
+                    if (item) {
+                        item.quantity = lootEntry.quantity || 1;
+                        lootItems.push(item);
+                    }
+                }
+            }
+            if (lootItems.length > 0) {
+                // Create a loot container at the death spot
+                const container = CharacterSystem.createContainer(
+                    Utils.uid(), `${victim.name}'s remains`, victim.x, victim.y, lootItems, 'bones'
+                );
+                this.game.addEntity(container);
+            }
+        }
+
+        // Remove from entities
+        this.game.removeEntity(victim);
+    }
+
+    endCombat() {
+        this.active = false;
+        this.turnOrder = [];
+        this.currentTurnIndex = 0;
+        this.game.setState('exploration');
+    }
+
+    // Get valid movement tiles for current entity
+    getMovementRange(entity) {
+        const range = entity.stats.ap; // 1 AP per tile
+        const tiles = [];
+        for (let dx = -range; dx <= range; dx++) {
+            for (let dy = -range; dy <= range; dy++) {
+                const nx = entity.x + dx;
+                const ny = entity.y + dy;
+                const dist = Utils.gridDistance(entity.x, entity.y, nx, ny);
+                if (dist > 0 && dist <= range && this.game.isWalkable(nx, ny)) {
+                    tiles.push({ x: nx, y: ny, cost: dist });
+                }
+            }
+        }
+        return tiles;
+    }
+
+    // Get valid attack targets in range
+    getAttackRange(entity, weapon) {
+        const range = weapon ? (weapon.range || 1) : 1;
+        const tiles = [];
+        for (let dx = -range; dx <= range; dx++) {
+            for (let dy = -range; dy <= range; dy++) {
+                const nx = entity.x + dx;
+                const ny = entity.y + dy;
+                const dist = Utils.gridDistance(entity.x, entity.y, nx, ny);
+                if (dist > 0 && dist <= range) {
+                    tiles.push({ x: nx, y: ny });
+                }
+            }
+        }
+        return tiles;
+    }
+
+    // Move entity during combat (costs AP)
+    combatMove(entity, targetX, targetY) {
+        const dist = Utils.gridDistance(entity.x, entity.y, targetX, targetY);
+        const apCost = dist; // 1 AP per tile
+
+        if (!CharacterSystem.useAP(entity, apCost)) {
+            if (entity.type === 'player') {
+                this.game.addMessage('Not enough AP to move there!', 'combat');
+            }
+            return false;
+        }
+
+        entity.x = targetX;
+        entity.y = targetY;
+        this.game.audio.playSfx('step');
+        return true;
+    }
+}
+
+// ---- inventory.js ----
+// ============================================
+// Dustwalker - Inventory & Equipment System
+// ============================================
+
+class InventorySystem {
+    static addItem(char, item, quantity = 1) {
+        // Check carry weight
+        const currentWeight = CharacterSystem.getCarryWeight(char);
+        const addedWeight = (item.weight || 0) * quantity;
+
+        if (currentWeight + addedWeight > char.maxCarryWeight) {
+            return { success: false, reason: 'overweight' };
+        }
+
+        // Check for stackable
+        if (item.stackable) {
+            const existing = char.inventory.find(i => i.id === item.id);
+            if (existing) {
+                existing.quantity = (existing.quantity || 1) + quantity;
+                return { success: true, stacked: true };
+            }
+        }
+
+        const newItem = Utils.deepClone(item);
+        newItem.quantity = quantity;
+        newItem.uid = Utils.uid();
+        char.inventory.push(newItem);
+        return { success: true, stacked: false };
+    }
+
+    static removeItem(char, itemUid, quantity = 1) {
+        const idx = char.inventory.findIndex(i => i.uid === itemUid || i.id === itemUid);
+        if (idx === -1) return false;
+
+        const item = char.inventory[idx];
+        if (item.quantity > quantity) {
+            item.quantity -= quantity;
+        } else {
+            char.inventory.splice(idx, 1);
+        }
+        return true;
+    }
+
+    static equip(char, itemUid) {
+        const item = char.inventory.find(i => i.uid === itemUid);
+        if (!item) return false;
+
+        let slot;
+        if (item.type === 'weapon' || item.type === 'melee' || item.type === 'ranged') {
+            slot = 'weapon';
+        } else if (item.type === 'armor') {
+            slot = 'armor';
+        } else if (item.type === 'accessory') {
+            slot = 'accessory';
+        } else {
+            return false;
+        }
+
+        // Unequip current
+        if (char.equipment[slot]) {
+            InventorySystem.unequip(char, slot);
+        }
+
+        // Remove from inventory and equip
+        const idx = char.inventory.findIndex(i => i.uid === itemUid);
+        char.inventory.splice(idx, 1);
+        char.equipment[slot] = item;
+
+        CharacterSystem.recalcStats(char);
+        return true;
+    }
+
+    static unequip(char, slot) {
+        const item = char.equipment[slot];
+        if (!item) return false;
+
+        char.equipment[slot] = null;
+        char.inventory.push(item);
+        CharacterSystem.recalcStats(char);
+        return true;
+    }
+
+    static useItem(char, itemUid, game) {
+        const item = char.inventory.find(i => i.uid === itemUid || i.id === itemUid);
+        if (!item || !item.usable) return false;
+
+        let used = false;
+
+        switch (item.useEffect) {
+            case 'heal':
+                if (char.stats.hp < char.stats.maxHp) {
+                    CharacterSystem.heal(char, item.healAmount || 10);
+                    game.addMessage(`Used ${item.name}. Healed ${item.healAmount || 10} HP.`, 'info');
+                    game.audio.playSfx('pickup');
+                    used = true;
+                } else {
+                    game.addMessage('Already at full health.', 'info');
+                }
+                break;
+            case 'buff':
+                game.addMessage(`Used ${item.name}. ${item.buffDesc || 'Feeling better.'}`, 'info');
+                // Apply temporary stat boost (simplified)
+                if (item.buffStat && item.buffAmount) {
+                    char.special[item.buffStat] += item.buffAmount;
+                    CharacterSystem.recalcStats(char);
+                    // Could add a timer system for temporary buffs
+                }
+                used = true;
+                break;
+            case 'antidote':
+                game.addMessage(`Used ${item.name}. Poison cleared.`, 'info');
+                used = true;
+                break;
+            default:
+                game.addMessage(`Cannot use ${item.name} right now.`, 'info');
+        }
+
+        if (used) {
+            InventorySystem.removeItem(char, item.uid || item.id, 1);
+        }
+
+        return used;
+    }
+
+    static getEquippedWeapon(char) {
+        return char.equipment.weapon;
+    }
+}
+
+// ---- dialogue.js ----
+// ============================================
+// Dustwalker - Dialogue System
+// ============================================
+
+class DialogueSystem {
+    constructor(game) {
+        this.game = game;
+        this.active = false;
+        this.currentDialogue = null;
+        this.currentNode = null;
+        this.npcEntity = null;
+    }
+
+    startDialogue(npcEntity) {
+        const dialogueId = npcEntity.dialogueId;
+        if (!dialogueId || !DialogueDatabase[dialogueId]) {
+            this.game.addMessage(`${npcEntity.name} has nothing to say.`, 'dialogue');
+            return;
+        }
+
+        this.active = true;
+        this.currentDialogue = DialogueDatabase[dialogueId];
+        this.npcEntity = npcEntity;
+
+        // Find starting node based on quest flags
+        let startNode = 'start';
+        if (this.currentDialogue.getStartNode) {
+            startNode = this.currentDialogue.getStartNode(this.game.player) || 'start';
+        }
+
+        this.showNode(startNode);
+        this.game.showScreen('dialogue-screen');
+    }
+
+    showNode(nodeId) {
+        const node = this.currentDialogue.nodes[nodeId];
+        if (!node) {
+            this.endDialogue();
+            return;
+        }
+
+        this.currentNode = node;
+
+        // Update UI
+        document.getElementById('dialogue-npc-name').textContent = this.npcEntity.name;
+
+        // Handle text (can be a function for dynamic text)
+        const text = typeof node.text === 'function' ? node.text(this.game.player) : node.text;
+        document.getElementById('dialogue-text').textContent = text;
+
+        // Build options
+        const optionsEl = document.getElementById('dialogue-options');
+        optionsEl.innerHTML = '';
+
+        const options = typeof node.options === 'function' ? node.options(this.game.player) : node.options;
+
+        for (let i = 0; i < options.length; i++) {
+            const opt = options[i];
+
+            // Check conditions
+            if (opt.condition && !opt.condition(this.game.player)) continue;
+
+            const btn = document.createElement('button');
+            btn.className = 'dialogue-option';
+
+            let label = `${i + 1}. ${opt.text}`;
+
+            // Skill check display
+            if (opt.skillCheck) {
+                const skillVal = CharacterSystem.getSkillValue(this.game.player, opt.skillCheck.skill);
+                const skillName = SKILLS[opt.skillCheck.skill]?.name || opt.skillCheck.skill;
+                const canPass = skillVal >= opt.skillCheck.difficulty;
+                label += ` <span class="${canPass ? 'skill-req' : 'skill-fail'}">[${skillName} ${opt.skillCheck.difficulty}%]</span>`;
+            }
+
+            btn.innerHTML = label;
+            btn.addEventListener('click', () => this.selectOption(opt));
+            optionsEl.appendChild(btn);
+        }
+    }
+
+    selectOption(option) {
+        this.game.audio.playSfx('click');
+
+        // Perform skill check if needed
+        if (option.skillCheck) {
+            const result = CharacterSystem.skillCheck(
+                this.game.player,
+                option.skillCheck.skill,
+                option.skillCheck.difficulty
+            );
+
+            if (result.success) {
+                this.game.addMessage(`[${SKILLS[option.skillCheck.skill]?.name}] Success!`, 'skill');
+                if (option.skillCheck.xp) {
+                    CharacterSystem.addXP(this.game.player, option.skillCheck.xp);
+                    this.game.addMessage(`+${option.skillCheck.xp} XP`, 'xp');
+                }
+                if (option.onSuccess) {
+                    option.onSuccess(this.game.player, this.game);
+                }
+                if (option.successNode) {
+                    this.showNode(option.successNode);
+                    return;
+                }
+            } else {
+                this.game.addMessage(`[${SKILLS[option.skillCheck.skill]?.name}] Failed.`, 'skill');
+                if (option.onFail) {
+                    option.onFail(this.game.player, this.game);
+                }
+                if (option.failNode) {
+                    this.showNode(option.failNode);
+                    return;
+                }
+            }
+        }
+
+        // Execute action
+        if (option.action) {
+            option.action(this.game.player, this.game);
+        }
+
+        // Navigate to next node
+        if (option.next) {
+            this.showNode(option.next);
+        } else if (option.end) {
+            this.endDialogue();
+        } else {
+            this.endDialogue();
+        }
+    }
+
+    endDialogue() {
+        this.active = false;
+        this.currentDialogue = null;
+        this.currentNode = null;
+        this.npcEntity = null;
+        this.game.hideScreen('dialogue-screen');
+        this.game.setState('exploration');
+    }
+}
+
+// ---- ai.js ----
+// ============================================
+// Dustwalker - Enemy AI System
+// ============================================
+
+class AISystem {
+    constructor(game) {
+        this.game = game;
+    }
+
+    executeTurn(entity) {
+        if (!entity || entity.stats.hp <= 0) {
+            this.game.combat.endTurn();
+            return;
+        }
+
+        switch (entity.aiType) {
+            case 'aggressive':
+                this.aggressiveAI(entity);
+                break;
+            case 'defensive':
+                this.defensiveAI(entity);
+                break;
+            case 'ranged':
+                this.rangedAI(entity);
+                break;
+            default:
+                this.aggressiveAI(entity);
+        }
+    }
+
+    aggressiveAI(entity) {
+        const player = this.game.player;
+        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const attackRange = entity.attackRange || 1;
+
+        let actionsRemaining = 3; // Max actions per turn to prevent infinite loops
+
+        const doAction = () => {
+            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || entity.stats.hp <= 0) {
+                setTimeout(() => this.game.combat.endTurn(), 300);
+                return;
+            }
+            actionsRemaining--;
+
+            const currentDist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+
+            if (currentDist <= attackRange && entity.stats.ap >= 3) {
+                // Attack
+                const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
+                this.game.combat.attack(entity, player, weapon);
+                setTimeout(doAction, 600);
+            } else if (entity.stats.ap >= 1) {
+                // Move towards player
+                this.moveTowards(entity, player.x, player.y);
+                setTimeout(doAction, 400);
+            } else {
+                setTimeout(() => this.game.combat.endTurn(), 300);
+            }
+        };
+
+        setTimeout(doAction, 300);
+    }
+
+    defensiveAI(entity) {
+        const player = this.game.player;
+        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const attackRange = entity.attackRange || 1;
+
+        // Only attack if player is in range, otherwise hold position
+        if (dist <= attackRange && entity.stats.ap >= 3) {
+            const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
+            this.game.combat.attack(entity, player, weapon);
+            setTimeout(() => this.game.combat.endTurn(), 600);
+        } else {
+            setTimeout(() => this.game.combat.endTurn(), 300);
+        }
+    }
+
+    rangedAI(entity) {
+        const player = this.game.player;
+        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const attackRange = entity.attackRange || 5;
+
+        let actionsRemaining = 2;
+
+        const doAction = () => {
+            if (actionsRemaining <= 0 || entity.stats.ap <= 0) {
+                setTimeout(() => this.game.combat.endTurn(), 300);
+                return;
+            }
+            actionsRemaining--;
+
+            const currentDist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+
+            if (currentDist <= attackRange && entity.stats.ap >= 4) {
+                // Attack from range
+                const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
+                this.game.combat.attack(entity, player, weapon);
+                setTimeout(doAction, 600);
+            } else if (currentDist < 2 && entity.stats.ap >= 1) {
+                // Too close, back away
+                this.moveAway(entity, player.x, player.y);
+                setTimeout(doAction, 400);
+            } else if (entity.stats.ap >= 1) {
+                // Move closer to get in range
+                this.moveTowards(entity, player.x, player.y);
+                setTimeout(doAction, 400);
+            } else {
+                setTimeout(() => this.game.combat.endTurn(), 300);
+            }
+        };
+
+        setTimeout(doAction, 300);
+    }
+
+    moveTowards(entity, targetX, targetY) {
+        const path = Utils.findPath(
+            entity.x, entity.y, targetX, targetY,
+            (x, y) => this.game.isWalkable(x, y) || (x === targetX && y === targetY),
+            30
+        );
+
+        if (path && path.length > 0) {
+            const next = path[0];
+            if (this.game.isWalkable(next.x, next.y)) {
+                CharacterSystem.useAP(entity, 1);
+                entity.x = next.x;
+                entity.y = next.y;
+                this.game.audio.playSfx('step');
+            }
+        }
+    }
+
+    moveAway(entity, threatX, threatY) {
+        const dx = entity.x - threatX;
+        const dy = entity.y - threatY;
+        const ndx = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
+        const ndy = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+
+        const newX = entity.x + ndx;
+        const newY = entity.y + ndy;
+
+        if (this.game.isWalkable(newX, newY)) {
+            CharacterSystem.useAP(entity, 1);
+            entity.x = newX;
+            entity.y = newY;
+        }
+    }
+
+    // Check if any enemies can see the player (for triggering combat)
+    checkAggro(entities, player, aggroRange = 6) {
+        const hostiles = entities.filter(e =>
+            e.isHostile &&
+            e.stats.hp > 0 &&
+            Utils.gridDistance(e.x, e.y, player.x, player.y) <= aggroRange
+        );
+        return hostiles;
+    }
+}
+
+// ---- items.js ----
+// ============================================
+// Dustwalker - Item Database
+// ============================================
+
+const ItemDatabase = {
+    // ---- WEAPONS ----
+    // Melee
+    knife: {
+        id: 'knife', name: 'Combat Knife', type: 'melee',
+        damage: '1d4+1', range: 1, apCost: 3, skill: 'melee',
+        weight: 1, value: 40,
+        desc: 'A sharp, well-balanced combat knife. Standard wasteland sidearm.',
+    },
+    spear: {
+        id: 'spear', name: 'Sharpened Spear', type: 'melee',
+        damage: '1d6+2', range: 1, apCost: 4, skill: 'melee',
+        weight: 4, value: 60,
+        desc: 'A metal-tipped spear. Reliable and deadly.',
+    },
+    sledgehammer: {
+        id: 'sledgehammer', name: 'Sledgehammer', type: 'melee',
+        damage: '2d6', range: 1, apCost: 5, skill: 'melee',
+        weight: 12, value: 120,
+        desc: 'A massive sledgehammer. Slow but devastating.',
+    },
+    pipe_wrench: {
+        id: 'pipe_wrench', name: 'Pipe Wrench', type: 'melee',
+        damage: '1d6', range: 1, apCost: 4, skill: 'melee',
+        weight: 5, value: 50,
+        desc: 'A heavy pipe wrench. Doubles as a tool and weapon.',
+    },
+
+    // Ranged
+    pipe_pistol: {
+        id: 'pipe_pistol', name: 'Pipe Pistol', type: 'ranged',
+        damage: '1d8', range: 8, apCost: 4, skill: 'smallGuns',
+        weight: 3, value: 100, ammoType: '9mm',
+        desc: 'A crude but functional pistol cobbled together from scrap.',
+    },
+    hunting_rifle: {
+        id: 'hunting_rifle', name: 'Hunting Rifle', type: 'ranged',
+        damage: '2d6+2', range: 12, apCost: 5, skill: 'smallGuns',
+        weight: 7, value: 300, ammoType: '.308',
+        desc: 'A pre-war hunting rifle. Accurate at long range.',
+    },
+    sawed_off: {
+        id: 'sawed_off', name: 'Sawed-Off Shotgun', type: 'ranged',
+        damage: '3d4', range: 3, apCost: 4, skill: 'smallGuns',
+        weight: 5, value: 200, ammoType: '12ga',
+        desc: 'A sawed-off double barrel. Deadly at close range.',
+    },
+
+    // ---- ARMOR ----
+    leather_armor: {
+        id: 'leather_armor', name: 'Leather Armor', type: 'armor',
+        armorClass: 8, damageResist: 15,
+        weight: 8, value: 150,
+        desc: 'Tough leather armor. Basic but reliable protection.',
+    },
+    metal_armor: {
+        id: 'metal_armor', name: 'Metal Armor', type: 'armor',
+        armorClass: 15, damageResist: 30,
+        weight: 18, value: 400,
+        desc: 'Scrap metal shaped into armor plates. Heavy but strong.',
+    },
+    ragged_clothes: {
+        id: 'ragged_clothes', name: 'Ragged Clothes', type: 'armor',
+        armorClass: 2, damageResist: 0,
+        weight: 2, value: 10,
+        desc: 'Worn-out clothes. Better than nothing.',
+    },
+    tribal_garb: {
+        id: 'tribal_garb', name: 'Tribal Garb', type: 'armor',
+        armorClass: 5, damageResist: 5,
+        weight: 4, value: 50,
+        desc: 'Handmade clothing with bone and leather reinforcements.',
+    },
+
+    // ---- CONSUMABLES ----
+    stimpak: {
+        id: 'stimpak', name: 'Stimpak', type: 'consumable',
+        usable: true, useEffect: 'heal', healAmount: 25,
+        stackable: true, weight: 0.5, value: 75,
+        desc: 'Auto-injecting stimulant. Restores 25 HP.',
+    },
+    healing_powder: {
+        id: 'healing_powder', name: 'Healing Powder', type: 'consumable',
+        usable: true, useEffect: 'heal', healAmount: 15,
+        stackable: true, weight: 0.5, value: 20,
+        desc: 'Dried medicinal herbs ground into powder. Restores 15 HP.',
+    },
+    antidote: {
+        id: 'antidote', name: 'Antidote', type: 'consumable',
+        usable: true, useEffect: 'antidote',
+        stackable: true, weight: 0.5, value: 50,
+        desc: 'Cures poison and related ailments.',
+    },
+    nuka_cola: {
+        id: 'nuka_cola', name: 'Nuka-Cola', type: 'consumable',
+        usable: true, useEffect: 'heal', healAmount: 5,
+        stackable: true, weight: 1, value: 15,
+        desc: 'A warm, flat soda. Mildly refreshing. Restores 5 HP.',
+    },
+    jet: {
+        id: 'jet', name: 'Jet', type: 'consumable',
+        usable: true, useEffect: 'buff', buffStat: 'agility', buffAmount: 2,
+        buffDesc: '+2 AGI temporarily.',
+        stackable: true, weight: 0.5, value: 100,
+        desc: 'Powerful inhaled stimulant. Temporarily boosts agility.',
+    },
+    buffout: {
+        id: 'buffout', name: 'Buffout', type: 'consumable',
+        usable: true, useEffect: 'buff', buffStat: 'strength', buffAmount: 2,
+        buffDesc: '+2 STR temporarily.',
+        stackable: true, weight: 0.5, value: 100,
+        desc: 'Steroid tablets. Temporarily boosts strength.',
+    },
+    mentats: {
+        id: 'mentats', name: 'Mentats', type: 'consumable',
+        usable: true, useEffect: 'buff', buffStat: 'intelligence', buffAmount: 2,
+        buffDesc: '+2 INT temporarily.',
+        stackable: true, weight: 0.5, value: 100,
+        desc: 'Brain-boosting chems. Temporarily boosts intelligence.',
+    },
+
+    // ---- AMMO ----
+    ammo_9mm: {
+        id: 'ammo_9mm', name: '9mm Rounds', type: 'ammo', ammoType: '9mm',
+        stackable: true, weight: 0.1, value: 2,
+        desc: 'Standard 9mm ammunition.',
+    },
+    ammo_308: {
+        id: 'ammo_308', name: '.308 Rounds', type: 'ammo', ammoType: '.308',
+        stackable: true, weight: 0.2, value: 5,
+        desc: 'High-caliber rifle ammunition.',
+    },
+    ammo_12ga: {
+        id: 'ammo_12ga', name: '12ga Shells', type: 'ammo', ammoType: '12ga',
+        stackable: true, weight: 0.2, value: 4,
+        desc: 'Shotgun shells.',
+    },
+
+    // ---- MISC / QUEST ----
+    bottle_caps: {
+        id: 'bottle_caps', name: 'Bottle Caps', type: 'misc',
+        stackable: true, weight: 0, value: 1,
+        desc: 'The currency of the wasteland.',
+    },
+    water_flask: {
+        id: 'water_flask', name: 'Water Flask', type: 'misc',
+        stackable: true, weight: 1, value: 20,
+        desc: 'Clean drinking water. Precious commodity.',
+    },
+    scrap_metal: {
+        id: 'scrap_metal', name: 'Scrap Metal', type: 'misc',
+        stackable: true, weight: 2, value: 5,
+        desc: 'Assorted scrap metal. Useful for repairs.',
+    },
+    cave_mushroom: {
+        id: 'cave_mushroom', name: 'Cave Mushroom', type: 'misc',
+        stackable: true, weight: 0.2, value: 10,
+        desc: 'A bioluminescent mushroom from the caves. Has alchemical uses.',
+    },
+    old_map: {
+        id: 'old_map', name: 'Old Map Fragment', type: 'quest',
+        weight: 0.1, value: 0,
+        desc: 'A tattered map fragment showing a location marked with an X.',
+    },
+    elder_amulet: {
+        id: 'elder_amulet', name: "Elder's Amulet", type: 'quest',
+        weight: 0.5, value: 0,
+        desc: 'A carved bone amulet given by Elder Mara. It bears an ancient symbol.',
+    },
+    cave_crystal: {
+        id: 'cave_crystal', name: 'Dust Crystal', type: 'quest',
+        weight: 1, value: 200,
+        desc: 'A shimmering crystal found deep in the caves. Radiates faint warmth.',
+    },
+    raider_badge: {
+        id: 'raider_badge', name: 'Raider Badge', type: 'misc',
+        stackable: true, weight: 0.1, value: 15,
+        desc: 'A crude badge worn by raiders. Proof of a kill.',
+    },
+};
+
+// ---- enemies.js ----
+// ============================================
+// Dustwalker - Enemy Templates
+// ============================================
+
+const EnemyTemplates = {
+    // ---- CAVE ENEMIES ----
+    cave_rat: {
+        name: 'Cave Rat',
+        spriteType: 'rat',
+        hp: 8,
+        ap: 6,
+        armorClass: 2,
+        damageResist: 0,
+        meleeDmg: 0,
+        sequence: 8,
+        critChance: 3,
+        damage: '1d3',
+        damageType: 'normal',
+        xpReward: 25,
+        attackRange: 1,
+        moveSpeed: 1,
+        aiType: 'aggressive',
+        skills: { melee: 40, unarmed: 45 },
+        loot: [
+            { id: 'healing_powder', chance: 20, quantity: 1 },
+        ]
+    },
+
+    giant_rat: {
+        name: 'Giant Rat',
+        spriteType: 'rat',
+        hp: 18,
+        ap: 7,
+        armorClass: 4,
+        damageResist: 5,
+        meleeDmg: 1,
+        sequence: 10,
+        critChance: 5,
+        damage: '1d6',
+        damageType: 'normal',
+        xpReward: 60,
+        attackRange: 1,
+        moveSpeed: 1,
+        aiType: 'aggressive',
+        skills: { melee: 55, unarmed: 55 },
+        loot: [
+            { id: 'healing_powder', chance: 30, quantity: 1 },
+            { id: 'cave_mushroom', chance: 40, quantity: 1 },
+        ]
+    },
+
+    rad_scorpion: {
+        name: 'Rad Scorpion',
+        spriteType: 'scorpion',
+        hp: 30,
+        ap: 7,
+        armorClass: 8,
+        damageResist: 10,
+        meleeDmg: 2,
+        sequence: 12,
+        critChance: 8,
+        damage: '1d8+2',
+        damageType: 'poison',
+        xpReward: 100,
+        attackRange: 1,
+        moveSpeed: 1,
+        aiType: 'aggressive',
+        skills: { melee: 65, unarmed: 65 },
+        loot: [
+            { id: 'antidote', chance: 25, quantity: 1 },
+            { id: 'scrap_metal', chance: 40, quantity: 1 },
+        ]
+    },
+
+    cave_spider: {
+        name: 'Cave Spider',
+        spriteType: 'cave_spider',
+        hp: 15,
+        ap: 8,
+        armorClass: 5,
+        damageResist: 0,
+        meleeDmg: 1,
+        sequence: 14,
+        critChance: 10,
+        damage: '1d4+1',
+        damageType: 'poison',
+        xpReward: 50,
+        attackRange: 1,
+        moveSpeed: 2,
+        aiType: 'aggressive',
+        skills: { melee: 50, unarmed: 55 },
+        loot: [
+            { id: 'antidote', chance: 30, quantity: 1 },
+        ]
+    },
+
+    // ---- SURFACE ENEMIES ----
+    raider: {
+        name: 'Raider',
+        spriteType: 'raider',
+        hp: 25,
+        ap: 8,
+        armorClass: 6,
+        damageResist: 10,
+        meleeDmg: 2,
+        sequence: 10,
+        critChance: 6,
+        damage: '1d6+2',
+        damageType: 'normal',
+        xpReward: 75,
+        attackRange: 1,
+        moveSpeed: 1,
+        aiType: 'aggressive',
+        skills: { melee: 55, unarmed: 45, smallGuns: 40 },
+        loot: [
+            { id: 'bottle_caps', chance: 80, quantity: 15 },
+            { id: 'healing_powder', chance: 40, quantity: 1 },
+            { id: 'knife', chance: 20, quantity: 1 },
+            { id: 'raider_badge', chance: 60, quantity: 1 },
+        ]
+    },
+
+    raider_gunner: {
+        name: 'Raider Gunner',
+        spriteType: 'raider',
+        hp: 22,
+        ap: 8,
+        armorClass: 5,
+        damageResist: 5,
+        meleeDmg: 1,
+        sequence: 12,
+        critChance: 8,
+        damage: '1d8',
+        damageType: 'normal',
+        xpReward: 100,
+        attackRange: 8,
+        moveSpeed: 1,
+        aiType: 'ranged',
+        skills: { smallGuns: 55, melee: 35 },
+        loot: [
+            { id: 'bottle_caps', chance: 70, quantity: 20 },
+            { id: 'ammo_9mm', chance: 60, quantity: 10 },
+            { id: 'stimpak', chance: 20, quantity: 1 },
+        ]
+    },
+
+    // ---- BOSS ----
+    mutant_brute: {
+        name: 'Mutant Brute',
+        spriteType: 'mutant',
+        hp: 80,
+        ap: 8,
+        armorClass: 12,
+        damageResist: 25,
+        meleeDmg: 5,
+        sequence: 8,
+        critChance: 10,
+        damage: '2d8+3',
+        damageType: 'normal',
+        xpReward: 300,
+        attackRange: 1,
+        moveSpeed: 1,
+        aiType: 'aggressive',
+        skills: { melee: 75, unarmed: 80 },
+        loot: [
+            { id: 'bottle_caps', chance: 100, quantity: 100 },
+            { id: 'stimpak', chance: 80, quantity: 2 },
+            { id: 'sledgehammer', chance: 50, quantity: 1 },
+            { id: 'cave_crystal', chance: 100, quantity: 1 },
+        ]
+    },
+};
+
+// ---- dialogues.js ----
+// ============================================
+// Dustwalker - Dialogue Database
+// ============================================
+
+const DialogueDatabase = {
+    // ---- ELDER MARA ----
+    elder_mara: {
+        getStartNode(player) {
+            if (player.questFlags.cave_crystal_returned) return 'crystal_returned';
+            if (player.questFlags.cave_quest_accepted) return 'quest_progress';
+            if (player.questFlags.met_elder) return 'return_greeting';
+            return 'start';
+        },
+        nodes: {
+            start: {
+                text: "Welcome, stranger. I am Mara, elder of Dusthaven. We don't get many visitors these days. The wasteland grows more dangerous by the year.",
+                options: [
+                    { text: "I'm a traveler. What is this place?", next: 'about_village' },
+                    { text: "You look worried. Is something wrong?", next: 'problem' },
+                    {
+                        text: "I can see this village has seen better days.",
+                        next: 'perception_insight',
+                        skillCheck: { skill: 'perception', difficulty: 0 },
+                        successNode: 'perception_insight',
+                        failNode: 'about_village',
+                    },
+                    { text: "Goodbye.", end: true, action: (p) => { p.questFlags.met_elder = true; } }
+                ]
+            },
+            about_village: {
+                text: "This is Dusthaven — a small settlement built around an old water well. We've survived here for three generations. We grow what we can, trade when traders pass through. Life is hard, but we endure.",
+                options: [
+                    { text: "Is there anything troubling the village?", next: 'problem' },
+                    { text: "Do you have any work for a capable wanderer?", next: 'problem' },
+                    { text: "Interesting. I'll look around.", end: true, action: (p) => { p.questFlags.met_elder = true; } }
+                ]
+            },
+            perception_insight: {
+                text: "You have sharp eyes, traveler. Yes... we are struggling. Our scouts found caves to the north — they should have been a blessing, a source of minerals. But something lurks within. Creatures... and worse.",
+                options: [
+                    { text: "Tell me more about these caves.", next: 'cave_details' },
+                    { text: "I could help. What do you need?", next: 'quest_offer' },
+                    { text: "Sounds dangerous. Good luck with that.", end: true, action: (p) => { p.questFlags.met_elder = true; } }
+                ]
+            },
+            problem: {
+                text: "There is, actually. To the north, we discovered a network of caves. We hoped to mine them for crystals — they're valuable for trade. But the caves are infested with creatures. We've already lost two scouts.",
+                options: [
+                    { text: "What kind of creatures?", next: 'cave_details' },
+                    { text: "I might be able to help.", next: 'quest_offer' },
+                    { text: "That's unfortunate. I'll be on my way.", end: true, action: (p) => { p.questFlags.met_elder = true; } }
+                ]
+            },
+            cave_details: {
+                text: "Giant rats, scorpions, cave spiders... the usual wasteland vermin, but in large numbers. And our last scout spoke of something bigger lurking in the deepest chamber — something mutated. He barely escaped with his life.",
+                options: [
+                    { text: "I'll clear out those caves for you.", next: 'quest_offer' },
+                    { text: "What's in it for me?", next: 'quest_reward' },
+                    { text: "I need to prepare first.", end: true, action: (p) => { p.questFlags.met_elder = true; } }
+                ]
+            },
+            quest_offer: {
+                text: "Would you truly brave the caves? We need someone to venture into the deepest chamber and retrieve a Dust Crystal — a large, glowing stone our scouts spotted before they fled. Bring it back, and you'll be well rewarded.",
+                options: [
+                    { text: "What's the reward?", next: 'quest_reward' },
+                    { text: "I accept. I'll bring back the crystal.", next: 'quest_accepted' },
+                    {
+                        text: "I'll need supplies and information before I go.",
+                        next: 'quest_negotiate',
+                        skillCheck: { skill: 'speech', difficulty: 30, xp: 25 },
+                        successNode: 'quest_negotiate_success',
+                        failNode: 'quest_accepted',
+                    },
+                    { text: "Let me think about it.", end: true, action: (p) => { p.questFlags.met_elder = true; } }
+                ]
+            },
+            quest_reward: {
+                text: "We can offer 200 bottle caps, and I have a set of leather armor that belonged to our best scout. It's yours if you return with the crystal. We'll also grant you full trading rights in Dusthaven.",
+                options: [
+                    { text: "Deal. I'll bring back the crystal.", next: 'quest_accepted' },
+                    { text: "I'll think about it.", end: true, action: (p) => { p.questFlags.met_elder = true; } }
+                ]
+            },
+            quest_negotiate_success: {
+                text: "You drive a hard bargain, but fair enough. Take this healing powder and these supplies. You'll need them in the caves. And take this amulet — it's said to bring luck to those who venture underground.",
+                options: [
+                    { text: "Thank you. I'll head out soon.", end: true, action: (p, game) => {
+                        p.questFlags.met_elder = true;
+                        p.questFlags.cave_quest_accepted = true;
+                        InventorySystem.addItem(p, ItemDatabase.healing_powder, 3);
+                        InventorySystem.addItem(p, ItemDatabase.stimpak, 1);
+                        InventorySystem.addItem(p, ItemDatabase.elder_amulet, 1);
+                        game.addMessage('Received: 3x Healing Powder, 1x Stimpak, Elder\'s Amulet', 'loot');
+                    }}
+                ]
+            },
+            quest_accepted: {
+                text: "Brave soul. The cave entrance is to the north of the village — you'll see the opening in the cliff face. Be careful, and may fortune walk with you.",
+                options: [
+                    { text: "I'll return with the crystal.", end: true, action: (p) => {
+                        p.questFlags.met_elder = true;
+                        p.questFlags.cave_quest_accepted = true;
+                    }}
+                ]
+            },
+            return_greeting: {
+                text: "Welcome back, traveler. Have you given thought to helping us with the cave problem?",
+                options: [
+                    { text: "Tell me about the caves again.", next: 'cave_details' },
+                    { text: "I'll do it. I'll clear the caves.", next: 'quest_accepted' },
+                    { text: "Not yet. I'm still preparing.", end: true }
+                ]
+            },
+            quest_progress: {
+                text: "You've accepted the task? Good. The cave entrance is north of here. Retrieve the Dust Crystal from the deepest chamber and return it to me.",
+                options: [
+                    { text: "Any advice for the caves?", next: 'cave_advice' },
+                    { text: "I'm on my way.", end: true }
+                ]
+            },
+            cave_advice: {
+                text: "Stick to the walls, move carefully. The rats are territorial but cowardly in small numbers. The scorpions are the real threat — their poison is nasty. And whatever is in the deepest chamber... don't underestimate it.",
+                options: [
+                    { text: "Thanks for the advice.", end: true }
+                ]
+            },
+            crystal_returned: {
+                text: "You did it! The Dust Crystal — I can barely believe it. You've saved Dusthaven, traveler. With this crystal, we can trade for supplies that will last us years. Here is your reward, as promised.",
+                options: [
+                    { text: "Glad I could help.", end: true, action: (p, game) => {
+                        if (!p.questFlags.cave_reward_given) {
+                            p.questFlags.cave_reward_given = true;
+                            InventorySystem.addItem(p, ItemDatabase.bottle_caps, 200);
+                            InventorySystem.addItem(p, ItemDatabase.leather_armor, 1);
+                            game.addMessage('Received: 200 Bottle Caps, Leather Armor', 'loot');
+                            CharacterSystem.addXP(p, 500);
+                            game.addMessage('+500 XP', 'xp');
+                        }
+                    }}
+                ]
+            }
+        }
+    },
+
+    // ---- MERCHANT HANK ----
+    merchant_hank: {
+        getStartNode(player) {
+            if (player.questFlags.met_hank) return 'return_greeting';
+            return 'start';
+        },
+        nodes: {
+            start: {
+                text: "Well, well! A new face in Dusthaven. Name's Hank — I'm the closest thing to a trader this village has. Interested in buying or selling?",
+                options: [
+                    { text: "What do you have for sale?", next: 'shop', action: (p) => { p.questFlags.met_hank = true; } },
+                    { text: "Tell me about Dusthaven.", next: 'about' },
+                    {
+                        text: "You look like a man who knows things. Any rumors?",
+                        next: 'rumors',
+                        skillCheck: { skill: 'speech', difficulty: 20, xp: 15 },
+                        successNode: 'rumors',
+                        failNode: 'rumors_fail',
+                    },
+                    { text: "Maybe later.", end: true, action: (p) => { p.questFlags.met_hank = true; } }
+                ]
+            },
+            return_greeting: {
+                text: "Back again? Ready to trade?",
+                options: [
+                    { text: "Show me what you have.", next: 'shop' },
+                    { text: "Any news?", next: 'rumors' },
+                    { text: "Just passing through.", end: true }
+                ]
+            },
+            shop: {
+                text: "Here's what I've got. Prices are fair — well, fair for the wasteland anyway.",
+                options: [
+                    { text: "[Buy] Stimpak - 75 caps", next: 'buy_stimpak' },
+                    { text: "[Buy] Healing Powder - 20 caps", next: 'buy_healing' },
+                    { text: "[Buy] Pipe Pistol - 100 caps", next: 'buy_pistol' },
+                    { text: "That's all for now.", end: true }
+                ]
+            },
+            buy_stimpak: {
+                text(player) {
+                    const caps = player.inventory.find(i => i.id === 'bottle_caps');
+                    const capCount = caps ? caps.quantity : 0;
+                    if (capCount >= 75) {
+                        return "Stimpak, good choice. That'll be 75 caps.";
+                    }
+                    return `You only have ${capCount} caps. Need 75 for a Stimpak.`;
+                },
+                options: (player) => {
+                    const caps = player.inventory.find(i => i.id === 'bottle_caps');
+                    const canAfford = caps && caps.quantity >= 75;
+                    const opts = [];
+                    if (canAfford) {
+                        opts.push({
+                            text: "Deal.", next: 'shop',
+                            action: (p, game) => {
+                                InventorySystem.removeItem(p, 'bottle_caps', 75);
+                                InventorySystem.addItem(p, ItemDatabase.stimpak, 1);
+                                game.addMessage('Purchased: Stimpak', 'loot');
+                            }
+                        });
+                    }
+                    opts.push({ text: "Let me look at something else.", next: 'shop' });
+                    return opts;
+                }
+            },
+            buy_healing: {
+                text(player) {
+                    const caps = player.inventory.find(i => i.id === 'bottle_caps');
+                    const capCount = caps ? caps.quantity : 0;
+                    if (capCount >= 20) return "Healing Powder, reliable stuff. 20 caps.";
+                    return `You need 20 caps. You've got ${capCount}.`;
+                },
+                options: (player) => {
+                    const caps = player.inventory.find(i => i.id === 'bottle_caps');
+                    const canAfford = caps && caps.quantity >= 20;
+                    const opts = [];
+                    if (canAfford) {
+                        opts.push({
+                            text: "I'll take it.", next: 'shop',
+                            action: (p, game) => {
+                                InventorySystem.removeItem(p, 'bottle_caps', 20);
+                                InventorySystem.addItem(p, ItemDatabase.healing_powder, 1);
+                                game.addMessage('Purchased: Healing Powder', 'loot');
+                            }
+                        });
+                    }
+                    opts.push({ text: "Show me something else.", next: 'shop' });
+                    return opts;
+                }
+            },
+            buy_pistol: {
+                text(player) {
+                    const caps = player.inventory.find(i => i.id === 'bottle_caps');
+                    const capCount = caps ? caps.quantity : 0;
+                    if (capCount >= 100) return "A Pipe Pistol. Not pretty, but it shoots straight. 100 caps.";
+                    return `100 caps for the pistol. You've only got ${capCount}.`;
+                },
+                options: (player) => {
+                    const caps = player.inventory.find(i => i.id === 'bottle_caps');
+                    const canAfford = caps && caps.quantity >= 100;
+                    const opts = [];
+                    if (canAfford) {
+                        opts.push({
+                            text: "Sold.", next: 'shop',
+                            action: (p, game) => {
+                                InventorySystem.removeItem(p, 'bottle_caps', 100);
+                                InventorySystem.addItem(p, ItemDatabase.pipe_pistol, 1);
+                                game.addMessage('Purchased: Pipe Pistol', 'loot');
+                            }
+                        });
+                    }
+                    opts.push({ text: "Too rich for my blood.", next: 'shop' });
+                    return opts;
+                }
+            },
+            about: {
+                text: "Dusthaven? Not much to tell. Used to be a bigger settlement, but times are hard. We've got the elder, Mara — she keeps us together. A few families farming what they can. Me handling what little trade comes through.",
+                options: [
+                    { text: "What do you trade in?", next: 'shop' },
+                    { text: "Thanks for the info.", end: true, action: (p) => { p.questFlags.met_hank = true; } }
+                ]
+            },
+            rumors: {
+                text: "You didn't hear this from me... but there's talk of raiders camping out east of here. Also, the caves north of town — Elder Mara's been looking for someone brave or stupid enough to go in. And I've heard whispers about an old bunker somewhere in the wastes. Pre-war tech. Big money if you find it.",
+                options: [
+                    { text: "Tell me more about the raiders.", next: 'raider_info' },
+                    { text: "Interesting. Thanks.", end: true, action: (p) => { p.questFlags.met_hank = true; } }
+                ]
+            },
+            rumors_fail: {
+                text: "Rumors? I'm a trader, not a gossip. Buy something or move along.",
+                options: [
+                    { text: "Fine, show me your goods.", next: 'shop' },
+                    { text: "Maybe later.", end: true, action: (p) => { p.questFlags.met_hank = true; } }
+                ]
+            },
+            raider_info: {
+                text: "Small gang, maybe four or five of them. They've been eyeing Dusthaven, we think. Haven't attacked yet, but it's only a matter of time. If someone were to... thin their numbers, the village would be grateful. Very grateful.",
+                options: [
+                    { text: "I'll keep an eye out.", end: true },
+                    { text: "Show me your shop.", next: 'shop' }
+                ]
+            }
+        }
+    },
+
+    // ---- GUARD ROOK ----
+    guard_rook: {
+        getStartNode(player) {
+            if (player.questFlags.cave_quest_accepted) return 'quest_active';
+            return 'start';
+        },
+        nodes: {
+            start: {
+                text: "Hold. I'm Rook, village guard. Don't cause trouble here and we won't have problems.",
+                options: [
+                    { text: "Easy, I'm just passing through.", next: 'passing' },
+                    { text: "What can you tell me about the area?", next: 'area_info' },
+                    { text: "Understood.", end: true }
+                ]
+            },
+            passing: {
+                text: "Good. Elder Mara's hut is in the center of the village if you need anything. Hank's got a trading post to the east. Stay out of people's homes.",
+                options: [
+                    { text: "Thanks.", end: true },
+                    { text: "Anything dangerous nearby?", next: 'danger_info' }
+                ]
+            },
+            area_info: {
+                text: "This is Dusthaven. Small but we get by. North of here are the caves — don't go there unless you want to lose a limb. South is open wasteland. East is raider territory.",
+                options: [
+                    { text: "Tell me about the caves.", next: 'danger_info' },
+                    { text: "Raiders?", next: 'raider_mention' },
+                    { text: "Got it. Thanks.", end: true }
+                ]
+            },
+            danger_info: {
+                text: "The caves are infested. We lost two good people in there. Elder Mara's been looking for someone to deal with it. Talk to her if you've got a death wish... or courage.",
+                options: [
+                    { text: "I might just do that.", end: true },
+                    { text: "I'll steer clear.", end: true }
+                ]
+            },
+            raider_mention: {
+                text: "Small band of scavengers turned raiders. They camp out east somewhere. Haven't hit us yet but I expect they will eventually. I keep watch, but I'm just one guard.",
+                options: [
+                    { text: "Maybe I can help with that.", end: true },
+                    { text: "Stay sharp.", end: true }
+                ]
+            },
+            quest_active: {
+                text: "Heard you're heading into the caves. Brave. Or foolish. Either way, watch your back in there. The critters come from all directions.",
+                options: [
+                    { text: "Any combat tips?", next: 'tips' },
+                    { text: "I'll be fine.", end: true }
+                ]
+            },
+            tips: {
+                text: "Fight smart. Don't let them surround you — use narrow passages as chokepoints. Scorpions are tough but slow to react. And whatever's in the deep caves... hit it hard and fast.",
+                options: [
+                    { text: "Good advice. Thanks.", end: true }
+                ]
+            }
+        }
+    },
+
+    // ---- VILLAGER SARAH ----
+    villager_sarah: {
+        getStartNode() { return 'start'; },
+        nodes: {
+            start: {
+                text: "Oh, hello! I'm Sarah. I help tend the village garden. It's not much, but it keeps us fed.",
+                options: [
+                    { text: "How's life in Dusthaven?", next: 'life' },
+                    {
+                        text: "Those plants look like they could use some help.",
+                        next: 'science_check',
+                        skillCheck: { skill: 'science', difficulty: 25, xp: 20 },
+                        successNode: 'science_success',
+                        failNode: 'life'
+                    },
+                    { text: "Take care.", end: true }
+                ]
+            },
+            life: {
+                text: "It's quiet. Too quiet sometimes. But safe, mostly. The elder keeps us together. I worry about the caves though — strange sounds at night sometimes...",
+                options: [
+                    { text: "I'll look into it.", end: true },
+                    { text: "Stay safe.", end: true }
+                ]
+            },
+            science_success: {
+                text: "You know about agriculture? That's incredible! Most people out here just know how to shoot. Here, take this — I found it near the old buildings. I can't read the label but maybe you can make use of it.",
+                options: [
+                    { text: "Thanks, Sarah.", end: true, action: (p, game) => {
+                        InventorySystem.addItem(p, ItemDatabase.stimpak, 1);
+                        game.addMessage('Sarah gave you a Stimpak!', 'loot');
+                    }}
+                ]
+            }
+        }
+    },
+};
+
+// ---- village.js ----
+// ============================================
+// Dustwalker - Dusthaven Village Area
+// ============================================
+
+function createVillageArea() {
+    // 25x25 tile map - a small desert village with buildings, a well, garden, and paths
+    // Legend:
+    // d=dirt, s=sand, g=grass, r=road, S=stone, w=wall, W=wall_top, D=door, t=water, v=void, o=wood
+    const tileKey = {
+        'd': 'dirt',    's': 'sand',     'g': 'grass',   'r': 'road',
+        'S': 'stone',   'w': 'wall',     'W': 'wall_top','D': 'door',
+        't': 'water',   'v': 'void',     'o': 'wood',
+    };
+
+    const mapRaw = [
+        'sssssssssssssssssssssssss',
+        'ssssddddddsssssdddddddsss',
+        'sssddddddddsssdddddddddss',
+        'ssddddddddddrdddddddddddss',
+        'ssddwwwwddddrdddddwwwwddss',
+        'ssdwWWWWwdddrdddddwWWWwdss',
+        'ssdwWWWWwdddrddddgwWWWwdss',
+        'ssdwWDWWwdddrddddgwWDWwdss',
+        'ssdddDddddddrddddgddDddss',
+        'ssddddddddddrdddggddddddss',
+        'sssdddddddddrdddgggdddddss',
+        'sssddddrrrrrrrrrrddddddss',
+        'sssddddrddddddddrddddddss',
+        'ssdddddrddttttddrdddddddss',
+        'ssdddddrdtttttddrddwwwwdss',
+        'ssdddddrdtttttddrddwWWwdss',
+        'ssdddddrdddttdddrdwWWWwdss',
+        'ssdddddrddddddddrdwWDWwdss',
+        'sssddddrrrrrrrrrrddddddss',
+        'sssdddddddddddddddddddsss',
+        'ssssddddddddddddddddddsss',
+        'sssssdddddddddddddddddss',
+        'ssssssdddddddddddddddss',
+        'ssssssssddddddddddddssss',
+        'sssssssssssssssssssssssss',
+    ];
+
+    const map = mapRaw.map(row =>
+        row.split('').map(c => tileKey[c] || 'sand')
+    );
+
+    // Heights - walls are raised
+    const heights = mapRaw.map(row =>
+        row.split('').map(c => {
+            if (c === 'w') return 2;
+            if (c === 'W') return 3;
+            if (c === 'D') return 0;
+            return 0;
+        })
+    );
+
+    // Walkability: walls and water are not walkable
+    const blocked = new Set(['wall', 'wall_top', 'water', 'void']);
+
+    // NPCs
+    const entities = [
+        CharacterSystem.createNPC({
+            id: 'elder_mara',
+            name: 'Elder Mara',
+            spriteType: 'elder',
+            x: 6, y: 6,
+            dialogueId: 'elder_mara',
+        }),
+        CharacterSystem.createNPC({
+            id: 'merchant_hank',
+            name: 'Hank the Merchant',
+            spriteType: 'merchant',
+            x: 19, y: 16,
+            dialogueId: 'merchant_hank',
+        }),
+        CharacterSystem.createNPC({
+            id: 'guard_rook',
+            name: 'Rook',
+            spriteType: 'guard',
+            x: 12, y: 3,
+            dialogueId: 'guard_rook',
+        }),
+        CharacterSystem.createNPC({
+            id: 'sarah',
+            name: 'Sarah',
+            spriteType: 'villager',
+            x: 17, y: 9,
+            dialogueId: 'villager_sarah',
+        }),
+        CharacterSystem.createNPC({
+            id: 'villager1',
+            name: 'Dusthaven Settler',
+            spriteType: 'villager',
+            x: 8, y: 11,
+        }),
+        CharacterSystem.createNPC({
+            id: 'villager2',
+            name: 'Dusthaven Settler',
+            spriteType: 'villager',
+            x: 15, y: 19,
+        }),
+    ];
+
+    // Containers
+    entities.push(CharacterSystem.createContainer(
+        'village_crate1', 'Supply Crate', 5, 5,
+        [
+            { ...ItemDatabase.healing_powder, quantity: 2 },
+            { ...ItemDatabase.bottle_caps, quantity: 30 },
+        ],
+        'crate'
+    ));
+
+    entities.push(CharacterSystem.createContainer(
+        'village_chest', 'Old Chest', 20, 6,
+        [
+            { ...ItemDatabase.knife, quantity: 1 },
+            { ...ItemDatabase.ragged_clothes, quantity: 1 },
+            { ...ItemDatabase.nuka_cola, quantity: 2 },
+        ],
+        'chest'
+    ));
+
+    // Area transitions
+    const transitions = [
+        {
+            x: 12, y: 0,
+            label: 'To Caves',
+            targetArea: 'cave',
+            targetX: 7, targetY: 18,
+        },
+    ];
+
+    return {
+        id: 'village',
+        name: 'Dusthaven Village',
+        map,
+        heights,
+        blocked,
+        entities,
+        transitions,
+        playerStart: { x: 12, y: 12 },
+        ambientColor: '#c4943a22',
+    };
+}
+
+// ---- cave.js ----
+// ============================================
+// Dustwalker - Cave Area
+// ============================================
+
+function createCaveArea() {
+    // 20x20 cave map - winding tunnels, chambers, a boss room
+    // Legend:
+    // f=cave_floor, w=cave_wall, r=cave_rock, c=crystal, v=void
+    const tileKey = {
+        'f': 'cave_floor', 'w': 'cave_wall', 'r': 'cave_rock',
+        'c': 'crystal',    'v': 'void',
+    };
+
+    const mapRaw = [
+        'wwwwwwwwwwwwwwwwwwww',
+        'wwwwwwffffffffffwwww',
+        'wwwwwfffrffffrfffwww',
+        'wwwwfffwwwffwwfffwww',
+        'wwwffffwwwffwwffffww',
+        'wwwfffrwwfffwwrfffww',
+        'wwffffrrrffffrrfffww',
+        'wwffffffffffffffff ww',
+        'wwffrfffffffrrffrfww',
+        'wwwfffrrffrrrfffwwww',
+        'wwwwfffffrrfffffwwww',
+        'wwwwwffffffffffwwwww',
+        'wwwwffffrfffffrffwww',
+        'wwwfffffwwwwfffffwww',
+        'wwwffcfwwwwwffcffwww',
+        'wwwfffffwwwffffffwww',
+        'wwwwfffffffffffwwwww',
+        'wwwwwwfffffffwwwwwww',
+        'wwwwwwwffffffwwwwwww',
+        'wwwwwwwwwwwwwwwwwwww',
+    ];
+
+    const map = mapRaw.map(row =>
+        row.split('').map(c => tileKey[c.trim()] || 'void')
+    );
+
+    // Heights - walls are tall, rocks are medium
+    const heights = mapRaw.map(row =>
+        row.split('').map(c => {
+            if (c === 'w') return 3;
+            if (c === 'r') return 1;
+            if (c === 'c') return 0;
+            return 0;
+        })
+    );
+
+    const blocked = new Set(['cave_wall', 'cave_rock', 'void']);
+
+    // Enemies
+    const entities = [];
+
+    // Entry chamber - a few rats
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_rat, 8, 2));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_rat, 12, 3));
+
+    // Mid tunnels - rats and spiders
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_rat, 5, 6));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.giant_rat, 14, 7));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_spider, 10, 8));
+
+    // Central chamber - scorpion
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 9, 10));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_spider, 7, 11));
+
+    // Deep caves - more scorpions
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 12, 13));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_spider, 5, 14));
+
+    // Boss chamber - Mutant Brute
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.mutant_brute, 9, 16));
+
+    // Loot containers
+    entities.push(CharacterSystem.createContainer(
+        'cave_chest1', 'Old Footlocker', 14, 2,
+        [
+            { ...ItemDatabase.ammo_9mm, quantity: 12 },
+            { ...ItemDatabase.healing_powder, quantity: 1 },
+            { ...ItemDatabase.bottle_caps, quantity: 25 },
+        ],
+        'chest'
+    ));
+
+    entities.push(CharacterSystem.createContainer(
+        'cave_chest2', 'Rusted Box', 3, 7,
+        [
+            { ...ItemDatabase.stimpak, quantity: 1 },
+            { ...ItemDatabase.pipe_wrench, quantity: 1 },
+        ],
+        'chest'
+    ));
+
+    entities.push(CharacterSystem.createContainer(
+        'cave_chest3', 'Crystal Cache', 6, 14,
+        [
+            { ...ItemDatabase.cave_mushroom, quantity: 3 },
+            { ...ItemDatabase.antidote, quantity: 2 },
+        ],
+        'crate'
+    ));
+
+    entities.push(CharacterSystem.createContainer(
+        'cave_boss_chest', 'Ancient Strongbox', 9, 17,
+        [
+            { ...ItemDatabase.hunting_rifle, quantity: 1 },
+            { ...ItemDatabase.ammo_308, quantity: 20 },
+            { ...ItemDatabase.stimpak, quantity: 3 },
+            { ...ItemDatabase.metal_armor, quantity: 1 },
+            { ...ItemDatabase.bottle_caps, quantity: 150 },
+            { ...ItemDatabase.old_map, quantity: 1 },
+        ],
+        'chest'
+    ));
+
+    // Area transitions
+    const transitions = [
+        {
+            x: 7, y: 18,
+            label: 'Exit to Village',
+            targetArea: 'village',
+            targetX: 12, targetY: 2,
+        },
+        {
+            x: 9, y: 18,
+            label: 'Exit to Village',
+            targetArea: 'village',
+            targetX: 12, targetY: 2,
+        },
+    ];
+
+    return {
+        id: 'cave',
+        name: 'Dusthaven Caves',
+        map,
+        heights,
+        blocked,
+        entities,
+        transitions,
+        playerStart: { x: 7, y: 18 },
+        ambientColor: '#00000066',
+    };
+}
+
+// ---- hud.js ----
+// ============================================
+// Dustwalker - HUD Manager
+// ============================================
+
+class HUDManager {
+    constructor(game) {
+        this.game = game;
+    }
+
+    update() {
+        const player = this.game.player;
+        if (!player) return;
+
+        // Update HP bar
+        const hpBar = document.getElementById('hp-bar');
+        const hpPercent = (player.stats.hp / player.stats.maxHp) * 100;
+        hpBar.style.width = hpPercent + '%';
+        hpBar.querySelector('span').textContent = `HP: ${player.stats.hp}/${player.stats.maxHp}`;
+
+        // Update AP bar
+        const apBar = document.getElementById('ap-bar');
+        const apPercent = (player.stats.ap / player.stats.maxAp) * 100;
+        apBar.style.width = apPercent + '%';
+        apBar.querySelector('span').textContent = `AP: ${player.stats.ap}/${player.stats.maxAp}`;
+
+        // Update name
+        document.getElementById('portrait-name').textContent =
+            `${player.name} Lv.${player.level}`;
+
+        // Update location
+        const area = this.game.currentArea;
+        if (area) {
+            document.getElementById('hud-location').textContent = area.name;
+        }
+
+        // Update time
+        document.getElementById('hud-time').textContent =
+            `Day ${this.game.gameTime.day} - ${String(this.game.gameTime.hour).padStart(2,'0')}:00`;
+
+        // Update action button states
+        const btns = document.querySelectorAll('.action-btn');
+        btns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.action === this.game.currentAction);
+        });
+
+        // Combat indicator
+        const hud = document.getElementById('game-hud');
+        hud.classList.toggle('combat-active', this.game.combat.active);
+    }
+
+    updateInventoryScreen() {
+        const player = this.game.player;
+        if (!player) return;
+
+        // Equipped items
+        const slots = ['weapon', 'armor', 'accessory'];
+        for (const slot of slots) {
+            const el = document.querySelector(`.equip-slot[data-slot="${slot}"] span`);
+            const item = player.equipment[slot];
+            el.textContent = item ? item.name : '—';
+        }
+
+        // Inventory list
+        const listEl = document.getElementById('inventory-list');
+        listEl.innerHTML = '';
+
+        for (const item of player.inventory) {
+            const div = document.createElement('div');
+            div.className = 'inv-item';
+            div.dataset.uid = item.uid || item.id;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = item.name;
+
+            const qtySpan = document.createElement('span');
+            qtySpan.className = 'item-qty';
+            qtySpan.textContent = item.quantity > 1 ? `x${item.quantity}` : '';
+
+            div.appendChild(nameSpan);
+            div.appendChild(qtySpan);
+
+            div.addEventListener('click', () => this.selectItem(item));
+            listEl.appendChild(div);
+        }
+
+        // Weight
+        const weight = CharacterSystem.getCarryWeight(player);
+        document.getElementById('inv-weight').textContent =
+            `${weight.toFixed(1)}/${player.maxCarryWeight} lbs`;
+    }
+
+    selectItem(item) {
+        const detailEl = document.getElementById('item-detail-content');
+        let html = `<strong>${item.name}</strong>`;
+        html += `<p style="margin:6px 0;font-size:12px;color:#8a7a60">${item.desc || ''}</p>`;
+
+        if (item.damage) html += `<div class="detail-stat">Damage: ${item.damage}</div>`;
+        if (item.range) html += `<div class="detail-stat">Range: ${item.range}</div>`;
+        if (item.apCost) html += `<div class="detail-stat">AP Cost: ${item.apCost}</div>`;
+        if (item.armorClass) html += `<div class="detail-stat">AC: +${item.armorClass}</div>`;
+        if (item.damageResist) html += `<div class="detail-stat">DR: ${item.damageResist}%</div>`;
+        if (item.healAmount) html += `<div class="detail-stat">Heals: ${item.healAmount} HP</div>`;
+        if (item.weight) html += `<div class="detail-stat">Weight: ${item.weight} lbs</div>`;
+        if (item.value) html += `<div class="detail-stat">Value: ${item.value} caps</div>`;
+
+        html += '<div class="detail-actions">';
+        if (item.usable) {
+            html += `<button onclick="window.game.useItem('${item.uid || item.id}')">Use</button>`;
+        }
+        if (['weapon', 'melee', 'ranged', 'armor', 'accessory'].includes(item.type)) {
+            html += `<button onclick="window.game.equipItem('${item.uid}')">Equip</button>`;
+        }
+        html += `<button onclick="window.game.dropItem('${item.uid || item.id}')">Drop</button>`;
+        html += '</div>';
+
+        detailEl.innerHTML = html;
+
+        // Highlight selected
+        document.querySelectorAll('.inv-item').forEach(el => {
+            el.classList.toggle('selected', el.dataset.uid === (item.uid || item.id));
+        });
+    }
+
+    updateCharacterScreen() {
+        const player = this.game.player;
+        if (!player) return;
+
+        // SPECIAL stats
+        const statsEl = document.getElementById('char-stats-display');
+        let statsHtml = '<h3>S.P.E.C.I.A.L.</h3>';
+        for (const [key, info] of Object.entries(SPECIAL_STATS)) {
+            statsHtml += `<div class="cs-stat"><span>${info.abbr}</span><span class="cs-val">${player.special[key]}</span></div>`;
+        }
+        statsHtml += '<h3 style="margin-top:10px">Derived</h3>';
+        statsHtml += `<div class="cs-stat"><span>HP</span><span class="cs-val">${player.stats.hp}/${player.stats.maxHp}</span></div>`;
+        statsHtml += `<div class="cs-stat"><span>AP</span><span class="cs-val">${player.stats.maxAp}</span></div>`;
+        statsHtml += `<div class="cs-stat"><span>Melee Dmg</span><span class="cs-val">+${player.stats.meleeDmg}</span></div>`;
+        statsHtml += `<div class="cs-stat"><span>Crit Chance</span><span class="cs-val">${player.stats.critChance}%</span></div>`;
+        statsHtml += `<div class="cs-stat"><span>Armor Class</span><span class="cs-val">${player.stats.armorClass}</span></div>`;
+        statsHtml += `<div class="cs-stat"><span>Dmg Resist</span><span class="cs-val">${player.stats.damageResist}%</span></div>`;
+        statsHtml += `<div class="cs-stat"><span>XP</span><span class="cs-val">${player.xp}/${player.xpToNext}</span></div>`;
+        statsHtml += `<div class="cs-stat"><span>Level</span><span class="cs-val">${player.level}</span></div>`;
+        statsEl.innerHTML = statsHtml;
+
+        // Skills
+        const skillsEl = document.getElementById('char-skills-display');
+        let skillsHtml = '<h3>Skills</h3>';
+        for (const [key, skill] of Object.entries(SKILLS)) {
+            const val = player.skills[key] || 0;
+            const isTag = player.tagSkills.includes(key);
+            skillsHtml += `<div class="cs-skill"><span>${isTag ? '* ' : ''}${skill.name}</span><span class="cs-val">${val}%</span></div>`;
+        }
+        skillsEl.innerHTML = skillsHtml;
+    }
+
+    showLootScreen(container) {
+        document.getElementById('loot-title').textContent = container.name;
+        const itemsEl = document.getElementById('loot-items');
+        itemsEl.innerHTML = '';
+
+        for (let i = 0; i < container.items.length; i++) {
+            const item = container.items[i];
+            const div = document.createElement('div');
+            div.className = 'loot-item';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = `${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''}`;
+
+            const takeBtn = document.createElement('button');
+            takeBtn.textContent = 'Take';
+            takeBtn.addEventListener('click', () => {
+                this.game.takeItem(container, i);
+                this.showLootScreen(container); // Refresh
+            });
+
+            div.appendChild(nameSpan);
+            div.appendChild(takeBtn);
+            itemsEl.appendChild(div);
+        }
+
+        if (container.items.length === 0) {
+            itemsEl.innerHTML = '<p style="color:#6b5a3a;padding:10px">Empty</p>';
+        }
+
+        // Take All button
+        document.getElementById('btn-take-all').onclick = () => {
+            this.game.takeAllItems(container);
+            this.showLootScreen(container);
+        };
+
+        this.game.showScreen('loot-screen');
+    }
+}
+
+// ---- screens.js ----
+// ============================================
+// Dustwalker - Screen Manager (Character Creation, Level Up, Map)
+// ============================================
+
+class ScreenManager {
+    constructor(game) {
+        this.game = game;
+    }
+
+    setupCharCreation() {
+        const statsEl = document.getElementById('special-stats');
+        statsEl.innerHTML = '';
+
+        const stats = {
+            strength: 5, perception: 5, endurance: 5, charisma: 5,
+            intelligence: 5, agility: 5, luck: 5
+        };
+        let pointsUsed = 0;
+        const maxPoints = 5;
+        const taggedSkills = new Set();
+
+        const updatePoints = () => {
+            document.getElementById('stat-points-remaining').textContent = maxPoints - pointsUsed;
+        };
+
+        for (const [key, info] of Object.entries(SPECIAL_STATS)) {
+            const row = document.createElement('div');
+            row.className = 'stat-row';
+
+            const name = document.createElement('span');
+            name.className = 'stat-name';
+            name.textContent = `${info.abbr} - ${key.charAt(0).toUpperCase() + key.slice(1)}`;
+
+            const minus = document.createElement('button');
+            minus.textContent = '-';
+            minus.addEventListener('click', () => {
+                if (stats[key] > 1) {
+                    stats[key]--;
+                    pointsUsed--;
+                    val.textContent = stats[key];
+                    updatePoints();
+                }
+            });
+
+            const val = document.createElement('span');
+            val.className = 'stat-value';
+            val.textContent = stats[key];
+
+            const plus = document.createElement('button');
+            plus.textContent = '+';
+            plus.addEventListener('click', () => {
+                if (stats[key] < 10 && pointsUsed < maxPoints) {
+                    stats[key]++;
+                    pointsUsed++;
+                    val.textContent = stats[key];
+                    updatePoints();
+                }
+            });
+
+            const desc = document.createElement('span');
+            desc.className = 'stat-desc';
+            desc.textContent = info.desc;
+
+            row.appendChild(name);
+            row.appendChild(minus);
+            row.appendChild(val);
+            row.appendChild(plus);
+            row.appendChild(desc);
+            statsEl.appendChild(row);
+        }
+
+        // Tag skills
+        const tagEl = document.getElementById('tag-skills');
+        tagEl.innerHTML = '';
+
+        for (const [key, skill] of Object.entries(SKILLS)) {
+            const label = document.createElement('label');
+            label.className = 'skill-tag';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    if (taggedSkills.size >= 3) {
+                        checkbox.checked = false;
+                        return;
+                    }
+                    taggedSkills.add(key);
+                } else {
+                    taggedSkills.delete(key);
+                }
+                // Update styling
+                document.querySelectorAll('.skill-tag').forEach(el => {
+                    el.classList.toggle('tagged', el.querySelector('input').checked);
+                });
+            });
+
+            const span = document.createElement('span');
+            span.textContent = `${skill.name} (${skill.category})`;
+
+            label.appendChild(checkbox);
+            label.appendChild(span);
+            tagEl.appendChild(label);
+        }
+
+        // Start game button
+        document.getElementById('btn-start-game').addEventListener('click', () => {
+            if (taggedSkills.size < 3) {
+                alert('Please select 3 tag skills!');
+                return;
+            }
+
+            const name = document.getElementById('char-name').value || 'Wanderer';
+            this.game.startNewGame(name, stats, Array.from(taggedSkills));
+        });
+
+        document.getElementById('btn-back-title').addEventListener('click', () => {
+            this.game.showScreen('title-screen');
+        });
+    }
+
+    setupLevelUpScreen() {
+        const player = this.game.player;
+        const content = document.getElementById('levelup-skills');
+        content.innerHTML = '';
+
+        document.getElementById('new-level').textContent = player.level;
+        document.getElementById('skill-points-available').textContent = player.skillPoints;
+
+        const pointsAllocated = {};
+
+        for (const [key, skill] of Object.entries(SKILLS)) {
+            const row = document.createElement('div');
+            row.className = 'levelup-skill-row';
+
+            const name = document.createElement('span');
+            name.className = 'skill-name';
+            const isTag = player.tagSkills.includes(key);
+            name.textContent = `${isTag ? '* ' : ''}${skill.name}`;
+
+            const val = document.createElement('span');
+            val.className = 'skill-val';
+            val.textContent = player.skills[key] || 0;
+
+            const plus = document.createElement('button');
+            plus.textContent = '+';
+            plus.addEventListener('click', () => {
+                if (player.skillPoints > 0) {
+                    CharacterSystem.investSkillPoint(player, key);
+                    val.textContent = player.skills[key];
+                    document.getElementById('skill-points-available').textContent = player.skillPoints;
+                }
+            });
+
+            row.appendChild(name);
+            row.appendChild(val);
+            row.appendChild(plus);
+            content.appendChild(row);
+        }
+
+        document.getElementById('btn-confirm-levelup').onclick = () => {
+            this.game.hideScreen('levelup-screen');
+        };
+
+        this.game.showScreen('levelup-screen');
+    }
+
+    drawWorldMap() {
+        const canvas = document.getElementById('map-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const locations = [
+            {
+                id: 'village',
+                name: 'Dusthaven Village',
+                mapX: 200, mapY: 180,
+                discovered: true,
+                connections: ['cave']
+            },
+            {
+                id: 'cave',
+                name: 'Dusthaven Caves',
+                mapX: 200, mapY: 80,
+                discovered: this.game.player.questFlags.cave_quest_accepted || false,
+                connections: ['village']
+            },
+            {
+                id: 'wasteland_east',
+                name: '???',
+                mapX: 320, mapY: 150,
+                discovered: false,
+                connections: ['village']
+            },
+            {
+                id: 'bunker',
+                name: '???',
+                mapX: 100, mapY: 250,
+                discovered: false,
+                connections: ['village']
+            }
+        ];
+
+        this.game.renderer.drawWorldMap(ctx, locations, this.game.currentArea?.id || 'village');
+    }
+}
+
+// ---- game.js ----
+// ============================================
+// Dustwalker - Main Game Controller
+// ============================================
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('game-canvas');
+        this.renderer = new IsometricRenderer(this.canvas);
+        this.input = new InputHandler(this.canvas, this.renderer);
+        this.audio = new AudioManager();
+        this.combat = new CombatSystem(this);
+        this.dialogue = new DialogueSystem(this);
+        this.ai = new AISystem(this);
+        this.hud = new HUDManager(this);
+        this.screens = new ScreenManager(this);
+
+        this.player = null;
+        this.currentArea = null;
+        this.entities = [];
+        this.areas = {};
+
+        this.state = 'title'; // title, creation, exploration, playerTurn, enemyTurn, dialogue
+        this.currentAction = 'move'; // move, attack, use, talk, look
+
+        this.gameTime = { day: 1, hour: 8 };
+        this.floatingTexts = [];
+        this.highlights = [];
+        this.hoverTile = null;
+        this.selectedEntity = null;
+
+        this.areaStates = {}; // Persist entity states when switching areas
+
+        this.setupUI();
+        this.setupInput();
+        this.gameLoop();
+    }
+
+    setupUI() {
+        // Title screen buttons
+        document.getElementById('btn-new-game').addEventListener('click', () => {
+            this.audio.init();
+            this.audio.playSfx('click');
+            this.screens.setupCharCreation();
+            this.showScreen('char-creation');
+        });
+
+        document.getElementById('btn-load-game').addEventListener('click', () => {
+            this.audio.init();
+            this.loadGame();
+        });
+
+        // Action buttons
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.audio.playSfx('click');
+                this.setAction(btn.dataset.action);
+            });
+        });
+
+        // HUD buttons
+        document.getElementById('btn-inventory').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.hud.updateInventoryScreen();
+            this.showScreen('inventory-screen');
+        });
+
+        document.getElementById('btn-character').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.hud.updateCharacterScreen();
+            this.showScreen('character-screen');
+        });
+
+        document.getElementById('btn-pipboy').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.screens.drawWorldMap();
+            this.showScreen('map-screen');
+        });
+
+        document.getElementById('btn-save').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.saveGame();
+        });
+
+        // Close buttons
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.audio.playSfx('click');
+                this.hideScreen(btn.dataset.close);
+            });
+        });
+
+        // Equip slot clicks (unequip)
+        document.querySelectorAll('.equip-slot').forEach(el => {
+            el.addEventListener('click', () => {
+                const slot = el.dataset.slot;
+                if (this.player && this.player.equipment[slot]) {
+                    InventorySystem.unequip(this.player, slot);
+                    this.hud.updateInventoryScreen();
+                    this.addMessage(`Unequipped ${slot}.`, 'info');
+                }
+            });
+        });
+    }
+
+    setupInput() {
+        this.input.on('click', (data) => {
+            if (this.state === 'title' || this.state === 'creation') return;
+            this.handleClick(data.gridX, data.gridY);
+        });
+
+        this.input.on('mousemove', (data) => {
+            if (this.state === 'exploration' || this.state === 'playerTurn') {
+                this.hoverTile = { x: data.gridX, y: data.gridY };
+                this.updateHighlights();
+            }
+        });
+
+        this.input.on('rightclick', () => {
+            this.setAction('move');
+        });
+
+        this.input.on('keydown', (key) => {
+            this.handleKey(key);
+        });
+    }
+
+    handleKey(key) {
+        // Screen shortcuts
+        if (key === 'escape') {
+            // Close any open overlay
+            document.querySelectorAll('.overlay.active').forEach(el => {
+                el.classList.remove('active');
+            });
+            if (this.dialogue.active) this.dialogue.endDialogue();
+            return;
+        }
+
+        if (this.state !== 'exploration' && this.state !== 'playerTurn') return;
+
+        switch (key) {
+            case 'i':
+                this.hud.updateInventoryScreen();
+                this.showScreen('inventory-screen');
+                break;
+            case 'c':
+                this.hud.updateCharacterScreen();
+                this.showScreen('character-screen');
+                break;
+            case 'p':
+                this.screens.drawWorldMap();
+                this.showScreen('map-screen');
+                break;
+            case 'm': this.setAction('move'); break;
+            case 'a': this.setAction('attack'); break;
+            case 'u': this.setAction('use'); break;
+            case 't': this.setAction('talk'); break;
+            case 'l': this.setAction('look'); break;
+            case ' ':
+                if (this.combat.active) {
+                    this.combat.endTurn();
+                }
+                break;
+            case 'f5':
+                this.saveGame();
+                break;
+            case '1': case '2': case '3': case '4':
+                this.useQuickSlot(parseInt(key) - 1);
+                break;
+        }
+    }
+
+    handleClick(gridX, gridY) {
+        if (this.dialogue.active) return;
+
+        switch (this.currentAction) {
+            case 'move':
+                this.handleMove(gridX, gridY);
+                break;
+            case 'attack':
+                this.handleAttack(gridX, gridY);
+                break;
+            case 'talk':
+                this.handleTalk(gridX, gridY);
+                break;
+            case 'look':
+                this.handleLook(gridX, gridY);
+                break;
+            case 'use':
+                this.handleUse(gridX, gridY);
+                break;
+            case 'end-turn':
+                if (this.combat.active) this.combat.endTurn();
+                break;
+        }
+    }
+
+    handleMove(gridX, gridY) {
+        if (!this.isWalkable(gridX, gridY)) {
+            // Check for transitions
+            const transition = this.checkTransition(gridX, gridY);
+            if (transition) {
+                this.transitionArea(transition);
+                return;
+            }
+            return;
+        }
+
+        if (this.combat.active) {
+            // Combat movement (costs AP)
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (dist <= this.player.stats.ap) {
+                this.combat.combatMove(this.player, gridX, gridY);
+                this.renderer.centerOn(this.player.x, this.player.y);
+                this.hud.update();
+            }
+        } else {
+            // Free movement (pathfinding)
+            const path = Utils.findPath(
+                this.player.x, this.player.y, gridX, gridY,
+                (x, y) => this.isWalkable(x, y),
+                40
+            );
+
+            if (path && path.length > 0) {
+                this.animateMovement(path);
+            }
+
+            // Check for transition at destination
+            const transition = this.checkTransition(gridX, gridY);
+            if (transition) {
+                this.transitionArea(transition);
+            }
+        }
+    }
+
+    animateMovement(path) {
+        let step = 0;
+        const animate = () => {
+            if (step >= path.length) {
+                // Check for aggro after moving
+                this.checkCombatTrigger();
+                return;
+            }
+
+            this.player.x = path[step].x;
+            this.player.y = path[step].y;
+            this.renderer.centerOn(this.player.x, this.player.y);
+            this.audio.playSfx('step');
+            step++;
+
+            // Check transition mid-path
+            const t = this.checkTransition(this.player.x, this.player.y);
+            if (t) {
+                this.transitionArea(t);
+                return;
+            }
+
+            // Check aggro mid-path
+            const hostiles = this.ai.checkAggro(this.entities, this.player, 5);
+            if (hostiles.length > 0) {
+                this.startCombatWith(hostiles);
+                return;
+            }
+
+            setTimeout(animate, 100);
+        };
+        animate();
+    }
+
+    handleAttack(gridX, gridY) {
+        const target = this.getEntityAt(gridX, gridY);
+        if (!target) {
+            this.addMessage('Nothing to attack there.', 'info');
+            return;
+        }
+
+        if (target.type === 'npc' && !target.isHostile) {
+            this.addMessage(`${target.name} is not hostile.`, 'info');
+            return;
+        }
+
+        if (target.type === 'container') {
+            this.addMessage('You can\'t attack a container.', 'info');
+            return;
+        }
+
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        const range = weapon ? (weapon.range || 1) : 1;
+        const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+
+        if (dist > range) {
+            this.addMessage('Target is out of range.', 'combat');
+            return;
+        }
+
+        if (!this.combat.active) {
+            // Start combat
+            this.startCombatWith([target]);
+        }
+
+        if (this.state === 'playerTurn') {
+            this.combat.attack(this.player, target, weapon);
+            this.hud.update();
+        }
+    }
+
+    handleTalk(gridX, gridY) {
+        const target = this.getEntityAt(gridX, gridY);
+        if (!target) {
+            this.addMessage('No one to talk to there.', 'info');
+            return;
+        }
+
+        const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+        if (dist > 2) {
+            this.addMessage('Too far away to talk.', 'info');
+            return;
+        }
+
+        if (target.type === 'npc' && target.dialogueId) {
+            this.dialogue.startDialogue(target);
+        } else if (target.type === 'container') {
+            this.hud.showLootScreen(target);
+        } else {
+            this.addMessage(`${target.name} doesn't want to talk.`, 'dialogue');
+        }
+    }
+
+    handleLook(gridX, gridY) {
+        const target = this.getEntityAt(gridX, gridY);
+        if (target) {
+            let info = `${target.name}`;
+            if (target.stats && target.stats.hp !== undefined) {
+                info += ` - HP: ${target.stats.hp}/${target.stats.maxHp}`;
+            }
+            if (target.type === 'enemy') {
+                info += ` (Hostile)`;
+            }
+            if (target.type === 'container') {
+                info += ` (Container - ${target.items.length} items)`;
+            }
+            this.addMessage(info, 'info');
+        } else {
+            const tile = this.getTileAt(gridX, gridY);
+            if (tile) {
+                this.addMessage(`You see: ${tile.replace('_', ' ')}`, 'info');
+            }
+        }
+    }
+
+    handleUse(gridX, gridY) {
+        const target = this.getEntityAt(gridX, gridY);
+        if (target && target.type === 'container') {
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (dist <= 2) {
+                this.hud.showLootScreen(target);
+            } else {
+                this.addMessage('Too far away.', 'info');
+            }
+        } else {
+            this.addMessage('Nothing to use here.', 'info');
+        }
+    }
+
+    // ---- Game State Management ----
+
+    startNewGame(name, special, tagSkills) {
+        this.player = CharacterSystem.createPlayer(name, special, tagSkills);
+
+        // Starting equipment
+        InventorySystem.addItem(this.player, ItemDatabase.knife, 1);
+        InventorySystem.addItem(this.player, ItemDatabase.healing_powder, 3);
+        InventorySystem.addItem(this.player, ItemDatabase.bottle_caps, 50);
+        InventorySystem.addItem(this.player, ItemDatabase.nuka_cola, 2);
+        InventorySystem.addItem(this.player, ItemDatabase.tribal_garb, 1);
+
+        // Equip starting gear
+        const knife = this.player.inventory.find(i => i.id === 'knife');
+        if (knife) InventorySystem.equip(this.player, knife.uid);
+        const garb = this.player.inventory.find(i => i.id === 'tribal_garb');
+        if (garb) InventorySystem.equip(this.player, garb.uid);
+
+        // Generate areas
+        this.areas = {
+            village: createVillageArea(),
+            cave: createCaveArea(),
+        };
+
+        // Load starting area
+        this.loadArea('village');
+
+        this.showScreen('game-hud');
+        this.state = 'exploration';
+        this.addMessage('Welcome to Dusthaven, Wanderer. The wasteland stretches endlessly in every direction.', 'info');
+        this.addMessage('Talk to the villagers to learn about this place. Elder Mara may have work for you.', 'info');
+    }
+
+    loadArea(areaId) {
+        // Save current area state
+        if (this.currentArea) {
+            this.areaStates[this.currentArea.id] = {
+                entities: this.entities.filter(e => e.type !== 'player').map(e => Utils.deepClone(e))
+            };
+        }
+
+        const area = this.areas[areaId];
+        if (!area) return;
+
+        this.currentArea = area;
+
+        // Restore saved state or use fresh
+        if (this.areaStates[areaId]) {
+            this.entities = this.areaStates[areaId].entities.map(e => Utils.deepClone(e));
+        } else {
+            this.entities = area.entities.map(e => Utils.deepClone(e));
+        }
+
+        // Add player
+        this.entities.push(this.player);
+
+        // Center camera
+        this.renderer.centerOn(this.player.x, this.player.y);
+    }
+
+    transitionArea(transition) {
+        this.audio.playSfx('door');
+
+        // Set player position for new area
+        this.player.x = transition.targetX;
+        this.player.y = transition.targetY;
+
+        // End combat if active
+        if (this.combat.active) {
+            this.combat.endCombat();
+        }
+
+        this.loadArea(transition.targetArea);
+        this.addMessage(`Entered: ${this.currentArea.name}`, 'info');
+        this.hud.update();
+
+        // Advance time
+        this.advanceTime(1);
+    }
+
+    checkTransition(x, y) {
+        if (!this.currentArea || !this.currentArea.transitions) return null;
+        return this.currentArea.transitions.find(t => t.x === x && t.y === y);
+    }
+
+    // ---- Entity Management ----
+
+    addEntity(entity) {
+        this.entities.push(entity);
+    }
+
+    removeEntity(entity) {
+        const idx = this.entities.indexOf(entity);
+        if (idx !== -1) this.entities.splice(idx, 1);
+    }
+
+    getEntityAt(x, y) {
+        return this.entities.find(e => e.x === x && e.y === y && e !== this.player);
+    }
+
+    // ---- Map Queries ----
+
+    getTileAt(x, y) {
+        if (!this.currentArea) return null;
+        const map = this.currentArea.map;
+        if (y < 0 || y >= map.length || x < 0 || x >= map[0].length) return null;
+        return map[y][x];
+    }
+
+    isWalkable(x, y) {
+        const tile = this.getTileAt(x, y);
+        if (!tile) return false;
+        if (this.currentArea.blocked.has(tile)) return false;
+        // Check for blocking entities (other characters, but not containers)
+        const ent = this.getEntityAt(x, y);
+        if (ent && (ent.type === 'enemy' || ent.type === 'npc')) return false;
+        return true;
+    }
+
+    // ---- Combat ----
+
+    checkCombatTrigger() {
+        if (this.combat.active) return;
+        const hostiles = this.ai.checkAggro(this.entities, this.player, 5);
+        if (hostiles.length > 0) {
+            this.startCombatWith(hostiles);
+        }
+    }
+
+    startCombatWith(enemies) {
+        const participants = [this.player, ...enemies];
+        this.combat.startCombat(participants);
+    }
+
+    // ---- Inventory Actions (called from UI) ----
+
+    useItem(itemId) {
+        InventorySystem.useItem(this.player, itemId, this);
+        this.hud.updateInventoryScreen();
+        this.hud.update();
+    }
+
+    equipItem(itemUid) {
+        InventorySystem.equip(this.player, itemUid);
+        this.hud.updateInventoryScreen();
+        this.hud.update();
+        this.addMessage('Equipment changed.', 'info');
+    }
+
+    dropItem(itemId) {
+        const item = this.player.inventory.find(i => i.uid === itemId || i.id === itemId);
+        if (item) {
+            this.addMessage(`Dropped ${item.name}.`, 'info');
+            InventorySystem.removeItem(this.player, itemId);
+            this.hud.updateInventoryScreen();
+        }
+    }
+
+    takeItem(container, index) {
+        if (index < 0 || index >= container.items.length) return;
+        const item = container.items[index];
+        const result = InventorySystem.addItem(this.player, item, item.quantity || 1);
+
+        if (result.success) {
+            container.items.splice(index, 1);
+            this.addMessage(`Picked up: ${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''}`, 'loot');
+            this.audio.playSfx('pickup');
+
+            // Check if it's the cave crystal (quest item)
+            if (item.id === 'cave_crystal') {
+                this.player.questFlags.cave_crystal_returned = true;
+                this.addMessage('You found the Dust Crystal! Return it to Elder Mara.', 'xp');
+            }
+        } else {
+            this.addMessage('Inventory full! Too much weight.', 'info');
+        }
+    }
+
+    takeAllItems(container) {
+        const toRemove = [];
+        for (let i = 0; i < container.items.length; i++) {
+            const item = container.items[i];
+            const result = InventorySystem.addItem(this.player, item, item.quantity || 1);
+            if (result.success) {
+                toRemove.push(i);
+                this.addMessage(`Picked up: ${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''}`, 'loot');
+
+                if (item.id === 'cave_crystal') {
+                    this.player.questFlags.cave_crystal_returned = true;
+                    this.addMessage('You found the Dust Crystal! Return it to Elder Mara.', 'xp');
+                }
+            }
+        }
+        // Remove in reverse to maintain indices
+        for (let i = toRemove.length - 1; i >= 0; i--) {
+            container.items.splice(toRemove[i], 1);
+        }
+        if (toRemove.length > 0) this.audio.playSfx('pickup');
+    }
+
+    useQuickSlot(index) {
+        // Quick slots can hold consumables
+        const consumables = this.player.inventory.filter(i => i.usable);
+        if (index < consumables.length) {
+            InventorySystem.useItem(this.player, consumables[index].uid, this);
+            this.hud.update();
+        }
+    }
+
+    // ---- UI Helpers ----
+
+    setState(newState) {
+        this.state = newState;
+    }
+
+    setAction(action) {
+        if (action === 'end-turn' && this.combat.active) {
+            this.combat.endTurn();
+            return;
+        }
+        this.currentAction = action;
+        this.updateHighlights();
+        this.hud.update();
+
+        // Update cursor
+        this.canvas.className = '';
+        if (action === 'move') this.canvas.classList.add('cursor-move');
+        if (action === 'attack') this.canvas.classList.add('cursor-attack');
+        if (action === 'talk') this.canvas.classList.add('cursor-talk');
+        if (action === 'look') this.canvas.classList.add('cursor-look');
+    }
+
+    updateHighlights() {
+        this.highlights = [];
+
+        if (this.combat.active && this.state === 'playerTurn') {
+            if (this.currentAction === 'move') {
+                const range = this.combat.getMovementRange(this.player);
+                this.highlights = range.map(t => ({ ...t, type: 'move' }));
+            } else if (this.currentAction === 'attack') {
+                const weapon = InventorySystem.getEquippedWeapon(this.player);
+                const range = this.combat.getAttackRange(this.player, weapon);
+                this.highlights = range.map(t => ({ ...t, type: 'attack' }));
+            }
+        }
+    }
+
+    showScreen(screenId) {
+        const screen = document.getElementById(screenId);
+        if (screen) screen.classList.add('active');
+    }
+
+    hideScreen(screenId) {
+        const screen = document.getElementById(screenId);
+        if (screen) screen.classList.remove('active');
+    }
+
+    showLevelUp() {
+        this.screens.setupLevelUpScreen();
+    }
+
+    addMessage(text, type = 'info') {
+        const log = document.getElementById('message-log-content');
+        const msg = document.createElement('div');
+        msg.className = `msg-${type}`;
+        msg.textContent = `> ${text}`;
+        log.appendChild(msg);
+
+        // Keep only last 50 messages
+        while (log.children.length > 50) {
+            log.removeChild(log.firstChild);
+        }
+
+        // Scroll to bottom
+        const logContainer = document.getElementById('message-log');
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    addFloatingText(x, y, text, color = '#fff') {
+        this.floatingTexts.push({
+            x, y, text, color,
+            offsetY: 0,
+            life: 60
+        });
+    }
+
+    advanceTime(hours) {
+        this.gameTime.hour += hours;
+        while (this.gameTime.hour >= 24) {
+            this.gameTime.hour -= 24;
+            this.gameTime.day++;
+            // Heal on rest/day change
+            CharacterSystem.heal(this.player, this.player.stats.healRate);
+        }
+    }
+
+    gameOver() {
+        this.addMessage('Game Over. You have died in the wasteland.', 'combat');
+        this.addMessage('Load a save or start a new game.', 'info');
+        // Could show a game over screen here
+    }
+
+    // ---- Save/Load ----
+
+    saveGame() {
+        // Save current area state first
+        if (this.currentArea) {
+            this.areaStates[this.currentArea.id] = {
+                entities: this.entities.filter(e => e.type !== 'player').map(e => {
+                    const clone = Utils.deepClone(e);
+                    // Remove functions from entities for serialization
+                    return clone;
+                })
+            };
+        }
+
+        const saveData = {
+            player: Utils.deepClone(this.player),
+            currentAreaId: this.currentArea.id,
+            areaStates: Utils.deepClone(this.areaStates),
+            gameTime: { ...this.gameTime },
+            version: 1
+        };
+
+        try {
+            localStorage.setItem('dustwalker_save', JSON.stringify(saveData));
+            this.addMessage('Game saved.', 'info');
+        } catch (e) {
+            this.addMessage('Failed to save game.', 'combat');
+        }
+    }
+
+    loadGame() {
+        try {
+            const data = localStorage.getItem('dustwalker_save');
+            if (!data) {
+                this.addMessage('No save file found.', 'info');
+                alert('No save file found. Start a new game.');
+                return;
+            }
+
+            const saveData = JSON.parse(data);
+            this.player = saveData.player;
+            this.areaStates = saveData.areaStates || {};
+            this.gameTime = saveData.gameTime || { day: 1, hour: 8 };
+
+            // Regenerate areas (maps are procedural)
+            this.areas = {
+                village: createVillageArea(),
+                cave: createCaveArea(),
+            };
+
+            // Load the saved area
+            this.loadArea(saveData.currentAreaId || 'village');
+
+            this.showScreen('game-hud');
+            this.state = 'exploration';
+            this.addMessage('Game loaded.', 'info');
+            this.hud.update();
+        } catch (e) {
+            alert('Failed to load save. Start a new game.');
+        }
+    }
+
+    // ---- Main Game Loop ----
+
+    gameLoop() {
+        // Update floating texts
+        this.floatingTexts = this.floatingTexts.filter(ft => {
+            ft.life--;
+            ft.offsetY -= 0.5;
+            return ft.life > 0;
+        });
+
+        // Render
+        if (this.currentArea && this.state !== 'title' && this.state !== 'creation') {
+            const gameState = {
+                selectedEntity: this.selectedEntity,
+                highlights: this.highlights,
+                hoverTile: this.hoverTile,
+                floatingTexts: this.floatingTexts,
+            };
+
+            this.renderer.renderArea(
+                this.currentArea,
+                this.entities,
+                { x: this.player.x, y: this.player.y },
+                gameState
+            );
+        }
+
+        // Update HUD
+        if (this.state === 'exploration' || this.state === 'playerTurn') {
+            this.hud.update();
+        }
+
+        requestAnimationFrame(() => this.gameLoop());
+    }
+}
+
+// ---- Initialize Game ----
+window.addEventListener('DOMContentLoaded', () => {
+    window.game = new Game();
+});
+    </script>
+</body>
+</html>
