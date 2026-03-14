@@ -389,6 +389,8 @@ class Game {
         // Load starting area
         this.loadArea('village');
 
+        this.hideScreen('title-screen');
+        this.hideScreen('char-creation');
         this.showScreen('game-hud');
         this.state = 'exploration';
         this.addMessage('Welcome to Dusthaven, Wanderer. The wasteland stretches endlessly in every direction.', 'info');
@@ -717,6 +719,8 @@ class Game {
             // Load the saved area
             this.loadArea(saveData.currentAreaId || 'village');
 
+            this.hideScreen('title-screen');
+            this.hideScreen('char-creation');
             this.showScreen('game-hud');
             this.state = 'exploration';
             this.addMessage('Game loaded.', 'info');

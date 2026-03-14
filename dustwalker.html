@@ -1033,7 +1033,6 @@ canvas {
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="ui-layer">
-            <!-- Title Screen -->
             <div id="title-screen" class="screen active">
                 <div class="title-content">
                     <h1 class="game-title">DUSTWALKER</h1>
@@ -1044,8 +1043,6 @@ canvas {
                     </div>
                 </div>
             </div>
-
-            <!-- Character Creation -->
             <div id="char-creation" class="screen">
                 <div class="creation-panel">
                     <h2>Create Your Character</h2>
@@ -1068,25 +1065,16 @@ canvas {
                     </div>
                 </div>
             </div>
-
-            <!-- Game HUD -->
             <div id="game-hud" class="screen">
-                <!-- Top bar -->
                 <div id="hud-top">
                     <div id="hud-location">Dusthaven Village</div>
                     <div id="hud-time">Day 1 - 08:00</div>
                 </div>
-
-                <!-- Action bar (bottom) -->
                 <div id="hud-bottom">
                     <div id="hud-portrait">
                         <div id="portrait-name">Wanderer</div>
-                        <div class="bar-container">
-                            <div id="hp-bar" class="stat-bar hp"><span>HP</span></div>
-                        </div>
-                        <div class="bar-container">
-                            <div id="ap-bar" class="stat-bar ap"><span>AP</span></div>
-                        </div>
+                        <div class="bar-container"><div id="hp-bar" class="stat-bar hp"><span>HP</span></div></div>
+                        <div class="bar-container"><div id="ap-bar" class="stat-bar ap"><span>AP</span></div></div>
                     </div>
                     <div id="hud-actions">
                         <button class="action-btn" data-action="move" title="Move (M)">Move</button>
@@ -1109,14 +1097,8 @@ canvas {
                         <button class="hud-btn" id="btn-save" title="Save (F5)">SAVE</button>
                     </div>
                 </div>
-
-                <!-- Message log -->
-                <div id="message-log">
-                    <div id="message-log-content"></div>
-                </div>
+                <div id="message-log"><div id="message-log-content"></div></div>
             </div>
-
-            <!-- Inventory Screen -->
             <div id="inventory-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2>Inventory</h2>
@@ -1139,24 +1121,17 @@ canvas {
                     <button class="close-btn" data-close="inventory-screen">Close (Esc)</button>
                 </div>
             </div>
-
-            <!-- Character Sheet -->
             <div id="character-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2>Character Sheet</h2>
                     <div class="char-sheet-layout">
                         <div id="char-stats-display"></div>
                         <div id="char-skills-display"></div>
-                        <div id="char-perks-display">
-                            <h3>Perks</h3>
-                            <div id="perks-list">None yet</div>
-                        </div>
+                        <div id="char-perks-display"><h3>Perks</h3><div id="perks-list">None yet</div></div>
                     </div>
                     <button class="close-btn" data-close="character-screen">Close (Esc)</button>
                 </div>
             </div>
-
-            <!-- Dialogue Screen -->
             <div id="dialogue-screen" class="screen overlay">
                 <div class="dialogue-panel">
                     <div id="dialogue-npc-name"></div>
@@ -1164,8 +1139,6 @@ canvas {
                     <div id="dialogue-options"></div>
                 </div>
             </div>
-
-            <!-- Level Up Screen -->
             <div id="levelup-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2>Level Up!</h2>
@@ -1177,19 +1150,13 @@ canvas {
                     <button id="btn-confirm-levelup" class="menu-btn">Confirm</button>
                 </div>
             </div>
-
-            <!-- Map Screen -->
             <div id="map-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2>World Map</h2>
-                    <div id="world-map">
-                        <canvas id="map-canvas" width="400" height="300"></canvas>
-                    </div>
+                    <div id="world-map"><canvas id="map-canvas" width="400" height="300"></canvas></div>
                     <button class="close-btn" data-close="map-screen">Close (Esc)</button>
                 </div>
             </div>
-
-            <!-- Loot/Container Screen -->
             <div id="loot-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2 id="loot-title">Container</h2>
@@ -1200,10 +1167,8 @@ canvas {
             </div>
         </div>
     </div>
-
     <script>
 
-// ---- utils.js ----
 // ============================================
 // Dustwalker - Utility Functions
 // ============================================
@@ -1344,7 +1309,6 @@ const Utils = {
     }
 };
 
-// ---- renderer.js ----
 // ============================================
 // Dustwalker - Isometric Renderer
 // ============================================
@@ -1803,7 +1767,6 @@ class IsometricRenderer {
     }
 }
 
-// ---- input.js ----
 // ============================================
 // Dustwalker - Input Handler
 // ============================================
@@ -2050,7 +2013,6 @@ class InputHandler {
     }
 }
 
-// ---- audio.js ----
 // ============================================
 // Dustwalker - Audio Manager (Web Audio API)
 // ============================================
@@ -2157,7 +2119,6 @@ class AudioManager {
     }
 }
 
-// ---- character.js ----
 // ============================================
 // Dustwalker - Character System (S.P.E.C.I.A.L.)
 // ============================================
@@ -2424,7 +2385,6 @@ class CharacterSystem {
     }
 }
 
-// ---- combat.js ----
 // ============================================
 // Dustwalker - Turn-Based Combat System
 // ============================================
@@ -2711,7 +2671,6 @@ class CombatSystem {
     }
 }
 
-// ---- inventory.js ----
 // ============================================
 // Dustwalker - Inventory & Equipment System
 // ============================================
@@ -2841,7 +2800,6 @@ class InventorySystem {
     }
 }
 
-// ---- dialogue.js ----
 // ============================================
 // Dustwalker - Dialogue System
 // ============================================
@@ -2984,7 +2942,6 @@ class DialogueSystem {
     }
 }
 
-// ---- ai.js ----
 // ============================================
 // Dustwalker - Enemy AI System
 // ============================================
@@ -3145,7 +3102,6 @@ class AISystem {
     }
 }
 
-// ---- items.js ----
 // ============================================
 // Dustwalker - Item Database
 // ============================================
@@ -3331,7 +3287,6 @@ const ItemDatabase = {
     },
 };
 
-// ---- enemies.js ----
 // ============================================
 // Dustwalker - Enemy Templates
 // ============================================
@@ -3505,7 +3460,6 @@ const EnemyTemplates = {
     },
 };
 
-// ---- dialogues.js ----
 // ============================================
 // Dustwalker - Dialogue Database
 // ============================================
@@ -3895,7 +3849,6 @@ const DialogueDatabase = {
     },
 };
 
-// ---- village.js ----
 // ============================================
 // Dustwalker - Dusthaven Village Area
 // ============================================
@@ -4042,7 +3995,6 @@ function createVillageArea() {
     };
 }
 
-// ---- cave.js ----
 // ============================================
 // Dustwalker - Cave Area
 // ============================================
@@ -4189,7 +4141,6 @@ function createCaveArea() {
     };
 }
 
-// ---- hud.js ----
 // ============================================
 // Dustwalker - HUD Manager
 // ============================================
@@ -4384,7 +4335,6 @@ class HUDManager {
     }
 }
 
-// ---- screens.js ----
 // ============================================
 // Dustwalker - Screen Manager (Character Creation, Level Up, Map)
 // ============================================
@@ -4591,7 +4541,6 @@ class ScreenManager {
     }
 }
 
-// ---- game.js ----
 // ============================================
 // Dustwalker - Main Game Controller
 // ============================================
@@ -4983,6 +4932,8 @@ class Game {
         // Load starting area
         this.loadArea('village');
 
+        this.hideScreen('title-screen');
+        this.hideScreen('char-creation');
         this.showScreen('game-hud');
         this.state = 'exploration';
         this.addMessage('Welcome to Dusthaven, Wanderer. The wasteland stretches endlessly in every direction.', 'info');
@@ -5311,6 +5262,8 @@ class Game {
             // Load the saved area
             this.loadArea(saveData.currentAreaId || 'village');
 
+            this.hideScreen('title-screen');
+            this.hideScreen('char-creation');
             this.showScreen('game-hud');
             this.state = 'exploration';
             this.addMessage('Game loaded.', 'info');
