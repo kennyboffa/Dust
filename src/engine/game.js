@@ -568,9 +568,10 @@ class Game {
         const tile = this.getTileAt(x, y);
         if (!tile) return false;
         if (this.currentArea.blocked.has(tile)) return false;
-        // Check for blocking entities (other characters, but not containers)
+        // Check for blocking entities (characters and blocking environment objects)
         const ent = this.getEntityAt(x, y);
         if (ent && (ent.type === 'enemy' || ent.type === 'npc')) return false;
+        if (ent && ent.type === 'environment' && ent.blocking) return false;
         return true;
     }
 

@@ -1378,6 +1378,7 @@ canvas {
 
     <!-- Game Scripts -->
 <script>
+<script>
 // ==== src/engine/utils.js ====
 // ============================================
 // Dustwalker - Utility Functions
@@ -2671,6 +2672,674 @@ class SpriteGenerator {
         }
         return c;
     }
+
+    // ---- ENVIRONMENTAL OBJECT SPRITES ----
+
+    static generateDeadTree(variant) {
+        const w = 48, h = 80;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+        const rng = this.seededRandom(variant * 331);
+
+        // Trunk (gnarled, twisted)
+        const trunkLean = (rng() - 0.5) * 6;
+        ctx.strokeStyle = '#2E2214';
+        ctx.lineWidth = 5 + rng() * 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx, by);
+        ctx.quadraticCurveTo(cx + trunkLean, by - 25, cx + trunkLean * 0.5, by - 45);
+        ctx.stroke();
+        // Trunk texture (bark lines)
+        ctx.strokeStyle = '#221A0E';
+        ctx.lineWidth = 0.6;
+        for (let i = 0; i < 6; i++) {
+            const ty = by - 5 - i * 7;
+            ctx.beginPath();
+            ctx.moveTo(cx - 3 + trunkLean * (i/6), ty);
+            ctx.lineTo(cx + 2 + trunkLean * (i/6), ty + 1);
+            ctx.stroke();
+        }
+        // Trunk highlight
+        ctx.strokeStyle = 'rgba(60,48,30,0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, by - 3);
+        ctx.lineTo(cx - 2 + trunkLean * 0.3, by - 35);
+        ctx.stroke();
+
+        // Branches (bare, dead)
+        ctx.strokeStyle = '#2A1E12';
+        ctx.lineWidth = 2.5;
+        // Right branch
+        ctx.beginPath();
+        ctx.moveTo(cx + trunkLean * 0.4, by - 35);
+        ctx.quadraticCurveTo(cx + 15, by - 48, cx + 18 + rng() * 5, by - 52);
+        ctx.stroke();
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx + 14, by - 46);
+        ctx.lineTo(cx + 20, by - 55);
+        ctx.stroke();
+        // Left branch
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(cx + trunkLean * 0.3, by - 30);
+        ctx.quadraticCurveTo(cx - 12, by - 42, cx - 16, by - 48);
+        ctx.stroke();
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cx - 13, by - 43);
+        ctx.lineTo(cx - 18, by - 50);
+        ctx.stroke();
+        // Top branch
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(cx + trunkLean * 0.5, by - 45);
+        ctx.lineTo(cx + trunkLean * 0.5 + 3, by - 60);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx + trunkLean * 0.5 + 2, by - 55);
+        ctx.lineTo(cx + trunkLean * 0.5 + 8, by - 62);
+        ctx.stroke();
+        ctx.lineCap = 'butt';
+
+        // Sparse dead leaves (just a few clumps)
+        if (variant % 3 !== 0) {
+            ctx.fillStyle = 'rgba(55,42,22,0.35)';
+            for (let i = 0; i < 4; i++) {
+                const lx = cx + (rng() - 0.5) * 24;
+                const ly = by - 42 - rng() * 22;
+                ctx.beginPath();
+                ctx.ellipse(lx, ly, 2 + rng() * 2, 1.5 + rng(), rng() * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Exposed roots
+        ctx.strokeStyle = '#2A1E12';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, by);
+        ctx.quadraticCurveTo(cx - 8, by + 1, cx - 10, by - 1);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + 2, by);
+        ctx.quadraticCurveTo(cx + 7, by + 2, cx + 9, by);
+        ctx.stroke();
+
+        return c;
+    }
+
+    static generateRuins(variant) {
+        const w = 64, h = 56;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+        const rng = this.seededRandom(variant * 449);
+
+        if (variant % 3 === 0) {
+            // Collapsed wall section
+            const wallH = 20 + rng() * 10;
+            ctx.fillStyle = '#484030';
+            ctx.fillRect(cx - 14, by - wallH, 10, wallH);
+            // Broken top (jagged)
+            ctx.fillStyle = '#484030';
+            ctx.beginPath();
+            ctx.moveTo(cx - 14, by - wallH);
+            ctx.lineTo(cx - 12, by - wallH - 5);
+            ctx.lineTo(cx - 9, by - wallH - 2);
+            ctx.lineTo(cx - 6, by - wallH - 8);
+            ctx.lineTo(cx - 4, by - wallH);
+            ctx.closePath();
+            ctx.fill();
+            // Brick lines
+            ctx.strokeStyle = '#342C1C';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < wallH / 4; i++) {
+                const ly = by - i * 4;
+                ctx.beginPath();
+                ctx.moveTo(cx - 14, ly);
+                ctx.lineTo(cx - 4, ly);
+                ctx.stroke();
+                if (i % 2 === 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(cx - 9, ly);
+                    ctx.lineTo(cx - 9, ly - 4);
+                    ctx.stroke();
+                }
+            }
+            // Rubble pile at base
+            ctx.fillStyle = '#3E3828';
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.ellipse(cx - 4 + rng() * 12, by - 1 - rng() * 4, 2 + rng() * 3, 1.5 + rng() * 1.5, rng() * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Rebar sticking out
+            ctx.strokeStyle = '#5A3A20';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(cx - 7, by - wallH - 3);
+            ctx.lineTo(cx - 6, by - wallH - 10);
+            ctx.stroke();
+        } else if (variant % 3 === 1) {
+            // Ruined building corner
+            // Back wall
+            ctx.fillStyle = '#444038';
+            ctx.fillRect(cx - 16, by - 28, 12, 28);
+            // Side wall fragment
+            ctx.fillStyle = '#3C3428';
+            ctx.fillRect(cx - 4, by - 18, 18, 18);
+            // Jagged top
+            ctx.fillStyle = '#444038';
+            ctx.beginPath();
+            ctx.moveTo(cx - 16, by - 28);
+            ctx.lineTo(cx - 14, by - 33);
+            ctx.lineTo(cx - 10, by - 30);
+            ctx.lineTo(cx - 6, by - 28);
+            ctx.lineTo(cx - 4, by - 18);
+            ctx.lineTo(cx - 4, by - 28);
+            ctx.closePath();
+            ctx.fill();
+            // Window hole
+            ctx.fillStyle = '#0A0808';
+            ctx.fillRect(cx - 13, by - 22, 6, 7);
+            ctx.strokeStyle = '#3A3224';
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(cx - 13, by - 22, 6, 7);
+            // Rubble
+            ctx.fillStyle = '#3A3428';
+            for (let i = 0; i < 6; i++) {
+                ctx.beginPath();
+                ctx.ellipse(cx + 4 + rng() * 14, by - 1 - rng() * 3, 2 + rng() * 2, 1 + rng(), rng() * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else {
+            // Archway/doorframe ruins
+            // Left pillar
+            ctx.fillStyle = '#4A4238';
+            ctx.fillRect(cx - 12, by - 32, 6, 32);
+            // Right pillar
+            ctx.fillRect(cx + 6, by - 26, 6, 26);
+            // Lintel fragment
+            ctx.fillRect(cx - 6, by - 28, 12, 4);
+            // Brick detail
+            ctx.strokeStyle = '#342C1C';
+            ctx.lineWidth = 0.4;
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(cx - 12, by - i * 4);
+                ctx.lineTo(cx - 6, by - i * 4);
+                ctx.stroke();
+            }
+            // Rubble
+            ctx.fillStyle = '#3E3828';
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath();
+                ctx.ellipse(cx + (rng()-0.5) * 16, by - 1 - rng() * 3, 1.5 + rng() * 2, 1 + rng(), rng() * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        return c;
+    }
+
+    static generateWreckage(variant) {
+        const w = 56, h = 44;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+        const rng = this.seededRandom(variant * 587);
+
+        if (variant % 3 === 0) {
+            // Rusted vehicle hull (Fallout style)
+            // Body frame
+            ctx.fillStyle = '#3A3028';
+            ctx.fillRect(cx - 18, by - 14, 36, 12);
+            // Rounded top
+            ctx.fillStyle = '#343025';
+            ctx.beginPath();
+            ctx.ellipse(cx, by - 14, 16, 7, 0, Math.PI, Math.PI * 2);
+            ctx.fill();
+            // Rust patches
+            ctx.fillStyle = 'rgba(80,38,14,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(cx - 8, by - 10, 5, 3, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + 10, by - 12, 4, 2.5, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            // Windows (broken)
+            ctx.fillStyle = '#0C0A08';
+            ctx.fillRect(cx - 10, by - 18, 7, 4);
+            ctx.fillRect(cx + 3, by - 18, 7, 4);
+            // Window frame
+            ctx.strokeStyle = '#2A2420';
+            ctx.lineWidth = 0.6;
+            ctx.strokeRect(cx - 10, by - 18, 7, 4);
+            ctx.strokeRect(cx + 3, by - 18, 7, 4);
+            // Glass shard
+            ctx.fillStyle = 'rgba(50,60,65,0.12)';
+            ctx.beginPath();
+            ctx.moveTo(cx - 10, by - 18);
+            ctx.lineTo(cx - 7, by - 15);
+            ctx.lineTo(cx - 10, by - 15);
+            ctx.closePath();
+            ctx.fill();
+            // Wheels (flat)
+            ctx.fillStyle = '#1A1A1A';
+            ctx.beginPath();
+            ctx.ellipse(cx - 12, by - 1, 4, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + 12, by - 1, 4, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Hubcap
+            ctx.strokeStyle = '#2A2A2A';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.arc(cx - 12, by - 1, 2, 0, Math.PI * 2);
+            ctx.stroke();
+            // Damage dents
+            ctx.strokeStyle = '#2A2420';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(cx + 5, by - 8);
+            ctx.lineTo(cx + 8, by - 6);
+            ctx.stroke();
+        } else if (variant % 3 === 1) {
+            // Junk pile / scrap heap
+            // Large base pieces
+            ctx.fillStyle = '#343028';
+            ctx.fillRect(cx - 12, by - 10, 8, 10);
+            ctx.fillStyle = '#2E2820';
+            ctx.fillRect(cx - 2, by - 14, 10, 14);
+            ctx.fillStyle = '#383028';
+            ctx.beginPath();
+            ctx.moveTo(cx + 8, by);
+            ctx.lineTo(cx + 16, by);
+            ctx.lineTo(cx + 14, by - 8);
+            ctx.lineTo(cx + 6, by - 6);
+            ctx.closePath();
+            ctx.fill();
+            // Pipe sticking out
+            ctx.strokeStyle = '#4A4238';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cx - 6, by - 10);
+            ctx.lineTo(cx - 10, by - 18);
+            ctx.stroke();
+            // Wire coil
+            ctx.strokeStyle = '#3A3A3A';
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(cx + 4, by - 14);
+            ctx.bezierCurveTo(cx + 8, by - 18, cx + 12, by - 12, cx + 16, by - 16);
+            ctx.stroke();
+            // Rust
+            ctx.fillStyle = 'rgba(75,35,12,0.25)';
+            ctx.beginPath();
+            ctx.ellipse(cx, by - 8, 4, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Scattered bolts
+            for (let i = 0; i < 4; i++) {
+                ctx.fillStyle = '#4A4840';
+                ctx.fillRect(cx - 14 + rng() * 28, by - 2 + rng() * 2, 1, 1);
+            }
+        } else {
+            // Overturned barrel / drum
+            ctx.fillStyle = '#3A3430';
+            ctx.beginPath();
+            ctx.ellipse(cx, by - 5, 8, 12, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            // Barrel bands
+            ctx.strokeStyle = '#2A2620';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(cx, by - 5, 8, 12, 0.4, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.strokeStyle = '#303028';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - 5, by - 14);
+            ctx.lineTo(cx + 8, by - 11);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx - 7, by + 2);
+            ctx.lineTo(cx + 6, by + 4);
+            ctx.stroke();
+            // Spill (toxic green or oil)
+            const toxic = variant % 2 === 0;
+            ctx.fillStyle = toxic ? 'rgba(40,60,15,0.15)' : 'rgba(15,12,8,0.12)';
+            ctx.beginPath();
+            ctx.ellipse(cx + 10, by + 1, 6, 3, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Rust
+            ctx.fillStyle = 'rgba(70,32,10,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(cx - 2, by - 2, 3, 4, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            // Radiation symbol (on toxic barrel)
+            if (toxic) {
+                ctx.strokeStyle = 'rgba(120,100,20,0.12)';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.arc(cx + 1, by - 5, 3, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        return c;
+    }
+
+    static generateBuilding(variant) {
+        const w = 64, h = 70;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+        const rng = this.seededRandom(variant * 673);
+
+        if (variant % 2 === 0) {
+            // Small shack/shed
+            const bw = 34, bh = 32;
+            const ty = by - bh;
+            // Walls
+            ctx.fillStyle = '#3E3428';
+            ctx.fillRect(cx - bw/2, ty, bw, bh);
+            // Right wall (darker)
+            ctx.fillStyle = '#343025';
+            ctx.fillRect(cx + 2, ty, bw/2 - 2, bh);
+            // Roof (corrugated metal, slanted)
+            ctx.fillStyle = '#3A3832';
+            ctx.beginPath();
+            ctx.moveTo(cx - bw/2 - 3, ty);
+            ctx.lineTo(cx + bw/2 + 3, ty);
+            ctx.lineTo(cx + bw/2 + 5, ty - 8);
+            ctx.lineTo(cx - bw/2 - 1, ty - 12);
+            ctx.closePath();
+            ctx.fill();
+            // Roof corrugation
+            ctx.strokeStyle = '#30302A';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < 6; i++) {
+                const rx = cx - bw/2 - 2 + i * 6;
+                ctx.beginPath();
+                ctx.moveTo(rx, ty);
+                ctx.lineTo(rx + 1, ty - 10);
+                ctx.stroke();
+            }
+            // Rust on roof
+            ctx.fillStyle = 'rgba(70,32,10,0.15)';
+            ctx.beginPath();
+            ctx.ellipse(cx + 5, ty - 4, 5, 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Door
+            ctx.fillStyle = '#2A2018';
+            ctx.fillRect(cx - 3, by - 16, 6, 16);
+            ctx.strokeStyle = '#1A1408';
+            ctx.lineWidth = 0.6;
+            ctx.strokeRect(cx - 3, by - 16, 6, 16);
+            // Door handle
+            ctx.fillStyle = '#504840';
+            ctx.fillRect(cx + 1, by - 9, 1.5, 1.5);
+            // Window
+            ctx.fillStyle = '#0C0A08';
+            ctx.fillRect(cx + 7, ty + 8, 6, 5);
+            ctx.strokeStyle = '#2A2420';
+            ctx.lineWidth = 0.5;
+            ctx.strokeRect(cx + 7, ty + 8, 6, 5);
+            // Board across window
+            ctx.fillStyle = '#3A3020';
+            ctx.save();
+            ctx.translate(cx + 10, ty + 10);
+            ctx.rotate(0.3);
+            ctx.fillRect(-4, -0.5, 8, 1);
+            ctx.restore();
+            // Wear/damage
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            ctx.fillRect(cx - bw/2, by - 5, bw, 5);
+        } else {
+            // Watchtower / lookout post
+            // Posts
+            ctx.fillStyle = '#2E2214';
+            ctx.fillRect(cx - 10, by - 50, 3, 50);
+            ctx.fillRect(cx + 7, by - 50, 3, 50);
+            // Cross braces
+            ctx.strokeStyle = '#2E2214';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - 10, by - 15);
+            ctx.lineTo(cx + 10, by - 30);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + 10, by - 15);
+            ctx.lineTo(cx - 10, by - 30);
+            ctx.stroke();
+            // Platform
+            ctx.fillStyle = '#3A2E1C';
+            ctx.fillRect(cx - 14, by - 38, 28, 3);
+            // Railing
+            ctx.strokeStyle = '#2A2014';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx - 14, by - 38);
+            ctx.lineTo(cx - 14, by - 46);
+            ctx.lineTo(cx + 14, by - 46);
+            ctx.lineTo(cx + 14, by - 38);
+            ctx.stroke();
+            // Railing slats
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath();
+                ctx.moveTo(cx - 10 + i * 7, by - 38);
+                ctx.lineTo(cx - 10 + i * 7, by - 46);
+                ctx.stroke();
+            }
+            // Tarp/cover on top
+            ctx.fillStyle = '#34302A';
+            ctx.beginPath();
+            ctx.moveTo(cx - 16, by - 46);
+            ctx.lineTo(cx + 16, by - 46);
+            ctx.lineTo(cx + 14, by - 52);
+            ctx.lineTo(cx - 14, by - 54);
+            ctx.closePath();
+            ctx.fill();
+            // Ladder
+            ctx.strokeStyle = '#2E2214';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx + 12, by);
+            ctx.lineTo(cx + 12, by - 38);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + 15, by);
+            ctx.lineTo(cx + 15, by - 38);
+            ctx.stroke();
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(cx + 12, by - 4 - i * 4.5);
+                ctx.lineTo(cx + 15, by - 4 - i * 4.5);
+                ctx.stroke();
+            }
+        }
+        return c;
+    }
+
+    static generateCactus(variant) {
+        const w = 32, h = 48;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+        const rng = this.seededRandom(variant * 223);
+
+        // Main stem
+        ctx.fillStyle = '#2A4018';
+        ctx.fillRect(cx - 3, by - 28 - variant * 3, 6, 28 + variant * 3);
+        // Ribs
+        ctx.strokeStyle = '#223410';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, by - 28 - variant * 3);
+        ctx.lineTo(cx, by);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, by - 26 - variant * 3);
+        ctx.lineTo(cx - 2, by);
+        ctx.stroke();
+        // Highlight
+        ctx.fillStyle = 'rgba(50,70,30,0.15)';
+        ctx.fillRect(cx - 3, by - 28 - variant * 3, 2, 28 + variant * 3);
+        // Arms
+        if (variant > 0) {
+            // Right arm
+            ctx.fillStyle = '#2A4018';
+            ctx.fillRect(cx + 3, by - 20, 10, 4);
+            ctx.fillRect(cx + 10, by - 28, 4, 12);
+            // Left arm
+            if (variant > 1) {
+                ctx.fillRect(cx - 13, by - 16, 10, 4);
+                ctx.fillRect(cx - 13, by - 24, 4, 12);
+            }
+        }
+        // Spines
+        ctx.strokeStyle = '#445828';
+        ctx.lineWidth = 0.3;
+        for (let i = 0; i < 6; i++) {
+            const sy = by - 6 - i * 4 - rng() * 3;
+            ctx.beginPath();
+            ctx.moveTo(cx - 3, sy);
+            ctx.lineTo(cx - 5, sy - 1);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + 3, sy);
+            ctx.lineTo(cx + 5, sy - 1);
+            ctx.stroke();
+        }
+        return c;
+    }
+
+    static generateRockFormation(variant) {
+        const w = 48, h = 36;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 2;
+        const rng = this.seededRandom(variant * 419);
+
+        // Large rocks
+        const numRocks = 2 + Math.floor(rng() * 3);
+        for (let i = 0; i < numRocks; i++) {
+            const rx = cx + (rng() - 0.5) * 24;
+            const ry = by - 2 - rng() * 8;
+            const rw = 6 + rng() * 10;
+            const rh = 4 + rng() * 7;
+            // Rock body
+            ctx.fillStyle = `rgb(${52+rng()*15|0},${48+rng()*12|0},${40+rng()*10|0})`;
+            ctx.beginPath();
+            ctx.ellipse(rx, ry, rw, rh, rng() * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            // Highlight
+            ctx.fillStyle = `rgba(80,75,60,${0.1+rng()*0.1})`;
+            ctx.beginPath();
+            ctx.ellipse(rx - rw * 0.2, ry - rh * 0.3, rw * 0.5, rh * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Crack
+            if (rng() > 0.4) {
+                ctx.strokeStyle = `rgba(30,28,20,${0.2+rng()*0.15})`;
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(rx - rw * 0.3, ry);
+                ctx.lineTo(rx + rw * 0.2, ry - rh * 0.3);
+                ctx.stroke();
+            }
+            // Outline
+            ctx.strokeStyle = `rgba(30,28,22,0.3)`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.ellipse(rx, ry, rw, rh, rng() * 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        return c;
+    }
+
+    static generateCampfire() {
+        const w = 32, h = 32;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 6;
+
+        // Stone ring
+        ctx.fillStyle = '#3A3830';
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.ellipse(cx + Math.cos(a) * 7, by - 2 + Math.sin(a) * 3, 2.5, 1.8, a, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // Ash/charcoal center
+        ctx.fillStyle = '#1A1816';
+        ctx.beginPath();
+        ctx.ellipse(cx, by - 2, 5, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Burned wood
+        ctx.fillStyle = '#201A14';
+        ctx.fillRect(cx - 4, by - 3, 3, 1.5);
+        ctx.fillRect(cx + 1, by - 4, 3.5, 1.5);
+        ctx.save();
+        ctx.translate(cx, by - 2);
+        ctx.rotate(0.8);
+        ctx.fillRect(-2, -0.5, 4, 1);
+        ctx.restore();
+        // Embers
+        ctx.fillStyle = 'rgba(150,50,10,0.25)';
+        ctx.beginPath();
+        ctx.arc(cx - 1, by - 3, 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(180,70,15,0.2)';
+        ctx.beginPath();
+        ctx.arc(cx + 2, by - 2.5, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        return c;
+    }
+
+    static generateSignpost() {
+        const w = 24, h = 48;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+
+        // Post
+        ctx.fillStyle = '#2E2214';
+        ctx.fillRect(cx - 1.5, by - 36, 3, 36);
+        // Sign board (weathered)
+        ctx.fillStyle = '#3A3020';
+        ctx.fillRect(cx - 9, by - 34, 18, 8);
+        ctx.strokeStyle = '#221A0E';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(cx - 9, by - 34, 18, 8);
+        // Faded text (just lines to suggest writing)
+        ctx.strokeStyle = 'rgba(80,70,50,0.12)';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(cx - 6 + i * 2, by - 32);
+            ctx.lineTo(cx - 4 + i * 2, by - 32);
+            ctx.stroke();
+        }
+        // Second sign at angle
+        ctx.save();
+        ctx.translate(cx, by - 28);
+        ctx.rotate(-0.15);
+        ctx.fillStyle = '#342A1C';
+        ctx.fillRect(-7, -3, 14, 6);
+        ctx.strokeStyle = '#221A0E';
+        ctx.lineWidth = 0.4;
+        ctx.strokeRect(-7, -3, 14, 6);
+        ctx.restore();
+        // Nail
+        ctx.fillStyle = '#505050';
+        ctx.fillRect(cx - 0.5, by - 34, 1, 1);
+        return c;
+    }
 }
 
 class IsometricRenderer {
@@ -2790,6 +3459,24 @@ class IsometricRenderer {
 
         // Bones sprite
         this._bonesSprite = SpriteGenerator.generateBonesSprite();
+
+        // Environmental object sprites (trees, ruins, wreckage, buildings, etc.)
+        this._envSprites = {
+            'dead_tree': [], 'ruins': [], 'wreckage': [], 'building': [],
+            'cactus': [], 'rock_formation': [],
+            'campfire': [SpriteGenerator.generateCampfire()],
+            'signpost': [SpriteGenerator.generateSignpost()],
+        };
+        for (let v = 0; v < 4; v++) {
+            this._envSprites['dead_tree'].push(SpriteGenerator.generateDeadTree(v));
+            this._envSprites['ruins'].push(SpriteGenerator.generateRuins(v));
+            this._envSprites['wreckage'].push(SpriteGenerator.generateWreckage(v));
+            this._envSprites['cactus'].push(SpriteGenerator.generateCactus(v));
+            this._envSprites['rock_formation'].push(SpriteGenerator.generateRockFormation(v));
+        }
+        for (let v = 0; v < 2; v++) {
+            this._envSprites['building'].push(SpriteGenerator.generateBuilding(v));
+        }
     }
 
     resize() {
@@ -3705,6 +4392,21 @@ class IsometricRenderer {
 
         if (isSelected) {
             this.drawTileHighlight(gx, gy, 'rgba(60, 140, 60, 0.15)', 'rgba(80, 160, 80, 0.4)');
+        }
+
+        // Environmental objects (trees, ruins, wreckage, etc.)
+        const envTypes = ['dead_tree','ruins','wreckage','building','cactus','rock_formation','campfire','signpost'];
+        if (envTypes.includes(entityType)) {
+            const sprites = this._envSprites[entityType];
+            if (sprites && sprites.length > 0) {
+                // Use hash of position for deterministic variant
+                const variant = ((gx * 7 + gy * 13) & 0x7FFFFFFF) % sprites.length;
+                const sprite = sprites[variant];
+                const sw = sprite.width * z;
+                const sh = sprite.height * z;
+                ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh + 6 * z, sw, sh);
+            }
+            return;
         }
 
         if (entityType === 'chest' || entityType === 'crate') {
@@ -7477,6 +8179,24 @@ function createVillageArea() {
         'chest'
     ));
 
+    // Environmental objects - trees, signposts, etc.
+    const env = (id, sprite, x, y, name, blocking = true) => ({
+        id, name: name || sprite, type: 'environment', spriteType: sprite,
+        x, y, facing: 'south', isHostile: false, blocking,
+    });
+    entities.push(env('tree1', 'dead_tree', 2, 3, 'Dead Tree'));
+    entities.push(env('tree2', 'dead_tree', 22, 4, 'Dead Tree'));
+    entities.push(env('tree3', 'dead_tree', 1, 18, 'Withered Tree'));
+    entities.push(env('tree4', 'dead_tree', 23, 19, 'Dead Tree'));
+    entities.push(env('tree5', 'dead_tree', 6, 21, 'Gnarled Tree'));
+    entities.push(env('cactus1', 'cactus', 0, 8, 'Cactus'));
+    entities.push(env('cactus2', 'cactus', 24, 9, 'Cactus'));
+    entities.push(env('cactus3', 'cactus', 3, 14, 'Barrel Cactus'));
+    entities.push(env('sign1', 'signpost', 13, 3, 'Signpost', false));
+    entities.push(env('rocks1', 'rock_formation', 19, 20, 'Rocks', true));
+    entities.push(env('rocks2', 'rock_formation', 1, 12, 'Boulders', true));
+    entities.push(env('campfire1', 'campfire', 10, 10, 'Campfire', false));
+
     // Area transitions
     const transitions = [
         {
@@ -7624,6 +8344,29 @@ function createCaveArea() {
         'chest'
     ));
 
+    // Environmental objects - cave decorations
+    const env = (id, sprite, x, y, name, blocking = true) => ({
+        id, name: name || sprite, type: 'environment', spriteType: sprite,
+        x, y, facing: 'south', isHostile: false, blocking,
+    });
+    // Rock formations and stalagmites
+    entities.push(env('rocks1', 'rock_formation', 10, 2, 'Stalagmite Cluster'));
+    entities.push(env('rocks2', 'rock_formation', 15, 6, 'Cave Rocks'));
+    entities.push(env('rocks3', 'rock_formation', 4, 9, 'Dripping Stalagmite'));
+    entities.push(env('rocks4', 'rock_formation', 13, 11, 'Rock Pillar'));
+    entities.push(env('rocks5', 'rock_formation', 6, 16, 'Mineral Deposit'));
+    // Ruins / rubble from collapsed tunnels
+    entities.push(env('ruins1', 'ruins', 16, 4, 'Collapsed Tunnel'));
+    entities.push(env('ruins2', 'ruins', 4, 12, 'Crumbled Support'));
+    entities.push(env('ruins3', 'ruins', 11, 15, 'Cave-in Rubble'));
+    // Bones from previous explorers
+    entities.push(env('bones1', 'bones', 7, 5, 'Scattered Bones', false));
+    entities.push(env('bones2', 'bones', 13, 9, 'Old Skeleton', false));
+    entities.push(env('bones3', 'bones', 5, 15, 'Bleached Bones', false));
+    entities.push(env('bones4', 'bones', 10, 17, 'Adventurer Remains', false));
+    // Campfire from past explorers
+    entities.push(env('campfire1', 'campfire', 8, 7, 'Extinguished Campfire', false));
+
     // Area transitions
     const transitions = [
         {
@@ -7765,6 +8508,37 @@ function createWastelandArea() {
         ],
         'crate'
     ));
+
+    // Environmental objects - wreckage, ruins, trees, buildings
+    const env = (id, sprite, x, y, name, blocking = true) => ({
+        id, name: name || sprite, type: 'environment', spriteType: sprite,
+        x, y, facing: 'south', isHostile: false, blocking,
+    });
+    // Ruined structures and wreckage
+    entities.push(env('ruins1', 'ruins', 3, 4, 'Collapsed Wall'));
+    entities.push(env('ruins2', 'ruins', 5, 8, 'Ruined Building'));
+    entities.push(env('ruins3', 'ruins', 18, 3, 'Crumbling Archway'));
+    entities.push(env('wreck1', 'wreckage', 2, 12, 'Rusted Vehicle'));
+    entities.push(env('wreck2', 'wreckage', 7, 16, 'Junk Pile'));
+    entities.push(env('wreck3', 'wreckage', 19, 17, 'Overturned Barrel'));
+    entities.push(env('wreck4', 'wreckage', 4, 18, 'Scrap Heap'));
+    // Dead trees and desert plants
+    entities.push(env('tree1', 'dead_tree', 1, 6, 'Dead Tree'));
+    entities.push(env('tree2', 'dead_tree', 19, 9, 'Charred Tree'));
+    entities.push(env('tree3', 'dead_tree', 9, 3, 'Withered Tree'));
+    entities.push(env('cactus1', 'cactus', 6, 2, 'Cactus'));
+    entities.push(env('cactus2', 'cactus', 20, 13, 'Cactus'));
+    entities.push(env('cactus3', 'cactus', 1, 16, 'Saguaro'));
+    // Raider camp structures
+    entities.push(env('tower1', 'building', 10, 5, 'Lookout Tower'));
+    entities.push(env('shack1', 'building', 17, 12, 'Raider Shack'));
+    // Rocks and campfire
+    entities.push(env('rocks1', 'rock_formation', 3, 9, 'Boulder'));
+    entities.push(env('rocks2', 'rock_formation', 16, 18, 'Rocks'));
+    entities.push(env('campfire1', 'campfire', 13, 10, 'Raider Campfire', false));
+    entities.push(env('sign1', 'signpost', 10, 19, 'Warning Sign', false));
+    entities.push(env('bones1', 'bones', 6, 13, 'Skeletal Remains', false));
+    entities.push(env('bones2', 'bones', 11, 4, 'Old Bones', false));
 
     const transitions = [
         {
@@ -8869,9 +9643,10 @@ class Game {
         const tile = this.getTileAt(x, y);
         if (!tile) return false;
         if (this.currentArea.blocked.has(tile)) return false;
-        // Check for blocking entities (other characters, but not containers)
+        // Check for blocking entities (characters and blocking environment objects)
         const ent = this.getEntityAt(x, y);
         if (ent && (ent.type === 'enemy' || ent.type === 'npc')) return false;
+        if (ent && ent.type === 'environment' && ent.blocking) return false;
         return true;
     }
 
@@ -9207,6 +9982,11 @@ class Game {
 }
 
 // ---- Initialize Game ----
+window.addEventListener('DOMContentLoaded', () => {
+    window.game = new Game();
+});
+
+
 window.addEventListener('DOMContentLoaded', () => {
     window.game = new Game();
 });

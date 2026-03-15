@@ -115,6 +115,29 @@ function createCaveArea() {
         'chest'
     ));
 
+    // Environmental objects - cave decorations
+    const env = (id, sprite, x, y, name, blocking = true) => ({
+        id, name: name || sprite, type: 'environment', spriteType: sprite,
+        x, y, facing: 'south', isHostile: false, blocking,
+    });
+    // Rock formations and stalagmites
+    entities.push(env('rocks1', 'rock_formation', 10, 2, 'Stalagmite Cluster'));
+    entities.push(env('rocks2', 'rock_formation', 15, 6, 'Cave Rocks'));
+    entities.push(env('rocks3', 'rock_formation', 4, 9, 'Dripping Stalagmite'));
+    entities.push(env('rocks4', 'rock_formation', 13, 11, 'Rock Pillar'));
+    entities.push(env('rocks5', 'rock_formation', 6, 16, 'Mineral Deposit'));
+    // Ruins / rubble from collapsed tunnels
+    entities.push(env('ruins1', 'ruins', 16, 4, 'Collapsed Tunnel'));
+    entities.push(env('ruins2', 'ruins', 4, 12, 'Crumbled Support'));
+    entities.push(env('ruins3', 'ruins', 11, 15, 'Cave-in Rubble'));
+    // Bones from previous explorers
+    entities.push(env('bones1', 'bones', 7, 5, 'Scattered Bones', false));
+    entities.push(env('bones2', 'bones', 13, 9, 'Old Skeleton', false));
+    entities.push(env('bones3', 'bones', 5, 15, 'Bleached Bones', false));
+    entities.push(env('bones4', 'bones', 10, 17, 'Adventurer Remains', false));
+    // Campfire from past explorers
+    entities.push(env('campfire1', 'campfire', 8, 7, 'Extinguished Campfire', false));
+
     // Area transitions
     const transitions = [
         {

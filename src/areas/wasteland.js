@@ -110,6 +110,37 @@ function createWastelandArea() {
         'crate'
     ));
 
+    // Environmental objects - wreckage, ruins, trees, buildings
+    const env = (id, sprite, x, y, name, blocking = true) => ({
+        id, name: name || sprite, type: 'environment', spriteType: sprite,
+        x, y, facing: 'south', isHostile: false, blocking,
+    });
+    // Ruined structures and wreckage
+    entities.push(env('ruins1', 'ruins', 3, 4, 'Collapsed Wall'));
+    entities.push(env('ruins2', 'ruins', 5, 8, 'Ruined Building'));
+    entities.push(env('ruins3', 'ruins', 18, 3, 'Crumbling Archway'));
+    entities.push(env('wreck1', 'wreckage', 2, 12, 'Rusted Vehicle'));
+    entities.push(env('wreck2', 'wreckage', 7, 16, 'Junk Pile'));
+    entities.push(env('wreck3', 'wreckage', 19, 17, 'Overturned Barrel'));
+    entities.push(env('wreck4', 'wreckage', 4, 18, 'Scrap Heap'));
+    // Dead trees and desert plants
+    entities.push(env('tree1', 'dead_tree', 1, 6, 'Dead Tree'));
+    entities.push(env('tree2', 'dead_tree', 19, 9, 'Charred Tree'));
+    entities.push(env('tree3', 'dead_tree', 9, 3, 'Withered Tree'));
+    entities.push(env('cactus1', 'cactus', 6, 2, 'Cactus'));
+    entities.push(env('cactus2', 'cactus', 20, 13, 'Cactus'));
+    entities.push(env('cactus3', 'cactus', 1, 16, 'Saguaro'));
+    // Raider camp structures
+    entities.push(env('tower1', 'building', 10, 5, 'Lookout Tower'));
+    entities.push(env('shack1', 'building', 17, 12, 'Raider Shack'));
+    // Rocks and campfire
+    entities.push(env('rocks1', 'rock_formation', 3, 9, 'Boulder'));
+    entities.push(env('rocks2', 'rock_formation', 16, 18, 'Rocks'));
+    entities.push(env('campfire1', 'campfire', 13, 10, 'Raider Campfire', false));
+    entities.push(env('sign1', 'signpost', 10, 19, 'Warning Sign', false));
+    entities.push(env('bones1', 'bones', 6, 13, 'Skeletal Remains', false));
+    entities.push(env('bones2', 'bones', 11, 4, 'Old Bones', false));
+
     const transitions = [
         {
             x: 10, y: 21,

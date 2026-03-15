@@ -121,6 +121,24 @@ function createVillageArea() {
         'chest'
     ));
 
+    // Environmental objects - trees, signposts, etc.
+    const env = (id, sprite, x, y, name, blocking = true) => ({
+        id, name: name || sprite, type: 'environment', spriteType: sprite,
+        x, y, facing: 'south', isHostile: false, blocking,
+    });
+    entities.push(env('tree1', 'dead_tree', 2, 3, 'Dead Tree'));
+    entities.push(env('tree2', 'dead_tree', 22, 4, 'Dead Tree'));
+    entities.push(env('tree3', 'dead_tree', 1, 18, 'Withered Tree'));
+    entities.push(env('tree4', 'dead_tree', 23, 19, 'Dead Tree'));
+    entities.push(env('tree5', 'dead_tree', 6, 21, 'Gnarled Tree'));
+    entities.push(env('cactus1', 'cactus', 0, 8, 'Cactus'));
+    entities.push(env('cactus2', 'cactus', 24, 9, 'Cactus'));
+    entities.push(env('cactus3', 'cactus', 3, 14, 'Barrel Cactus'));
+    entities.push(env('sign1', 'signpost', 13, 3, 'Signpost', false));
+    entities.push(env('rocks1', 'rock_formation', 19, 20, 'Rocks', true));
+    entities.push(env('rocks2', 'rock_formation', 1, 12, 'Boulders', true));
+    entities.push(env('campfire1', 'campfire', 10, 10, 'Campfire', false));
+
     // Area transitions
     const transitions = [
         {
