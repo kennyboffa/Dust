@@ -547,14 +547,110 @@ class Game {
     transitionArea(transition) {
         this.audio.playSfx('door');
 
-        // Set player position for new area
-        this.player.x = transition.targetX;
-        this.player.y = transition.targetY;
-
         // End combat if active
         if (this.combat.active) {
             this.combat.endCombat();
         }
+
+        // Random encounter chance when traveling between major areas
+        const fromId = this.currentArea.id;
+        const toId = transition.targetArea;
+        const isFromEncounter = this.currentArea.isEncounter;
+        if (!isFromEncounter && fromId !== toId && fromId !== 'encounter') {
+            // 40% chance of random encounter between major areas
+            if (Utils.percentCheck(40)) {
+                const encounterTypes = ['combat', 'combat', 'trader', 'empty'];
+                const encType = Utils.randChoice(encounterTypes);
+                const encounterArea = generateEncounterArea(fromId, toId, encType);
+                this.areas['encounter'] = encounterArea;
+
+                // Place player at start of encounter area
+                this.player.x = encounterArea.playerStart.x;
+                this.player.y = encounterArea.playerStart.y;
+                this.player.facing = 'east';
+                this.loadArea('encounter');
+
+                if (encType === 'combat') {
+                    this.addMessage('You encounter hostiles in the wasteland!', 'combat');
+                } else if (encType === 'trader') {
+                    this.addMessage('You come across a trader on the road.', 'info');
+                } else {
+                    this.addMessage('You travel through the wasteland...', 'info');
+                }
+                this.hud.update();
+                this.advanceTime(1);
+                return;
+            }
+        }
+
+        // Determine entry side based on exit position on current map
+        const curMap = this.currentArea.map;
+        const curH = curMap.length;
+        const curW = curMap[0].length;
+        const exitX = transition.x;
+        const exitY = transition.y;
+
+        // Which edge is the exit on?
+        const atTop = exitY <= 1;
+        const atBottom = exitY >= curH - 2;
+        const atLeft = exitX <= 1;
+        const atRight = exitX >= curW - 2;
+
+        // Load target area to get its dimensions
+        const targetArea = this.areas[transition.targetArea];
+        if (!targetArea) return;
+        const tgtH = targetArea.map.length;
+        const tgtW = targetArea.map[0].length;
+
+        // Place player on opposite edge of target area
+        let entryX = transition.targetX;
+        let entryY = transition.targetY;
+
+        if (atTop) {
+            // Exited north, enter from south
+            entryY = tgtH - 2;
+            entryX = Utils.clamp(Math.floor(tgtW / 2), 1, tgtW - 2);
+        } else if (atBottom) {
+            // Exited south, enter from north
+            entryY = 1;
+            entryX = Utils.clamp(Math.floor(tgtW / 2), 1, tgtW - 2);
+        } else if (atLeft) {
+            // Exited west, enter from east
+            entryX = tgtW - 2;
+            entryY = Utils.clamp(Math.floor(tgtH / 2), 1, tgtH - 2);
+        } else if (atRight) {
+            // Exited east, enter from west
+            entryX = 1;
+            entryY = Utils.clamp(Math.floor(tgtH / 2), 1, tgtH - 2);
+        }
+
+        // Find a walkable tile near the entry point
+        const blocked = targetArea.blocked || new Set();
+        for (let r = 0; r < 5; r++) {
+            for (let dx = -r; dx <= r; dx++) {
+                for (let dy = -r; dy <= r; dy++) {
+                    const tx = entryX + dx;
+                    const ty = entryY + dy;
+                    if (tx >= 0 && tx < tgtW && ty >= 0 && ty < tgtH) {
+                        const tile = targetArea.map[ty][tx];
+                        if (!blocked.has(tile)) {
+                            entryX = tx;
+                            entryY = ty;
+                            r = 99; dx = 99; dy = 99; // break all loops
+                        }
+                    }
+                }
+            }
+        }
+
+        this.player.x = entryX;
+        this.player.y = entryY;
+
+        // Set facing based on entry direction
+        if (atTop) this.player.facing = 'north';
+        else if (atBottom) this.player.facing = 'south';
+        else if (atLeft) this.player.facing = 'west';
+        else if (atRight) this.player.facing = 'east';
 
         this.loadArea(transition.targetArea);
         this.addMessage(`Entered: ${this.currentArea.name}`, 'info');
@@ -567,6 +663,101 @@ class Game {
     checkTransition(x, y) {
         if (!this.currentArea || !this.currentArea.transitions) return null;
         return this.currentArea.transitions.find(t => t.x === x && t.y === y);
+    }
+
+    // ---- Fast Travel ----
+
+    fastTravel(targetAreaId) {
+        const targetArea = this.areas[targetAreaId];
+        if (!targetArea) return;
+
+        // End combat if active
+        if (this.combat.active) {
+            this.combat.endCombat();
+        }
+
+        // Check for random encounter based on outdoorsman skill
+        const outdoorsman = (this.player.skills && this.player.skills.outdoorsman) || 0;
+        // Base 50% encounter chance, reduced by outdoorsman skill
+        const encounterChance = Utils.clamp(50 - outdoorsman, 10, 80);
+
+        if (Utils.percentCheck(encounterChance)) {
+            // Random encounter! Show a prompt
+            this.fastTravelTarget = targetAreaId;
+            this.showEncounterPrompt();
+            return;
+        }
+
+        // No encounter, travel directly
+        this.completeFastTravel(targetAreaId);
+    }
+
+    showEncounterPrompt() {
+        // Create encounter prompt overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'encounter-prompt';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:999;';
+
+        const panel = document.createElement('div');
+        panel.style.cssText = 'background:#1a1408;border:2px solid #3a2a10;padding:24px;text-align:center;font-family:"Special Elite","Courier New",monospace;color:#c4a44a;max-width:400px;';
+
+        panel.innerHTML = `
+            <h3 style="color:#d4a44a;margin:0 0 12px">Encounter!</h3>
+            <p style="color:#a08040;margin:0 0 16px">You spot something ahead on the road. Stop to investigate?</p>
+            <button id="btn-encounter-stop" style="margin:4px;padding:8px 16px;background:#2a1a08;border:1px solid #5a4a20;color:#c4a44a;cursor:pointer;font-family:inherit;">Stop</button>
+            <button id="btn-encounter-skip" style="margin:4px;padding:8px 16px;background:#2a1a08;border:1px solid #5a4a20;color:#c4a44a;cursor:pointer;font-family:inherit;">Keep Moving</button>
+        `;
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+
+        document.getElementById('btn-encounter-stop').addEventListener('click', () => {
+            overlay.remove();
+            // Generate and enter encounter area
+            const encounterTypes = ['combat', 'combat', 'trader', 'empty'];
+            const encType = Utils.randChoice(encounterTypes);
+            const fromId = this.currentArea.id;
+            const encounterArea = generateEncounterArea(fromId, this.fastTravelTarget, encType);
+            this.areas['encounter'] = encounterArea;
+
+            this.player.x = encounterArea.playerStart.x;
+            this.player.y = encounterArea.playerStart.y;
+            this.player.facing = 'east';
+            this.loadArea('encounter');
+            this.hideScreen('map-screen');
+
+            if (encType === 'combat') {
+                this.addMessage('You encounter hostiles!', 'combat');
+            } else if (encType === 'trader') {
+                this.addMessage('You find a trader on the road.', 'info');
+            } else {
+                this.addMessage('You explore the area...', 'info');
+            }
+            this.hud.update();
+            this.advanceTime(1);
+        });
+
+        document.getElementById('btn-encounter-skip').addEventListener('click', () => {
+            overlay.remove();
+            this.completeFastTravel(this.fastTravelTarget);
+        });
+    }
+
+    completeFastTravel(targetAreaId) {
+        const targetArea = this.areas[targetAreaId];
+        if (!targetArea) return;
+
+        const start = targetArea.playerStart || { x: 10, y: 10 };
+        this.player.x = start.x;
+        this.player.y = start.y;
+
+        this.loadArea(targetAreaId);
+        this.hideScreen('map-screen');
+        this.addMessage(`Arrived at: ${this.currentArea.name}`, 'info');
+        this.hud.update();
+
+        // Fast travel advances more time
+        this.advanceTime(Utils.randInt(2, 5));
     }
 
     // ---- Entity Management ----

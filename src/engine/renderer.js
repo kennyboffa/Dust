@@ -3971,6 +3971,60 @@ class IsometricRenderer {
         }
     }
 
+    // Draw a roof tile (dark solid or transparent)
+    drawRoof(gx, gy, alpha = 1.0) {
+        const screen = this.worldToScreen(gx, gy);
+        const tw = this.tileWidth * this.camera.zoom / 2;
+        const th = this.tileHeight * this.camera.zoom / 2;
+        const hOffset = 2 * 8 * this.camera.zoom; // wall height offset
+        const ctx = this.ctx;
+        const z = this.camera.zoom;
+        const n = this.noise(gx, gy);
+
+        // Roof surface
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(screen.x, screen.y - th - hOffset - 4 * z);
+        ctx.lineTo(screen.x + tw, screen.y - hOffset - 4 * z);
+        ctx.lineTo(screen.x, screen.y + th - hOffset - 4 * z);
+        ctx.lineTo(screen.x - tw, screen.y - hOffset - 4 * z);
+        ctx.closePath();
+
+        // Roof color (dark thatch/metal)
+        const r = 52 + n * 12 | 0;
+        const g = 42 + n * 10 | 0;
+        const b = 28 + n * 8 | 0;
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgb(${r-15},${g-12},${b-8})`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        // Roof texture lines
+        const n2 = this.noise2(gx, gy);
+        ctx.strokeStyle = `rgba(${r-20},${g-16},${b-10},0.4)`;
+        ctx.lineWidth = 0.4;
+        for (let i = 0; i < 3; i++) {
+            const ly = screen.y - hOffset - 4 * z + (i - 1) * th * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(screen.x - tw * 0.8, ly + n2 * 2);
+            ctx.lineTo(screen.x + tw * 0.8, ly - n2 * 2);
+            ctx.stroke();
+        }
+
+        // Ridge shadow
+        ctx.fillStyle = `rgba(0,0,0,${0.1 * alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(screen.x, screen.y - th - hOffset - 4 * z);
+        ctx.lineTo(screen.x + tw * 0.3, screen.y - hOffset - 4 * z + th * 0.3);
+        ctx.lineTo(screen.x, screen.y - hOffset - 4 * z);
+        ctx.lineTo(screen.x - tw * 0.3, screen.y - hOffset - 4 * z + th * 0.3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.globalAlpha = 1.0;
+    }
+
     // ---- MAIN RENDER ----
 
     renderArea(area, entities, playerPos, gameState) {
@@ -4004,6 +4058,61 @@ class IsometricRenderer {
                 const ent = item.entity;
                 this.drawEntity(ent.x, ent.y, ent.spriteType || ent.type, ent.facing || 'south',
                     ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null);
+            }
+        }
+
+        // ---- ROOF PASS: Draw roofs over building tiles ----
+        // Determine if player is inside a building (standing on wood or door tile)
+        const playerTile = (playerPos && map[playerPos.y] && map[playerPos.y][playerPos.x])
+            ? map[playerPos.y][playerPos.x] : null;
+        const playerInside = (playerTile === 'wood' || playerTile === 'door');
+
+        // Find all building interior tiles (wood/door) and which "building" they belong to
+        // Then draw roofs over wall tiles that border building interiors
+        for (let y = 0; y < map.length; y++) {
+            for (let x = 0; x < map[0].length; x++) {
+                if (map[y][x] !== 'wall') continue;
+
+                // Check if this wall is adjacent to a building interior (wood/door)
+                let isBuilding = false;
+                for (let dy = -1; dy <= 1 && !isBuilding; dy++) {
+                    for (let dx = -1; dx <= 1 && !isBuilding; dx++) {
+                        const ny = y + dy, nx = x + dx;
+                        if (ny >= 0 && ny < map.length && nx >= 0 && nx < map[0].length) {
+                            if (map[ny][nx] === 'wood' || map[ny][nx] === 'door') {
+                                isBuilding = true;
+                            }
+                        }
+                    }
+                }
+
+                if (isBuilding) {
+                    // If player is inside, check if player is in the same building cluster
+                    let alpha = 1.0;
+                    if (playerInside) {
+                        // Simple proximity check: if player is within 6 tiles of this wall, fade it
+                        const dist = Math.abs(x - playerPos.x) + Math.abs(y - playerPos.y);
+                        if (dist < 8) {
+                            alpha = 0.15;
+                        }
+                    }
+                    this.drawRoof(x, y, alpha);
+                }
+            }
+        }
+
+        // Also draw roofs over interior tiles (wood/door) so the whole building is covered
+        for (let y = 0; y < map.length; y++) {
+            for (let x = 0; x < map[0].length; x++) {
+                if (map[y][x] !== 'wood' && map[y][x] !== 'door') continue;
+                let alpha = 1.0;
+                if (playerInside) {
+                    const dist = Math.abs(x - playerPos.x) + Math.abs(y - playerPos.y);
+                    if (dist < 8) {
+                        alpha = 0.15;
+                    }
+                }
+                this.drawRoof(x, y, alpha);
             }
         }
 
@@ -4146,6 +4255,13 @@ class IsometricRenderer {
                 ctx.strokeText(loc.name, loc.mapX, loc.mapY + 15);
                 ctx.fillStyle = isCurrent ? '#887020' : '#3A3018';
                 ctx.fillText(loc.name, loc.mapX, loc.mapY + 15);
+
+                // Show "click to travel" hint for non-current discovered locations
+                if (!isCurrent && loc.discovered) {
+                    ctx.font = '6px Courier New';
+                    ctx.fillStyle = '#554820';
+                    ctx.fillText('[Travel]', loc.mapX, loc.mapY + 23);
+                }
             }
         }
 

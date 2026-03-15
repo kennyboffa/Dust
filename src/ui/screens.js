@@ -210,7 +210,7 @@ class ScreenManager {
         const canvas = document.getElementById('map-canvas');
         const ctx = canvas.getContext('2d');
 
-        const locations = [
+        this.worldMapLocations = [
             {
                 id: 'village',
                 name: 'Dusthaven Village',
@@ -241,6 +241,25 @@ class ScreenManager {
             }
         ];
 
-        this.game.renderer.drawWorldMap(ctx, locations, this.game.currentArea?.id || 'village');
+        this.game.renderer.drawWorldMap(ctx, this.worldMapLocations, this.game.currentArea?.id || 'village');
+
+        // Set up click handler for fast travel
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+
+            for (const loc of this.worldMapLocations) {
+                if (!loc.discovered || loc.id === (this.game.currentArea?.id || 'village')) continue;
+                const dx = mx - loc.mapX;
+                const dy = my - loc.mapY;
+                if (dx * dx + dy * dy < 20 * 20) {
+                    this.game.fastTravel(loc.id);
+                    return;
+                }
+            }
+        };
     }
 }

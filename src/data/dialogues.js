@@ -451,4 +451,59 @@ const DialogueDatabase = {
             }
         }
     },
+
+    wasteland_trader: {
+        getStartNode() { return 'start'; },
+        nodes: {
+            start: {
+                text: "Heh, another wanderer. I've got supplies if you've got caps. The roads aren't safe these days.",
+                options: [
+                    { text: "What do you have for sale?", next: 'trade' },
+                    { text: "What's the news from the wasteland?", next: 'news' },
+                    { text: "Safe travels.", end: true }
+                ]
+            },
+            trade: {
+                text: "Take a look. Fair prices — I'm no raider.",
+                options: [
+                    {
+                        text: "Buy Stimpak (40 caps)",
+                        next: 'start',
+                        action: (p, game) => {
+                            const caps = p.inventory.find(i => i.id === 'bottle_caps');
+                            if (caps && caps.quantity >= 40) {
+                                caps.quantity -= 40;
+                                InventorySystem.addItem(p, ItemDatabase.stimpak, 1);
+                                game.addMessage('Purchased Stimpak.', 'loot');
+                            } else {
+                                game.addMessage('Not enough caps.', 'combat');
+                            }
+                        }
+                    },
+                    {
+                        text: "Buy Healing Powder (15 caps)",
+                        next: 'start',
+                        action: (p, game) => {
+                            const caps = p.inventory.find(i => i.id === 'bottle_caps');
+                            if (caps && caps.quantity >= 15) {
+                                caps.quantity -= 15;
+                                InventorySystem.addItem(p, ItemDatabase.healing_powder, 2);
+                                game.addMessage('Purchased Healing Powder x2.', 'loot');
+                            } else {
+                                game.addMessage('Not enough caps.', 'combat');
+                            }
+                        }
+                    },
+                    { text: "Nevermind.", end: true }
+                ]
+            },
+            news: {
+                text: "Raiders have been getting bolder. Heard there's a camp east of Dusthaven — nasty bunch led by some warlord. And the caves... folks say something's stirring down there. Something big.",
+                options: [
+                    { text: "Thanks for the info.", end: true },
+                    { text: "What do you have for sale?", next: 'trade' }
+                ]
+            }
+        }
+    },
 };

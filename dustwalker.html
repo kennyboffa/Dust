@@ -5489,6 +5489,60 @@ class IsometricRenderer {
         }
     }
 
+    // Draw a roof tile (dark solid or transparent)
+    drawRoof(gx, gy, alpha = 1.0) {
+        const screen = this.worldToScreen(gx, gy);
+        const tw = this.tileWidth * this.camera.zoom / 2;
+        const th = this.tileHeight * this.camera.zoom / 2;
+        const hOffset = 2 * 8 * this.camera.zoom; // wall height offset
+        const ctx = this.ctx;
+        const z = this.camera.zoom;
+        const n = this.noise(gx, gy);
+
+        // Roof surface
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(screen.x, screen.y - th - hOffset - 4 * z);
+        ctx.lineTo(screen.x + tw, screen.y - hOffset - 4 * z);
+        ctx.lineTo(screen.x, screen.y + th - hOffset - 4 * z);
+        ctx.lineTo(screen.x - tw, screen.y - hOffset - 4 * z);
+        ctx.closePath();
+
+        // Roof color (dark thatch/metal)
+        const r = 52 + n * 12 | 0;
+        const g = 42 + n * 10 | 0;
+        const b = 28 + n * 8 | 0;
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgb(${r-15},${g-12},${b-8})`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        // Roof texture lines
+        const n2 = this.noise2(gx, gy);
+        ctx.strokeStyle = `rgba(${r-20},${g-16},${b-10},0.4)`;
+        ctx.lineWidth = 0.4;
+        for (let i = 0; i < 3; i++) {
+            const ly = screen.y - hOffset - 4 * z + (i - 1) * th * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(screen.x - tw * 0.8, ly + n2 * 2);
+            ctx.lineTo(screen.x + tw * 0.8, ly - n2 * 2);
+            ctx.stroke();
+        }
+
+        // Ridge shadow
+        ctx.fillStyle = `rgba(0,0,0,${0.1 * alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(screen.x, screen.y - th - hOffset - 4 * z);
+        ctx.lineTo(screen.x + tw * 0.3, screen.y - hOffset - 4 * z + th * 0.3);
+        ctx.lineTo(screen.x, screen.y - hOffset - 4 * z);
+        ctx.lineTo(screen.x - tw * 0.3, screen.y - hOffset - 4 * z + th * 0.3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.globalAlpha = 1.0;
+    }
+
     // ---- MAIN RENDER ----
 
     renderArea(area, entities, playerPos, gameState) {
@@ -5522,6 +5576,61 @@ class IsometricRenderer {
                 const ent = item.entity;
                 this.drawEntity(ent.x, ent.y, ent.spriteType || ent.type, ent.facing || 'south',
                     ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null);
+            }
+        }
+
+        // ---- ROOF PASS: Draw roofs over building tiles ----
+        // Determine if player is inside a building (standing on wood or door tile)
+        const playerTile = (playerPos && map[playerPos.y] && map[playerPos.y][playerPos.x])
+            ? map[playerPos.y][playerPos.x] : null;
+        const playerInside = (playerTile === 'wood' || playerTile === 'door');
+
+        // Find all building interior tiles (wood/door) and which "building" they belong to
+        // Then draw roofs over wall tiles that border building interiors
+        for (let y = 0; y < map.length; y++) {
+            for (let x = 0; x < map[0].length; x++) {
+                if (map[y][x] !== 'wall') continue;
+
+                // Check if this wall is adjacent to a building interior (wood/door)
+                let isBuilding = false;
+                for (let dy = -1; dy <= 1 && !isBuilding; dy++) {
+                    for (let dx = -1; dx <= 1 && !isBuilding; dx++) {
+                        const ny = y + dy, nx = x + dx;
+                        if (ny >= 0 && ny < map.length && nx >= 0 && nx < map[0].length) {
+                            if (map[ny][nx] === 'wood' || map[ny][nx] === 'door') {
+                                isBuilding = true;
+                            }
+                        }
+                    }
+                }
+
+                if (isBuilding) {
+                    // If player is inside, check if player is in the same building cluster
+                    let alpha = 1.0;
+                    if (playerInside) {
+                        // Simple proximity check: if player is within 6 tiles of this wall, fade it
+                        const dist = Math.abs(x - playerPos.x) + Math.abs(y - playerPos.y);
+                        if (dist < 8) {
+                            alpha = 0.15;
+                        }
+                    }
+                    this.drawRoof(x, y, alpha);
+                }
+            }
+        }
+
+        // Also draw roofs over interior tiles (wood/door) so the whole building is covered
+        for (let y = 0; y < map.length; y++) {
+            for (let x = 0; x < map[0].length; x++) {
+                if (map[y][x] !== 'wood' && map[y][x] !== 'door') continue;
+                let alpha = 1.0;
+                if (playerInside) {
+                    const dist = Math.abs(x - playerPos.x) + Math.abs(y - playerPos.y);
+                    if (dist < 8) {
+                        alpha = 0.15;
+                    }
+                }
+                this.drawRoof(x, y, alpha);
             }
         }
 
@@ -5664,6 +5773,13 @@ class IsometricRenderer {
                 ctx.strokeText(loc.name, loc.mapX, loc.mapY + 15);
                 ctx.fillStyle = isCurrent ? '#887020' : '#3A3018';
                 ctx.fillText(loc.name, loc.mapX, loc.mapY + 15);
+
+                // Show "click to travel" hint for non-current discovered locations
+                if (!isCurrent && loc.discovered) {
+                    ctx.font = '6px Courier New';
+                    ctx.fillStyle = '#554820';
+                    ctx.fillText('[Travel]', loc.mapX, loc.mapY + 23);
+                }
             }
         }
 
@@ -8223,6 +8339,61 @@ const DialogueDatabase = {
             }
         }
     },
+
+    wasteland_trader: {
+        getStartNode() { return 'start'; },
+        nodes: {
+            start: {
+                text: "Heh, another wanderer. I've got supplies if you've got caps. The roads aren't safe these days.",
+                options: [
+                    { text: "What do you have for sale?", next: 'trade' },
+                    { text: "What's the news from the wasteland?", next: 'news' },
+                    { text: "Safe travels.", end: true }
+                ]
+            },
+            trade: {
+                text: "Take a look. Fair prices — I'm no raider.",
+                options: [
+                    {
+                        text: "Buy Stimpak (40 caps)",
+                        next: 'start',
+                        action: (p, game) => {
+                            const caps = p.inventory.find(i => i.id === 'bottle_caps');
+                            if (caps && caps.quantity >= 40) {
+                                caps.quantity -= 40;
+                                InventorySystem.addItem(p, ItemDatabase.stimpak, 1);
+                                game.addMessage('Purchased Stimpak.', 'loot');
+                            } else {
+                                game.addMessage('Not enough caps.', 'combat');
+                            }
+                        }
+                    },
+                    {
+                        text: "Buy Healing Powder (15 caps)",
+                        next: 'start',
+                        action: (p, game) => {
+                            const caps = p.inventory.find(i => i.id === 'bottle_caps');
+                            if (caps && caps.quantity >= 15) {
+                                caps.quantity -= 15;
+                                InventorySystem.addItem(p, ItemDatabase.healing_powder, 2);
+                                game.addMessage('Purchased Healing Powder x2.', 'loot');
+                            } else {
+                                game.addMessage('Not enough caps.', 'combat');
+                            }
+                        }
+                    },
+                    { text: "Nevermind.", end: true }
+                ]
+            },
+            news: {
+                text: "Raiders have been getting bolder. Heard there's a camp east of Dusthaven — nasty bunch led by some warlord. And the caves... folks say something's stirring down there. Something big.",
+                options: [
+                    { text: "Thanks for the info.", end: true },
+                    { text: "What do you have for sale?", next: 'trade' }
+                ]
+            }
+        }
+    },
 };
 
 // ==== src/areas/village.js ====
@@ -8738,6 +8909,146 @@ function createWastelandArea() {
     };
 }
 
+// ==== src/areas/encounter.js ====
+// ============================================
+// Dustwalker - Random Encounter Area Generator
+// ============================================
+
+function generateEncounterArea(fromArea, toArea, encounterType) {
+    const width = 20;
+    const height = 20;
+
+    // Generate a basic desert/wasteland terrain
+    const map = [];
+    const heights = [];
+
+    for (let y = 0; y < height; y++) {
+        const row = [];
+        const hRow = [];
+        for (let x = 0; x < width; x++) {
+            // Border is sand, interior mix of dirt/sand/grass
+            if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                row.push('sand');
+            } else {
+                const r = Utils.randInt(0, 100);
+                if (r < 50) row.push('dirt');
+                else if (r < 80) row.push('sand');
+                else if (r < 90) row.push('grass');
+                else row.push('road');
+            }
+            hRow.push(0);
+        }
+        map.push(row);
+        heights.push(hRow);
+    }
+
+    // Add a rough path through the middle
+    const pathY = Math.floor(height / 2);
+    for (let x = 0; x < width; x++) {
+        const py = pathY + Utils.randInt(-1, 1);
+        for (let dy = -1; dy <= 1; dy++) {
+            const yy = Utils.clamp(py + dy, 1, height - 2);
+            map[yy][x] = 'road';
+        }
+    }
+
+    // Scatter some rocks/water as obstacles
+    for (let y = 2; y < height - 2; y++) {
+        for (let x = 2; x < width - 2; x++) {
+            if (map[y][x] === 'road') continue;
+            if (Utils.randInt(0, 100) < 3) {
+                map[y][x] = 'wall'; // rock
+                heights[y][x] = 1;
+            }
+        }
+    }
+
+    const blocked = new Set(['wall', 'water', 'void']);
+    const entities = [];
+
+    // Environmental objects
+    const env = (id, sprite, x, y, name, blocking = true) => ({
+        id, name: name || sprite, type: 'environment', spriteType: sprite,
+        x, y, facing: 'south', isHostile: false, blocking,
+    });
+
+    // Scatter trees and cacti
+    const envCount = Utils.randInt(4, 8);
+    for (let i = 0; i < envCount; i++) {
+        const ex = Utils.randInt(2, width - 3);
+        const ey = Utils.randInt(2, height - 3);
+        if (map[ey][ex] === 'road') continue;
+        const type = Utils.randChoice(['dead_tree', 'cactus', 'rock_formation']);
+        const names = { dead_tree: 'Dead Tree', cactus: 'Cactus', rock_formation: 'Rocks' };
+        entities.push(env(`enc_env_${i}`, type, ex, ey, names[type]));
+    }
+
+    // Add encounter-specific content
+    if (encounterType === 'combat') {
+        // Spawn 2-4 enemies
+        const enemyCount = Utils.randInt(2, 4);
+        const possibleEnemies = ['raider', 'raider_scout', 'cave_rat', 'giant_rat'];
+        for (let i = 0; i < enemyCount; i++) {
+            const templateKey = Utils.randChoice(possibleEnemies);
+            const template = EnemyTemplates[templateKey];
+            const ex = Utils.randInt(8, width - 4);
+            const ey = Utils.randInt(5, height - 5);
+            entities.push(CharacterSystem.createEnemy(template, ex, ey));
+        }
+    } else if (encounterType === 'trader') {
+        // Spawn a wandering trader NPC
+        const traderX = Math.floor(width / 2);
+        const traderY = Math.floor(height / 2);
+        entities.push(CharacterSystem.createNPC({
+            id: 'encounter_trader',
+            name: 'Wasteland Trader',
+            spriteType: 'merchant',
+            x: traderX, y: traderY,
+            dialogueId: 'wasteland_trader',
+        }));
+        // Trader's pack mule (environmental)
+        entities.push(env('trader_pack', 'crate', traderX + 1, traderY, 'Pack Brahmin', true));
+    } else if (encounterType === 'empty') {
+        // Just the terrain, maybe some bones
+        if (Utils.percentCheck(50)) {
+            entities.push(env('enc_bones', 'bones', Utils.randInt(5, 14), Utils.randInt(5, 14), 'Scattered Bones', false));
+        }
+    }
+
+    // Transitions: continue forward or go back
+    // The exit is on the far side, entrance on the near side
+    const transitions = [
+        {
+            x: width - 1, y: Math.floor(height / 2),
+            label: `Continue to ${toArea === 'wasteland' ? 'Raider Camp' : toArea === 'cave' ? 'Caves' : 'destination'}`,
+            targetArea: toArea,
+            targetX: 1, targetY: 10,
+        },
+        {
+            x: 0, y: Math.floor(height / 2),
+            label: `Return to ${fromArea === 'village' ? 'Village' : 'previous area'}`,
+            targetArea: fromArea,
+            targetX: 10, targetY: 10,
+        },
+    ];
+
+    return {
+        id: 'encounter',
+        name: 'Wasteland',
+        map,
+        heights,
+        blocked,
+        entities,
+        transitions,
+        playerStart: { x: 1, y: Math.floor(height / 2) },
+        ambientColor: '#c4943a22',
+        isEncounter: true,
+        encounterType,
+        fromArea,
+        toArea,
+    };
+}
+
 // ==== src/ui/hud.js ====
 // ============================================
 // Dustwalker - HUD Manager
@@ -9207,7 +9518,7 @@ class ScreenManager {
         const canvas = document.getElementById('map-canvas');
         const ctx = canvas.getContext('2d');
 
-        const locations = [
+        this.worldMapLocations = [
             {
                 id: 'village',
                 name: 'Dusthaven Village',
@@ -9238,7 +9549,26 @@ class ScreenManager {
             }
         ];
 
-        this.game.renderer.drawWorldMap(ctx, locations, this.game.currentArea?.id || 'village');
+        this.game.renderer.drawWorldMap(ctx, this.worldMapLocations, this.game.currentArea?.id || 'village');
+
+        // Set up click handler for fast travel
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+
+            for (const loc of this.worldMapLocations) {
+                if (!loc.discovered || loc.id === (this.game.currentArea?.id || 'village')) continue;
+                const dx = mx - loc.mapX;
+                const dy = my - loc.mapY;
+                if (dx * dx + dy * dy < 20 * 20) {
+                    this.game.fastTravel(loc.id);
+                    return;
+                }
+            }
+        };
     }
 }
 
@@ -9792,14 +10122,110 @@ class Game {
     transitionArea(transition) {
         this.audio.playSfx('door');
 
-        // Set player position for new area
-        this.player.x = transition.targetX;
-        this.player.y = transition.targetY;
-
         // End combat if active
         if (this.combat.active) {
             this.combat.endCombat();
         }
+
+        // Random encounter chance when traveling between major areas
+        const fromId = this.currentArea.id;
+        const toId = transition.targetArea;
+        const isFromEncounter = this.currentArea.isEncounter;
+        if (!isFromEncounter && fromId !== toId && fromId !== 'encounter') {
+            // 40% chance of random encounter between major areas
+            if (Utils.percentCheck(40)) {
+                const encounterTypes = ['combat', 'combat', 'trader', 'empty'];
+                const encType = Utils.randChoice(encounterTypes);
+                const encounterArea = generateEncounterArea(fromId, toId, encType);
+                this.areas['encounter'] = encounterArea;
+
+                // Place player at start of encounter area
+                this.player.x = encounterArea.playerStart.x;
+                this.player.y = encounterArea.playerStart.y;
+                this.player.facing = 'east';
+                this.loadArea('encounter');
+
+                if (encType === 'combat') {
+                    this.addMessage('You encounter hostiles in the wasteland!', 'combat');
+                } else if (encType === 'trader') {
+                    this.addMessage('You come across a trader on the road.', 'info');
+                } else {
+                    this.addMessage('You travel through the wasteland...', 'info');
+                }
+                this.hud.update();
+                this.advanceTime(1);
+                return;
+            }
+        }
+
+        // Determine entry side based on exit position on current map
+        const curMap = this.currentArea.map;
+        const curH = curMap.length;
+        const curW = curMap[0].length;
+        const exitX = transition.x;
+        const exitY = transition.y;
+
+        // Which edge is the exit on?
+        const atTop = exitY <= 1;
+        const atBottom = exitY >= curH - 2;
+        const atLeft = exitX <= 1;
+        const atRight = exitX >= curW - 2;
+
+        // Load target area to get its dimensions
+        const targetArea = this.areas[transition.targetArea];
+        if (!targetArea) return;
+        const tgtH = targetArea.map.length;
+        const tgtW = targetArea.map[0].length;
+
+        // Place player on opposite edge of target area
+        let entryX = transition.targetX;
+        let entryY = transition.targetY;
+
+        if (atTop) {
+            // Exited north, enter from south
+            entryY = tgtH - 2;
+            entryX = Utils.clamp(Math.floor(tgtW / 2), 1, tgtW - 2);
+        } else if (atBottom) {
+            // Exited south, enter from north
+            entryY = 1;
+            entryX = Utils.clamp(Math.floor(tgtW / 2), 1, tgtW - 2);
+        } else if (atLeft) {
+            // Exited west, enter from east
+            entryX = tgtW - 2;
+            entryY = Utils.clamp(Math.floor(tgtH / 2), 1, tgtH - 2);
+        } else if (atRight) {
+            // Exited east, enter from west
+            entryX = 1;
+            entryY = Utils.clamp(Math.floor(tgtH / 2), 1, tgtH - 2);
+        }
+
+        // Find a walkable tile near the entry point
+        const blocked = targetArea.blocked || new Set();
+        for (let r = 0; r < 5; r++) {
+            for (let dx = -r; dx <= r; dx++) {
+                for (let dy = -r; dy <= r; dy++) {
+                    const tx = entryX + dx;
+                    const ty = entryY + dy;
+                    if (tx >= 0 && tx < tgtW && ty >= 0 && ty < tgtH) {
+                        const tile = targetArea.map[ty][tx];
+                        if (!blocked.has(tile)) {
+                            entryX = tx;
+                            entryY = ty;
+                            r = 99; dx = 99; dy = 99; // break all loops
+                        }
+                    }
+                }
+            }
+        }
+
+        this.player.x = entryX;
+        this.player.y = entryY;
+
+        // Set facing based on entry direction
+        if (atTop) this.player.facing = 'north';
+        else if (atBottom) this.player.facing = 'south';
+        else if (atLeft) this.player.facing = 'west';
+        else if (atRight) this.player.facing = 'east';
 
         this.loadArea(transition.targetArea);
         this.addMessage(`Entered: ${this.currentArea.name}`, 'info');
@@ -9812,6 +10238,101 @@ class Game {
     checkTransition(x, y) {
         if (!this.currentArea || !this.currentArea.transitions) return null;
         return this.currentArea.transitions.find(t => t.x === x && t.y === y);
+    }
+
+    // ---- Fast Travel ----
+
+    fastTravel(targetAreaId) {
+        const targetArea = this.areas[targetAreaId];
+        if (!targetArea) return;
+
+        // End combat if active
+        if (this.combat.active) {
+            this.combat.endCombat();
+        }
+
+        // Check for random encounter based on outdoorsman skill
+        const outdoorsman = (this.player.skills && this.player.skills.outdoorsman) || 0;
+        // Base 50% encounter chance, reduced by outdoorsman skill
+        const encounterChance = Utils.clamp(50 - outdoorsman, 10, 80);
+
+        if (Utils.percentCheck(encounterChance)) {
+            // Random encounter! Show a prompt
+            this.fastTravelTarget = targetAreaId;
+            this.showEncounterPrompt();
+            return;
+        }
+
+        // No encounter, travel directly
+        this.completeFastTravel(targetAreaId);
+    }
+
+    showEncounterPrompt() {
+        // Create encounter prompt overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'encounter-prompt';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:999;';
+
+        const panel = document.createElement('div');
+        panel.style.cssText = 'background:#1a1408;border:2px solid #3a2a10;padding:24px;text-align:center;font-family:"Special Elite","Courier New",monospace;color:#c4a44a;max-width:400px;';
+
+        panel.innerHTML = `
+            <h3 style="color:#d4a44a;margin:0 0 12px">Encounter!</h3>
+            <p style="color:#a08040;margin:0 0 16px">You spot something ahead on the road. Stop to investigate?</p>
+            <button id="btn-encounter-stop" style="margin:4px;padding:8px 16px;background:#2a1a08;border:1px solid #5a4a20;color:#c4a44a;cursor:pointer;font-family:inherit;">Stop</button>
+            <button id="btn-encounter-skip" style="margin:4px;padding:8px 16px;background:#2a1a08;border:1px solid #5a4a20;color:#c4a44a;cursor:pointer;font-family:inherit;">Keep Moving</button>
+        `;
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+
+        document.getElementById('btn-encounter-stop').addEventListener('click', () => {
+            overlay.remove();
+            // Generate and enter encounter area
+            const encounterTypes = ['combat', 'combat', 'trader', 'empty'];
+            const encType = Utils.randChoice(encounterTypes);
+            const fromId = this.currentArea.id;
+            const encounterArea = generateEncounterArea(fromId, this.fastTravelTarget, encType);
+            this.areas['encounter'] = encounterArea;
+
+            this.player.x = encounterArea.playerStart.x;
+            this.player.y = encounterArea.playerStart.y;
+            this.player.facing = 'east';
+            this.loadArea('encounter');
+            this.hideScreen('map-screen');
+
+            if (encType === 'combat') {
+                this.addMessage('You encounter hostiles!', 'combat');
+            } else if (encType === 'trader') {
+                this.addMessage('You find a trader on the road.', 'info');
+            } else {
+                this.addMessage('You explore the area...', 'info');
+            }
+            this.hud.update();
+            this.advanceTime(1);
+        });
+
+        document.getElementById('btn-encounter-skip').addEventListener('click', () => {
+            overlay.remove();
+            this.completeFastTravel(this.fastTravelTarget);
+        });
+    }
+
+    completeFastTravel(targetAreaId) {
+        const targetArea = this.areas[targetAreaId];
+        if (!targetArea) return;
+
+        const start = targetArea.playerStart || { x: 10, y: 10 };
+        this.player.x = start.x;
+        this.player.y = start.y;
+
+        this.loadArea(targetAreaId);
+        this.hideScreen('map-screen');
+        this.addMessage(`Arrived at: ${this.currentArea.name}`, 'info');
+        this.hud.update();
+
+        // Fast travel advances more time
+        this.advanceTime(Utils.randInt(2, 5));
     }
 
     // ---- Entity Management ----
@@ -10283,11 +10804,6 @@ class Game {
 }
 
 // ---- Initialize Game ----
-window.addEventListener('DOMContentLoaded', () => {
-    window.game = new Game();
-});
-
-
 window.addEventListener('DOMContentLoaded', () => {
     window.game = new Game();
 });
