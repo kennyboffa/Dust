@@ -82,6 +82,7 @@
                     <div id="hud-menu-buttons">
                         <button class="hud-btn" id="btn-inventory" title="Inventory (I)">INV</button>
                         <button class="hud-btn" id="btn-character" title="Character (C)">CHAR</button>
+                        <button class="hud-btn" id="btn-journal" title="Journal (J)">QUEST</button>
                         <button class="hud-btn" id="btn-pipboy" title="PipBoy (P)">MAP</button>
                         <button class="hud-btn" id="btn-save" title="Save (F5)">SAVE</button>
                     </div>
@@ -155,6 +156,17 @@
                 </div>
             </div>
 
+            <!-- Quest Journal Screen -->
+            <div id="journal-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>Quest Journal</h2>
+                    <div id="journal-content">
+                        <div id="quest-list"></div>
+                    </div>
+                    <button class="close-btn" data-close="journal-screen">Close (Esc)</button>
+                </div>
+            </div>
+
             <!-- Map Screen -->
             <div id="map-screen" class="screen overlay">
                 <div class="overlay-panel">
@@ -190,9 +202,12 @@
     <script src="src/systems/ai.js"></script>
     <script src="src/data/items.js"></script>
     <script src="src/data/enemies.js"></script>
+    <script src="src/data/perks.js"></script>
+    <script src="src/data/quests.js"></script>
     <script src="src/data/dialogues.js"></script>
     <script src="src/areas/village.js"></script>
     <script src="src/areas/cave.js"></script>
+    <script src="src/areas/wasteland.js"></script>
     <script src="src/ui/hud.js"></script>
     <script src="src/ui/screens.js"></script>
     <script src="src/engine/game.js"></script>

@@ -87,6 +87,7 @@ const DialogueDatabase = {
                     { text: "Thank you. I'll head out soon.", end: true, action: (p, game) => {
                         p.questFlags.met_elder = true;
                         p.questFlags.cave_quest_accepted = true;
+                        QuestSystem.startQuest(p, 'cave_crystal', game);
                         InventorySystem.addItem(p, ItemDatabase.healing_powder, 3);
                         InventorySystem.addItem(p, ItemDatabase.stimpak, 1);
                         InventorySystem.addItem(p, ItemDatabase.elder_amulet, 1);
@@ -97,9 +98,10 @@ const DialogueDatabase = {
             quest_accepted: {
                 text: "Brave soul. The cave entrance is to the north of the village — you'll see the opening in the cliff face. Be careful, and may fortune walk with you.",
                 options: [
-                    { text: "I'll return with the crystal.", end: true, action: (p) => {
+                    { text: "I'll return with the crystal.", end: true, action: (p, game) => {
                         p.questFlags.met_elder = true;
                         p.questFlags.cave_quest_accepted = true;
+                        QuestSystem.startQuest(p, 'cave_crystal', game);
                     }}
                 ]
             },
@@ -135,6 +137,7 @@ const DialogueDatabase = {
                             game.addMessage('Received: 200 Bottle Caps, Leather Armor', 'loot');
                             CharacterSystem.addXP(p, 500);
                             game.addMessage('+500 XP', 'xp');
+                            QuestSystem.advanceQuest(p, 'cave_crystal', 'complete', game);
                         }
                     }}
                 ]
@@ -145,6 +148,8 @@ const DialogueDatabase = {
     // ---- MERCHANT HANK ----
     merchant_hank: {
         getStartNode(player) {
+            if (player.questFlags.raider_camp_cleared) return 'raider_complete';
+            if (player.questFlags.raider_quest_accepted) return 'raider_progress';
             if (player.questFlags.met_hank) return 'return_greeting';
             return 'start';
         },
@@ -168,6 +173,7 @@ const DialogueDatabase = {
                 text: "Back again? Ready to trade?",
                 options: [
                     { text: "Show me what you have.", next: 'shop' },
+                    { text: "Tell me about those raiders.", next: 'raider_info' },
                     { text: "Any news?", next: 'rumors' },
                     { text: "Just passing through.", end: true }
                 ]
@@ -280,11 +286,71 @@ const DialogueDatabase = {
                 ]
             },
             raider_info: {
-                text: "Small gang, maybe four or five of them. They've been eyeing Dusthaven, we think. Haven't attacked yet, but it's only a matter of time. If someone were to... thin their numbers, the village would be grateful. Very grateful.",
+                text: "Small gang, maybe five or six of them, led by a brute called Warlord Krag. They've been eyeing Dusthaven, we think. Haven't attacked yet, but it's only a matter of time. If someone were to... thin their numbers, the village would be grateful. Very grateful.",
                 options: [
+                    { text: "How grateful? What's in it for me?", next: 'raider_reward' },
                     { text: "I'll keep an eye out.", end: true },
                     { text: "Show me your shop.", next: 'shop' }
                 ]
+            },
+            raider_reward: {
+                text: "300 caps and I'll throw in a sawed-off shotgun from my personal collection. Or if you prefer, I can make it 450 caps total. Either way, you'd be doing Dusthaven a real service. Their camp is east of the village — head out the east side and you'll find them.",
+                options: [
+                    { text: "Deal. I'll take care of the raiders.", next: 'raider_accepted' },
+                    { text: "I'll think about it.", end: true }
+                ]
+            },
+            raider_accepted: {
+                text: "Good luck. Krag's a tough one — take him down and the rest should scatter or die. Come back when they're dealt with.",
+                options: [
+                    { text: "Consider it done.", end: true, action: (p, game) => {
+                        p.questFlags.raider_quest_accepted = true;
+                        QuestSystem.startQuest(p, 'raider_camp', game);
+                    }}
+                ]
+            },
+            raider_progress: {
+                text: "You back already? The raiders still causing trouble east of here. Take out Warlord Krag and his gang. Come back when you're done.",
+                options: [
+                    { text: "I'm working on it.", end: true },
+                    { text: "Let me buy some supplies first.", next: 'shop' }
+                ]
+            },
+            raider_complete: {
+                text(player) {
+                    if (player.questFlags.raider_reward_given) {
+                        return "Thanks again for dealing with those raiders. Need anything from the shop?";
+                    }
+                    return "Wait... you're telling me Krag is dead? The raiders are gone? Ha! I knew you had it in you! Now, about that reward — what'll it be?";
+                },
+                options: (player) => {
+                    if (player.questFlags.raider_reward_given) {
+                        return [
+                            { text: "Show me your shop.", next: 'shop' },
+                            { text: "See you around.", end: true }
+                        ];
+                    }
+                    return [
+                        { text: "I'll take the shotgun and 300 caps.", end: true, action: (p, game) => {
+                            p.questFlags.raider_reward_given = true;
+                            InventorySystem.addItem(p, ItemDatabase.bottle_caps, 300);
+                            InventorySystem.addItem(p, ItemDatabase.sawed_off, 1);
+                            InventorySystem.addItem(p, ItemDatabase.ammo_12ga, 12);
+                            game.addMessage('Received: 300 Bottle Caps, Sawed-Off Shotgun, 12x 12ga Shells', 'loot');
+                            CharacterSystem.addXP(p, 400);
+                            game.addMessage('+400 XP', 'xp');
+                            QuestSystem.advanceQuest(p, 'raider_camp', 'complete', game);
+                        }},
+                        { text: "Just give me the 450 caps.", end: true, action: (p, game) => {
+                            p.questFlags.raider_reward_given = true;
+                            InventorySystem.addItem(p, ItemDatabase.bottle_caps, 450);
+                            game.addMessage('Received: 450 Bottle Caps', 'loot');
+                            CharacterSystem.addXP(p, 400);
+                            game.addMessage('+400 XP', 'xp');
+                            QuestSystem.advanceQuest(p, 'raider_camp', 'complete', game);
+                        }}
+                    ];
+                }
             }
         }
     },

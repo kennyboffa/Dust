@@ -50,6 +50,11 @@ class CombatSystem {
 
         CharacterSystem.restoreAP(entity);
 
+        // Tick buffs at start of player turn
+        if (entity.type === 'player') {
+            InventorySystem.tickBuffs(entity, this.game);
+        }
+
         if (entity.type === 'player') {
             this.game.addMessage(`Your turn. AP: ${entity.stats.ap}`, 'info');
             this.game.setState('playerTurn');
@@ -182,6 +187,17 @@ class CombatSystem {
     onEntityKilled(killer, victim) {
         this.game.addMessage(`${victim.name} is dead.`, 'combat');
         this.game.audio.playSfx('death');
+
+        // Quest tracking for special kills
+        if (killer.type === 'player') {
+            if (victim.name === 'Warlord Krag') {
+                killer.questFlags.raider_camp_cleared = true;
+                if (killer.questFlags.raider_quest_accepted) {
+                    QuestSystem.advanceQuest(killer, 'raider_camp', 'return', this.game);
+                }
+                this.game.addMessage('Warlord Krag has fallen! Return to Hank with the news.', 'xp');
+            }
+        }
 
         // XP reward
         if (killer.type === 'player' && victim.xpReward) {

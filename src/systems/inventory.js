@@ -89,8 +89,12 @@ class InventorySystem {
         switch (item.useEffect) {
             case 'heal':
                 if (char.stats.hp < char.stats.maxHp) {
-                    CharacterSystem.heal(char, item.healAmount || 10);
-                    game.addMessage(`Used ${item.name}. Healed ${item.healAmount || 10} HP.`, 'info');
+                    let healAmt = item.healAmount || 10;
+                    if (char.perks && char.perks.includes('medic')) {
+                        healAmt = Math.floor(healAmt * 1.5);
+                    }
+                    CharacterSystem.heal(char, healAmt);
+                    game.addMessage(`Used ${item.name}. Healed ${healAmt} HP.`, 'info');
                     game.audio.playSfx('pickup');
                     used = true;
                 } else {
@@ -99,11 +103,25 @@ class InventorySystem {
                 break;
             case 'buff':
                 game.addMessage(`Used ${item.name}. ${item.buffDesc || 'Feeling better.'}`, 'info');
-                // Apply temporary stat boost (simplified)
                 if (item.buffStat && item.buffAmount) {
-                    char.special[item.buffStat] += item.buffAmount;
-                    CharacterSystem.recalcStats(char);
-                    // Could add a timer system for temporary buffs
+                    // Track active buffs with duration
+                    if (!char.activeBuffs) char.activeBuffs = [];
+                    // Don't stack same buff
+                    const existingBuff = char.activeBuffs.find(b => b.stat === item.buffStat && b.source === item.id);
+                    if (existingBuff) {
+                        existingBuff.turnsLeft = item.buffDuration || 20;
+                        game.addMessage(`${item.name} effect refreshed.`, 'info');
+                    } else {
+                        char.activeBuffs.push({
+                            stat: item.buffStat,
+                            amount: item.buffAmount,
+                            turnsLeft: item.buffDuration || 20,
+                            source: item.id,
+                            name: item.name,
+                        });
+                        char.special[item.buffStat] += item.buffAmount;
+                        CharacterSystem.recalcStats(char);
+                    }
                 }
                 used = true;
                 break;
@@ -120,6 +138,23 @@ class InventorySystem {
         }
 
         return used;
+    }
+
+    static tickBuffs(char, game) {
+        if (!char.activeBuffs || char.activeBuffs.length === 0) return;
+        const expired = [];
+        for (const buff of char.activeBuffs) {
+            buff.turnsLeft--;
+            if (buff.turnsLeft <= 0) {
+                expired.push(buff);
+            }
+        }
+        for (const buff of expired) {
+            char.special[buff.stat] -= buff.amount;
+            CharacterSystem.recalcStats(char);
+            game.addMessage(`${buff.name} wore off.`, 'info');
+        }
+        char.activeBuffs = char.activeBuffs.filter(b => b.turnsLeft > 0);
     }
 
     static getEquippedWeapon(char) {

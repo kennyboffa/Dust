@@ -129,6 +129,12 @@ function createVillageArea() {
             targetArea: 'cave',
             targetX: 7, targetY: 18,
         },
+        {
+            x: 24, y: 12,
+            label: 'To Wasteland East',
+            targetArea: 'wasteland',
+            targetX: 10, targetY: 20,
+        },
     ];
 
     return {

@@ -104,23 +104,23 @@ const ItemDatabase = {
     jet: {
         id: 'jet', name: 'Jet', type: 'consumable',
         usable: true, useEffect: 'buff', buffStat: 'agility', buffAmount: 2,
-        buffDesc: '+2 AGI temporarily.',
+        buffDuration: 15, buffDesc: '+2 AGI for 15 turns.',
         stackable: true, weight: 0.5, value: 100,
-        desc: 'Powerful inhaled stimulant. Temporarily boosts agility.',
+        desc: 'Powerful inhaled stimulant. Temporarily boosts agility for 15 turns.',
     },
     buffout: {
         id: 'buffout', name: 'Buffout', type: 'consumable',
         usable: true, useEffect: 'buff', buffStat: 'strength', buffAmount: 2,
-        buffDesc: '+2 STR temporarily.',
+        buffDuration: 15, buffDesc: '+2 STR for 15 turns.',
         stackable: true, weight: 0.5, value: 100,
-        desc: 'Steroid tablets. Temporarily boosts strength.',
+        desc: 'Steroid tablets. Temporarily boosts strength for 15 turns.',
     },
     mentats: {
         id: 'mentats', name: 'Mentats', type: 'consumable',
         usable: true, useEffect: 'buff', buffStat: 'intelligence', buffAmount: 2,
-        buffDesc: '+2 INT temporarily.',
+        buffDuration: 15, buffDesc: '+2 INT for 15 turns.',
         stackable: true, weight: 0.5, value: 100,
-        desc: 'Brain-boosting chems. Temporarily boosts intelligence.',
+        desc: 'Brain-boosting chems. Temporarily boosts intelligence for 15 turns.',
     },
 
     // ---- AMMO ----
@@ -180,5 +180,23 @@ const ItemDatabase = {
         id: 'raider_badge', name: 'Raider Badge', type: 'misc',
         stackable: true, weight: 0.1, value: 15,
         desc: 'A crude badge worn by raiders. Proof of a kill.',
+    },
+    raider_orders: {
+        id: 'raider_orders', name: "Raider Orders", type: 'quest',
+        weight: 0.1, value: 0,
+        desc: 'Crumpled orders from the raider warlord. Mentions a planned attack on Dusthaven and references a "bunker full of pre-war tech" to the west.',
+    },
+    // ---- ACCESSORY ----
+    lucky_charm: {
+        id: 'lucky_charm', name: 'Lucky Charm', type: 'accessory',
+        luck: 2,
+        weight: 0.5, value: 80,
+        desc: 'A strange trinket that seems to bring good fortune. +2 LCK when equipped.',
+    },
+    scout_goggles: {
+        id: 'scout_goggles', name: 'Scout Goggles', type: 'accessory',
+        perception: 1,
+        weight: 0.5, value: 60,
+        desc: 'Tinted goggles that sharpen your vision. +1 PER when equipped.',
     },
 };

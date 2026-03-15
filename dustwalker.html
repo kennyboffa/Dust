@@ -1079,12 +1079,125 @@ canvas {
         bottom: 110px;
     }
 }
+
+/* Quest Journal */
+#journal-content {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 5px 0;
+}
+
+.quest-entry {
+    background: rgba(30, 22, 10, 0.6);
+    border: 1px solid #4a3a20;
+    border-left: 3px solid #d4a44a;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+
+.quest-entry.completed {
+    border-left-color: #6b8a50;
+    opacity: 0.7;
+}
+
+.quest-name {
+    font-size: 14px;
+    color: #d4a44a;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.quest-entry.completed .quest-name {
+    color: #6b8a50;
+}
+
+.quest-giver {
+    font-size: 11px;
+    color: #8a7a60;
+    margin-bottom: 6px;
+}
+
+.quest-desc {
+    font-size: 12px;
+    color: #a09070;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.quest-objective {
+    font-size: 12px;
+    color: #c4b080;
+    background: rgba(60, 45, 20, 0.4);
+    padding: 4px 8px;
+    margin-bottom: 4px;
+}
+
+.quest-rewards {
+    font-size: 11px;
+    color: #8a7a60;
+    font-style: italic;
+}
+
+/* Perks */
+.perk-entry {
+    background: rgba(30, 22, 10, 0.5);
+    border: 1px solid #3a2a10;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+}
+
+.perk-name {
+    color: #d4a44a;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.perk-desc {
+    color: #8a7a60;
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.perk-pick {
+    cursor: pointer;
+    border: 1px solid #4a3a20;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    background: rgba(30, 22, 10, 0.5);
+    transition: border-color 0.2s;
+}
+
+.perk-pick:hover {
+    border-color: #d4a44a;
+    background: rgba(50, 40, 20, 0.6);
+}
+
+.perk-pick.selected {
+    border-color: #6b8a50;
+    background: rgba(40, 50, 20, 0.4);
+}
+
+/* Quick slots with items */
+.quick-slot.has-item {
+    background: rgba(60, 45, 20, 0.8);
+    border-color: #8a7a50;
+    color: #d4a44a;
+    font-size: 8px;
+    cursor: pointer;
+}
+
+.quick-slot.has-item:hover {
+    border-color: #d4a44a;
+    background: rgba(80, 60, 25, 0.9);
+}
+
     </style>
 </head>
 <body>
-    <div id="game-container">
+<div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="ui-layer">
+            <!-- Title Screen -->
             <div id="title-screen" class="screen active">
                 <div class="title-content">
                     <h1 class="game-title">DUSTWALKER</h1>
@@ -1095,6 +1208,8 @@ canvas {
                     </div>
                 </div>
             </div>
+
+            <!-- Character Creation -->
             <div id="char-creation" class="screen">
                 <div class="creation-panel">
                     <h2>Create Your Character</h2>
@@ -1117,16 +1232,25 @@ canvas {
                     </div>
                 </div>
             </div>
+
+            <!-- Game HUD -->
             <div id="game-hud" class="screen">
+                <!-- Top bar -->
                 <div id="hud-top">
                     <div id="hud-location">Dusthaven Village</div>
                     <div id="hud-time">Day 1 - 08:00</div>
                 </div>
+
+                <!-- Action bar (bottom) -->
                 <div id="hud-bottom">
                     <div id="hud-portrait">
                         <div id="portrait-name">Wanderer</div>
-                        <div class="bar-container"><div id="hp-bar" class="stat-bar hp"><span>HP</span></div></div>
-                        <div class="bar-container"><div id="ap-bar" class="stat-bar ap"><span>AP</span></div></div>
+                        <div class="bar-container">
+                            <div id="hp-bar" class="stat-bar hp"><span>HP</span></div>
+                        </div>
+                        <div class="bar-container">
+                            <div id="ap-bar" class="stat-bar ap"><span>AP</span></div>
+                        </div>
                     </div>
                     <div id="hud-actions">
                         <button class="action-btn" data-action="move" title="Move (M)">Move</button>
@@ -1145,12 +1269,19 @@ canvas {
                     <div id="hud-menu-buttons">
                         <button class="hud-btn" id="btn-inventory" title="Inventory (I)">INV</button>
                         <button class="hud-btn" id="btn-character" title="Character (C)">CHAR</button>
+                        <button class="hud-btn" id="btn-journal" title="Journal (J)">QUEST</button>
                         <button class="hud-btn" id="btn-pipboy" title="PipBoy (P)">MAP</button>
                         <button class="hud-btn" id="btn-save" title="Save (F5)">SAVE</button>
                     </div>
                 </div>
-                <div id="message-log"><div id="message-log-content"></div></div>
+
+                <!-- Message log -->
+                <div id="message-log">
+                    <div id="message-log-content"></div>
+                </div>
             </div>
+
+            <!-- Inventory Screen -->
             <div id="inventory-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2>Inventory</h2>
@@ -1173,17 +1304,24 @@ canvas {
                     <button class="close-btn" data-close="inventory-screen">Close (Esc)</button>
                 </div>
             </div>
+
+            <!-- Character Sheet -->
             <div id="character-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2>Character Sheet</h2>
                     <div class="char-sheet-layout">
                         <div id="char-stats-display"></div>
                         <div id="char-skills-display"></div>
-                        <div id="char-perks-display"><h3>Perks</h3><div id="perks-list">None yet</div></div>
+                        <div id="char-perks-display">
+                            <h3>Perks</h3>
+                            <div id="perks-list">None yet</div>
+                        </div>
                     </div>
                     <button class="close-btn" data-close="character-screen">Close (Esc)</button>
                 </div>
             </div>
+
+            <!-- Dialogue Screen -->
             <div id="dialogue-screen" class="screen overlay">
                 <div class="dialogue-panel">
                     <div id="dialogue-npc-name"></div>
@@ -1191,6 +1329,8 @@ canvas {
                     <div id="dialogue-options"></div>
                 </div>
             </div>
+
+            <!-- Level Up Screen -->
             <div id="levelup-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2>Level Up!</h2>
@@ -1202,13 +1342,30 @@ canvas {
                     <button id="btn-confirm-levelup" class="menu-btn">Confirm</button>
                 </div>
             </div>
+
+            <!-- Quest Journal Screen -->
+            <div id="journal-screen" class="screen overlay">
+                <div class="overlay-panel">
+                    <h2>Quest Journal</h2>
+                    <div id="journal-content">
+                        <div id="quest-list"></div>
+                    </div>
+                    <button class="close-btn" data-close="journal-screen">Close (Esc)</button>
+                </div>
+            </div>
+
+            <!-- Map Screen -->
             <div id="map-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2>World Map</h2>
-                    <div id="world-map"><canvas id="map-canvas" width="400" height="300"></canvas></div>
+                    <div id="world-map">
+                        <canvas id="map-canvas" width="400" height="300"></canvas>
+                    </div>
                     <button class="close-btn" data-close="map-screen">Close (Esc)</button>
                 </div>
             </div>
+
+            <!-- Loot/Container Screen -->
             <div id="loot-screen" class="screen overlay">
                 <div class="overlay-panel">
                     <h2 id="loot-title">Container</h2>
@@ -1220,7 +1377,6 @@ canvas {
         </div>
     </div>
     <script>
-
 // ============================================
 // Dustwalker - Utility Functions
 // ============================================
@@ -1360,6 +1516,7 @@ const Utils = {
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
     }
 };
+
 
 // ============================================
 // Dustwalker - Isometric Renderer (Gritty Pixel Art)
@@ -1874,8 +2031,8 @@ class IsometricRenderer {
             this.drawHumanoid(ctx, screen, z, entityType, facing);
         }
 
-        // HP bar
-        if (hp !== null && maxHp !== null && hp < maxHp) {
+        // HP bar (always show for enemies, show for others only when damaged)
+        if (hp !== null && maxHp !== null && (hp < maxHp || entityType !== 'player')) {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const barW = 22 * z;
             const barH = 2.5 * z;
@@ -2736,6 +2893,7 @@ class IsometricRenderer {
     }
 }
 
+
 // ============================================
 // Dustwalker - Input Handler
 // ============================================
@@ -2982,6 +3140,7 @@ class InputHandler {
     }
 }
 
+
 // ============================================
 // Dustwalker - Audio Manager (Web Audio API)
 // ============================================
@@ -3087,6 +3246,7 @@ class AudioManager {
         }
     }
 }
+
 
 // ============================================
 // Dustwalker - Character System (S.P.E.C.I.A.L.)
@@ -3194,6 +3354,14 @@ class CharacterSystem {
             char.stats.damageResist += armor.damageResist || 0;
         }
 
+        // Apply accessory bonuses (to derived stats directly)
+        if (char.equipment && char.equipment.accessory) {
+            const acc = char.equipment.accessory;
+            if (acc.luck) char.stats.critChance += acc.luck;
+            if (acc.perception) char.stats.sequence += acc.perception * 2;
+            if (acc.armorClass) char.stats.armorClass += acc.armorClass;
+        }
+
         // Calculate skills
         char.skills = {};
         for (const [key, skill] of Object.entries(SKILLS)) {
@@ -3205,6 +3373,11 @@ class CharacterSystem {
 
         // Skill points per level
         char.stats.skillPointsPerLevel = 5 + (s.intelligence * 2);
+
+        // Reapply perks that modify stats
+        if (char.perks && char.perks.length > 0 && typeof PerkSystem !== 'undefined') {
+            PerkSystem.reapplyPerks(char);
+        }
 
         // Clamp HP
         if (char.stats.hp !== undefined) {
@@ -3230,6 +3403,9 @@ class CharacterSystem {
     }
 
     static addXP(char, amount) {
+        if (char.perks && char.perks.includes('swift_learner')) {
+            amount = Math.floor(amount * 1.2);
+        }
         char.xp += amount;
         const leveled = char.xp >= char.xpToNext;
         if (leveled) {
@@ -3354,6 +3530,133 @@ class CharacterSystem {
     }
 }
 
+
+// ============================================
+// Dustwalker - Perks System
+// ============================================
+
+const PerkDatabase = [
+    {
+        id: 'toughness',
+        name: 'Toughness',
+        desc: '+20% damage resistance. You shrug off hits like a wasteland veteran.',
+        levelReq: 2,
+        statReq: { endurance: 5 },
+        effect: (player) => { player.stats.damageResist += 20; },
+    },
+    {
+        id: 'quick_pockets',
+        name: 'Quick Pockets',
+        desc: 'Using items in combat costs 1 less AP.',
+        levelReq: 2,
+        statReq: { agility: 5 },
+        effect: () => {},
+    },
+    {
+        id: 'sharpshooter',
+        name: 'Sharpshooter',
+        desc: '+15% hit chance with ranged weapons. Steady hands, steady aim.',
+        levelReq: 3,
+        statReq: { perception: 6 },
+        effect: (player) => {
+            player.skills.smallGuns = (player.skills.smallGuns || 0) + 15;
+        },
+    },
+    {
+        id: 'iron_fist',
+        name: 'Iron Fist',
+        desc: '+3 melee damage. Your fists and weapons hit harder.',
+        levelReq: 2,
+        statReq: { strength: 6 },
+        effect: (player) => { player.stats.meleeDmg += 3; },
+    },
+    {
+        id: 'fortune_finder',
+        name: 'Fortune Finder',
+        desc: 'Find more caps in containers and on enemies. Luck favors the greedy.',
+        levelReq: 2,
+        statReq: { luck: 6 },
+        effect: () => {},
+    },
+    {
+        id: 'medic',
+        name: 'Field Medic',
+        desc: 'Healing items restore 50% more HP. Every stimpak counts.',
+        levelReq: 3,
+        statReq: { intelligence: 6 },
+        effect: () => {},
+    },
+    {
+        id: 'swift_learner',
+        name: 'Swift Learner',
+        desc: '+20% XP from all sources. Knowledge is power.',
+        levelReq: 2,
+        statReq: { intelligence: 5 },
+        effect: () => {},
+    },
+    {
+        id: 'stonewall',
+        name: 'Stonewall',
+        desc: '+3 Armor Class. You become harder to hit.',
+        levelReq: 3,
+        statReq: { agility: 6 },
+        effect: (player) => { player.stats.armorClass += 3; },
+    },
+    {
+        id: 'silver_tongue',
+        name: 'Silver Tongue',
+        desc: '+20 Speech skill. Words are your greatest weapon.',
+        levelReq: 2,
+        statReq: { charisma: 6 },
+        effect: (player) => { player.skills.speech = (player.skills.speech || 0) + 20; },
+    },
+    {
+        id: 'bonus_move',
+        name: 'Bonus Move',
+        desc: '+2 max Action Points. More actions per turn.',
+        levelReq: 4,
+        statReq: { agility: 7 },
+        effect: (player) => { player.stats.maxAp += 2; },
+    },
+];
+
+class PerkSystem {
+    static getAvailablePerks(player) {
+        return PerkDatabase.filter(perk => {
+            // Already has it?
+            if (player.perks.includes(perk.id)) return false;
+            // Level check
+            if (player.level < perk.levelReq) return false;
+            // Stat check
+            for (const [stat, val] of Object.entries(perk.statReq)) {
+                if ((player.special[stat] || 0) < val) return false;
+            }
+            return true;
+        });
+    }
+
+    static applyPerk(player, perkId) {
+        const perk = PerkDatabase.find(p => p.id === perkId);
+        if (!perk) return false;
+        if (player.perks.includes(perkId)) return false;
+        player.perks.push(perkId);
+        perk.effect(player);
+        return true;
+    }
+
+    static reapplyPerks(player) {
+        for (const perkId of player.perks) {
+            const perk = PerkDatabase.find(p => p.id === perkId);
+            if (perk) perk.effect(player);
+        }
+    }
+
+    static hasPerk(player, perkId) {
+        return player.perks.includes(perkId);
+    }
+}
+
+
 // ============================================
 // Dustwalker - Turn-Based Combat System
 // ============================================
@@ -3405,6 +3708,11 @@ class CombatSystem {
         if (!entity) return;
 
         CharacterSystem.restoreAP(entity);
+
+        // Tick buffs at start of player turn
+        if (entity.type === 'player') {
+            InventorySystem.tickBuffs(entity, this.game);
+        }
 
         if (entity.type === 'player') {
             this.game.addMessage(`Your turn. AP: ${entity.stats.ap}`, 'info');
@@ -3539,6 +3847,17 @@ class CombatSystem {
         this.game.addMessage(`${victim.name} is dead.`, 'combat');
         this.game.audio.playSfx('death');
 
+        // Quest tracking for special kills
+        if (killer.type === 'player') {
+            if (victim.name === 'Warlord Krag') {
+                killer.questFlags.raider_camp_cleared = true;
+                if (killer.questFlags.raider_quest_accepted) {
+                    QuestSystem.advanceQuest(killer, 'raider_camp', 'return', this.game);
+                }
+                this.game.addMessage('Warlord Krag has fallen! Return to Hank with the news.', 'xp');
+            }
+        }
+
         // XP reward
         if (killer.type === 'player' && victim.xpReward) {
             const leveled = CharacterSystem.addXP(killer, victim.xpReward);
@@ -3640,6 +3959,7 @@ class CombatSystem {
     }
 }
 
+
 // ============================================
 // Dustwalker - Inventory & Equipment System
 // ============================================
@@ -3731,8 +4051,12 @@ class InventorySystem {
         switch (item.useEffect) {
             case 'heal':
                 if (char.stats.hp < char.stats.maxHp) {
-                    CharacterSystem.heal(char, item.healAmount || 10);
-                    game.addMessage(`Used ${item.name}. Healed ${item.healAmount || 10} HP.`, 'info');
+                    let healAmt = item.healAmount || 10;
+                    if (char.perks && char.perks.includes('medic')) {
+                        healAmt = Math.floor(healAmt * 1.5);
+                    }
+                    CharacterSystem.heal(char, healAmt);
+                    game.addMessage(`Used ${item.name}. Healed ${healAmt} HP.`, 'info');
                     game.audio.playSfx('pickup');
                     used = true;
                 } else {
@@ -3741,11 +4065,25 @@ class InventorySystem {
                 break;
             case 'buff':
                 game.addMessage(`Used ${item.name}. ${item.buffDesc || 'Feeling better.'}`, 'info');
-                // Apply temporary stat boost (simplified)
                 if (item.buffStat && item.buffAmount) {
-                    char.special[item.buffStat] += item.buffAmount;
-                    CharacterSystem.recalcStats(char);
-                    // Could add a timer system for temporary buffs
+                    // Track active buffs with duration
+                    if (!char.activeBuffs) char.activeBuffs = [];
+                    // Don't stack same buff
+                    const existingBuff = char.activeBuffs.find(b => b.stat === item.buffStat && b.source === item.id);
+                    if (existingBuff) {
+                        existingBuff.turnsLeft = item.buffDuration || 20;
+                        game.addMessage(`${item.name} effect refreshed.`, 'info');
+                    } else {
+                        char.activeBuffs.push({
+                            stat: item.buffStat,
+                            amount: item.buffAmount,
+                            turnsLeft: item.buffDuration || 20,
+                            source: item.id,
+                            name: item.name,
+                        });
+                        char.special[item.buffStat] += item.buffAmount;
+                        CharacterSystem.recalcStats(char);
+                    }
                 }
                 used = true;
                 break;
@@ -3764,10 +4102,28 @@ class InventorySystem {
         return used;
     }
 
+    static tickBuffs(char, game) {
+        if (!char.activeBuffs || char.activeBuffs.length === 0) return;
+        const expired = [];
+        for (const buff of char.activeBuffs) {
+            buff.turnsLeft--;
+            if (buff.turnsLeft <= 0) {
+                expired.push(buff);
+            }
+        }
+        for (const buff of expired) {
+            char.special[buff.stat] -= buff.amount;
+            CharacterSystem.recalcStats(char);
+            game.addMessage(`${buff.name} wore off.`, 'info');
+        }
+        char.activeBuffs = char.activeBuffs.filter(b => b.turnsLeft > 0);
+    }
+
     static getEquippedWeapon(char) {
         return char.equipment.weapon;
     }
 }
+
 
 // ============================================
 // Dustwalker - Dialogue System
@@ -3910,6 +4266,7 @@ class DialogueSystem {
         this.game.setState('exploration');
     }
 }
+
 
 // ============================================
 // Dustwalker - Enemy AI System
@@ -4071,6 +4428,7 @@ class AISystem {
     }
 }
 
+
 // ============================================
 // Dustwalker - Item Database
 // ============================================
@@ -4177,23 +4535,23 @@ const ItemDatabase = {
     jet: {
         id: 'jet', name: 'Jet', type: 'consumable',
         usable: true, useEffect: 'buff', buffStat: 'agility', buffAmount: 2,
-        buffDesc: '+2 AGI temporarily.',
+        buffDuration: 15, buffDesc: '+2 AGI for 15 turns.',
         stackable: true, weight: 0.5, value: 100,
-        desc: 'Powerful inhaled stimulant. Temporarily boosts agility.',
+        desc: 'Powerful inhaled stimulant. Temporarily boosts agility for 15 turns.',
     },
     buffout: {
         id: 'buffout', name: 'Buffout', type: 'consumable',
         usable: true, useEffect: 'buff', buffStat: 'strength', buffAmount: 2,
-        buffDesc: '+2 STR temporarily.',
+        buffDuration: 15, buffDesc: '+2 STR for 15 turns.',
         stackable: true, weight: 0.5, value: 100,
-        desc: 'Steroid tablets. Temporarily boosts strength.',
+        desc: 'Steroid tablets. Temporarily boosts strength for 15 turns.',
     },
     mentats: {
         id: 'mentats', name: 'Mentats', type: 'consumable',
         usable: true, useEffect: 'buff', buffStat: 'intelligence', buffAmount: 2,
-        buffDesc: '+2 INT temporarily.',
+        buffDuration: 15, buffDesc: '+2 INT for 15 turns.',
         stackable: true, weight: 0.5, value: 100,
-        desc: 'Brain-boosting chems. Temporarily boosts intelligence.',
+        desc: 'Brain-boosting chems. Temporarily boosts intelligence for 15 turns.',
     },
 
     // ---- AMMO ----
@@ -4254,7 +4612,26 @@ const ItemDatabase = {
         stackable: true, weight: 0.1, value: 15,
         desc: 'A crude badge worn by raiders. Proof of a kill.',
     },
+    raider_orders: {
+        id: 'raider_orders', name: "Raider Orders", type: 'quest',
+        weight: 0.1, value: 0,
+        desc: 'Crumpled orders from the raider warlord. Mentions a planned attack on Dusthaven and references a "bunker full of pre-war tech" to the west.',
+    },
+    // ---- ACCESSORY ----
+    lucky_charm: {
+        id: 'lucky_charm', name: 'Lucky Charm', type: 'accessory',
+        luck: 2,
+        weight: 0.5, value: 80,
+        desc: 'A strange trinket that seems to bring good fortune. +2 LCK when equipped.',
+    },
+    scout_goggles: {
+        id: 'scout_goggles', name: 'Scout Goggles', type: 'accessory',
+        perception: 1,
+        weight: 0.5, value: 60,
+        desc: 'Tinted goggles that sharpen your vision. +1 PER when equipped.',
+    },
 };
+
 
 // ============================================
 // Dustwalker - Enemy Templates
@@ -4406,20 +4783,20 @@ const EnemyTemplates = {
     mutant_brute: {
         name: 'Mutant Brute',
         spriteType: 'mutant',
-        hp: 80,
-        ap: 8,
-        armorClass: 12,
-        damageResist: 25,
-        meleeDmg: 5,
+        hp: 50,
+        ap: 7,
+        armorClass: 8,
+        damageResist: 15,
+        meleeDmg: 3,
         sequence: 8,
-        critChance: 10,
-        damage: '2d8+3',
+        critChance: 8,
+        damage: '1d8+2',
         damageType: 'normal',
         xpReward: 300,
         attackRange: 1,
         moveSpeed: 1,
         aiType: 'aggressive',
-        skills: { melee: 75, unarmed: 80 },
+        skills: { melee: 65, unarmed: 70 },
         loot: [
             { id: 'bottle_caps', chance: 100, quantity: 100 },
             { id: 'stimpak', chance: 80, quantity: 2 },
@@ -4427,7 +4804,148 @@ const EnemyTemplates = {
             { id: 'cave_crystal', chance: 100, quantity: 1 },
         ]
     },
+
+    // ---- WASTELAND EAST ENEMIES ----
+    raider_scout: {
+        name: 'Raider Scout',
+        spriteType: 'raider',
+        hp: 20,
+        ap: 8,
+        armorClass: 4,
+        damageResist: 5,
+        meleeDmg: 1,
+        sequence: 12,
+        critChance: 6,
+        damage: '1d4+1',
+        damageType: 'normal',
+        xpReward: 60,
+        attackRange: 1,
+        moveSpeed: 1,
+        aiType: 'aggressive',
+        skills: { melee: 50, unarmed: 40, smallGuns: 35 },
+        loot: [
+            { id: 'bottle_caps', chance: 70, quantity: 10 },
+            { id: 'healing_powder', chance: 30, quantity: 1 },
+            { id: 'raider_badge', chance: 80, quantity: 1 },
+        ]
+    },
+
+    raider_boss: {
+        name: 'Warlord Krag',
+        spriteType: 'raider',
+        hp: 45,
+        ap: 9,
+        armorClass: 10,
+        damageResist: 15,
+        meleeDmg: 3,
+        sequence: 11,
+        critChance: 10,
+        damage: '1d8+3',
+        damageType: 'normal',
+        xpReward: 250,
+        attackRange: 1,
+        moveSpeed: 1,
+        aiType: 'aggressive',
+        skills: { melee: 70, unarmed: 60, smallGuns: 55 },
+        loot: [
+            { id: 'bottle_caps', chance: 100, quantity: 150 },
+            { id: 'stimpak', chance: 60, quantity: 2 },
+            { id: 'sawed_off', chance: 80, quantity: 1 },
+            { id: 'ammo_12ga', chance: 80, quantity: 10 },
+            { id: 'raider_badge', chance: 100, quantity: 3 },
+            { id: 'raider_orders', chance: 100, quantity: 1 },
+        ]
+    },
 };
+
+
+// ============================================
+// Dustwalker - Quest Definitions
+// ============================================
+
+const QuestDatabase = {
+    cave_crystal: {
+        id: 'cave_crystal',
+        name: 'The Dust Crystal',
+        giver: 'Elder Mara',
+        description: 'Elder Mara has asked you to venture into the Dusthaven Caves and retrieve a Dust Crystal from the deepest chamber.',
+        stages: [
+            { id: 'accepted', text: 'Enter the Dusthaven Caves north of the village.' },
+            { id: 'crystal_found', text: 'Retrieve the Dust Crystal from the caves.' },
+            { id: 'return', text: 'Return the Dust Crystal to Elder Mara.' },
+            { id: 'complete', text: 'Quest complete! Dusthaven is saved.' },
+        ],
+        rewards: '200 Bottle Caps, Leather Armor, 500 XP',
+    },
+
+    raider_camp: {
+        id: 'raider_camp',
+        name: 'Raider Menace',
+        giver: 'Hank the Merchant',
+        description: 'Raiders led by Warlord Krag have set up camp east of Dusthaven. Hank wants them dealt with before they attack the village.',
+        stages: [
+            { id: 'accepted', text: 'Travel east to find the raider camp.' },
+            { id: 'clear_camp', text: 'Eliminate the raiders and their leader, Warlord Krag.' },
+            { id: 'return', text: 'Return to Hank with news of your victory.' },
+            { id: 'complete', text: 'Quest complete! The raider threat is eliminated.' },
+        ],
+        rewards: '300 Bottle Caps, Sawed-Off Shotgun or 150 extra Caps',
+    },
+};
+
+class QuestSystem {
+    static getActiveQuests(player) {
+        const quests = [];
+        for (const [id, quest] of Object.entries(QuestDatabase)) {
+            const stageFlag = player.questFlags[`quest_${id}_stage`];
+            if (stageFlag !== undefined && stageFlag !== 'complete') {
+                quests.push({ ...quest, currentStage: stageFlag });
+            }
+        }
+        return quests;
+    }
+
+    static getCompletedQuests(player) {
+        const quests = [];
+        for (const [id, quest] of Object.entries(QuestDatabase)) {
+            if (player.questFlags[`quest_${id}_stage`] === 'complete') {
+                quests.push({ ...quest, currentStage: 'complete' });
+            }
+        }
+        return quests;
+    }
+
+    static startQuest(player, questId, game) {
+        const quest = QuestDatabase[questId];
+        if (!quest) return;
+        player.questFlags[`quest_${questId}_stage`] = quest.stages[0].id;
+        game.addMessage(`New quest: ${quest.name}`, 'xp');
+    }
+
+    static advanceQuest(player, questId, stageId, game) {
+        player.questFlags[`quest_${questId}_stage`] = stageId;
+        const quest = QuestDatabase[questId];
+        if (quest) {
+            const stage = quest.stages.find(s => s.id === stageId);
+            if (stage) {
+                if (stageId === 'complete') {
+                    game.addMessage(`Quest complete: ${quest.name}`, 'xp');
+                } else {
+                    game.addMessage(`Quest updated: ${quest.name}`, 'info');
+                }
+            }
+        }
+    }
+
+    static getCurrentStageText(player, questId) {
+        const quest = QuestDatabase[questId];
+        if (!quest) return '';
+        const stageId = player.questFlags[`quest_${questId}_stage`];
+        const stage = quest.stages.find(s => s.id === stageId);
+        return stage ? stage.text : '';
+    }
+}
+
 
 // ============================================
 // Dustwalker - Dialogue Database
@@ -4518,6 +5036,7 @@ const DialogueDatabase = {
                     { text: "Thank you. I'll head out soon.", end: true, action: (p, game) => {
                         p.questFlags.met_elder = true;
                         p.questFlags.cave_quest_accepted = true;
+                        QuestSystem.startQuest(p, 'cave_crystal', game);
                         InventorySystem.addItem(p, ItemDatabase.healing_powder, 3);
                         InventorySystem.addItem(p, ItemDatabase.stimpak, 1);
                         InventorySystem.addItem(p, ItemDatabase.elder_amulet, 1);
@@ -4528,9 +5047,10 @@ const DialogueDatabase = {
             quest_accepted: {
                 text: "Brave soul. The cave entrance is to the north of the village — you'll see the opening in the cliff face. Be careful, and may fortune walk with you.",
                 options: [
-                    { text: "I'll return with the crystal.", end: true, action: (p) => {
+                    { text: "I'll return with the crystal.", end: true, action: (p, game) => {
                         p.questFlags.met_elder = true;
                         p.questFlags.cave_quest_accepted = true;
+                        QuestSystem.startQuest(p, 'cave_crystal', game);
                     }}
                 ]
             },
@@ -4566,6 +5086,7 @@ const DialogueDatabase = {
                             game.addMessage('Received: 200 Bottle Caps, Leather Armor', 'loot');
                             CharacterSystem.addXP(p, 500);
                             game.addMessage('+500 XP', 'xp');
+                            QuestSystem.advanceQuest(p, 'cave_crystal', 'complete', game);
                         }
                     }}
                 ]
@@ -4576,6 +5097,8 @@ const DialogueDatabase = {
     // ---- MERCHANT HANK ----
     merchant_hank: {
         getStartNode(player) {
+            if (player.questFlags.raider_camp_cleared) return 'raider_complete';
+            if (player.questFlags.raider_quest_accepted) return 'raider_progress';
             if (player.questFlags.met_hank) return 'return_greeting';
             return 'start';
         },
@@ -4599,6 +5122,7 @@ const DialogueDatabase = {
                 text: "Back again? Ready to trade?",
                 options: [
                     { text: "Show me what you have.", next: 'shop' },
+                    { text: "Tell me about those raiders.", next: 'raider_info' },
                     { text: "Any news?", next: 'rumors' },
                     { text: "Just passing through.", end: true }
                 ]
@@ -4711,11 +5235,71 @@ const DialogueDatabase = {
                 ]
             },
             raider_info: {
-                text: "Small gang, maybe four or five of them. They've been eyeing Dusthaven, we think. Haven't attacked yet, but it's only a matter of time. If someone were to... thin their numbers, the village would be grateful. Very grateful.",
+                text: "Small gang, maybe five or six of them, led by a brute called Warlord Krag. They've been eyeing Dusthaven, we think. Haven't attacked yet, but it's only a matter of time. If someone were to... thin their numbers, the village would be grateful. Very grateful.",
                 options: [
+                    { text: "How grateful? What's in it for me?", next: 'raider_reward' },
                     { text: "I'll keep an eye out.", end: true },
                     { text: "Show me your shop.", next: 'shop' }
                 ]
+            },
+            raider_reward: {
+                text: "300 caps and I'll throw in a sawed-off shotgun from my personal collection. Or if you prefer, I can make it 450 caps total. Either way, you'd be doing Dusthaven a real service. Their camp is east of the village — head out the east side and you'll find them.",
+                options: [
+                    { text: "Deal. I'll take care of the raiders.", next: 'raider_accepted' },
+                    { text: "I'll think about it.", end: true }
+                ]
+            },
+            raider_accepted: {
+                text: "Good luck. Krag's a tough one — take him down and the rest should scatter or die. Come back when they're dealt with.",
+                options: [
+                    { text: "Consider it done.", end: true, action: (p, game) => {
+                        p.questFlags.raider_quest_accepted = true;
+                        QuestSystem.startQuest(p, 'raider_camp', game);
+                    }}
+                ]
+            },
+            raider_progress: {
+                text: "You back already? The raiders still causing trouble east of here. Take out Warlord Krag and his gang. Come back when you're done.",
+                options: [
+                    { text: "I'm working on it.", end: true },
+                    { text: "Let me buy some supplies first.", next: 'shop' }
+                ]
+            },
+            raider_complete: {
+                text(player) {
+                    if (player.questFlags.raider_reward_given) {
+                        return "Thanks again for dealing with those raiders. Need anything from the shop?";
+                    }
+                    return "Wait... you're telling me Krag is dead? The raiders are gone? Ha! I knew you had it in you! Now, about that reward — what'll it be?";
+                },
+                options: (player) => {
+                    if (player.questFlags.raider_reward_given) {
+                        return [
+                            { text: "Show me your shop.", next: 'shop' },
+                            { text: "See you around.", end: true }
+                        ];
+                    }
+                    return [
+                        { text: "I'll take the shotgun and 300 caps.", end: true, action: (p, game) => {
+                            p.questFlags.raider_reward_given = true;
+                            InventorySystem.addItem(p, ItemDatabase.bottle_caps, 300);
+                            InventorySystem.addItem(p, ItemDatabase.sawed_off, 1);
+                            InventorySystem.addItem(p, ItemDatabase.ammo_12ga, 12);
+                            game.addMessage('Received: 300 Bottle Caps, Sawed-Off Shotgun, 12x 12ga Shells', 'loot');
+                            CharacterSystem.addXP(p, 400);
+                            game.addMessage('+400 XP', 'xp');
+                            QuestSystem.advanceQuest(p, 'raider_camp', 'complete', game);
+                        }},
+                        { text: "Just give me the 450 caps.", end: true, action: (p, game) => {
+                            p.questFlags.raider_reward_given = true;
+                            InventorySystem.addItem(p, ItemDatabase.bottle_caps, 450);
+                            game.addMessage('Received: 450 Bottle Caps', 'loot');
+                            CharacterSystem.addXP(p, 400);
+                            game.addMessage('+400 XP', 'xp');
+                            QuestSystem.advanceQuest(p, 'raider_camp', 'complete', game);
+                        }}
+                    ];
+                }
             }
         }
     },
@@ -4817,6 +5401,7 @@ const DialogueDatabase = {
         }
     },
 };
+
 
 // ============================================
 // Dustwalker - Dusthaven Village Area
@@ -4949,6 +5534,12 @@ function createVillageArea() {
             targetArea: 'cave',
             targetX: 7, targetY: 18,
         },
+        {
+            x: 24, y: 12,
+            label: 'To Wasteland East',
+            targetArea: 'wasteland',
+            targetX: 10, targetY: 20,
+        },
     ];
 
     return {
@@ -4963,6 +5554,7 @@ function createVillageArea() {
         ambientColor: '#c4943a22',
     };
 }
+
 
 // ============================================
 // Dustwalker - Cave Area
@@ -5110,6 +5702,148 @@ function createCaveArea() {
     };
 }
 
+
+// ============================================
+// Dustwalker - Wasteland East (Raider Camp)
+// ============================================
+
+function createWastelandArea() {
+    // 22x22 wasteland map with a raider camp in the center-east
+    // Legend:
+    // s=sand, d=dirt, r=road, g=grass, w=wall, D=door, o=wood, S=stone, v=void, b=barricade
+    const tileKey = {
+        's': 'sand',    'd': 'dirt',     'r': 'road',    'g': 'grass',
+        'w': 'wall',    'D': 'door',     'o': 'wood',    'S': 'stone',
+        'v': 'void',    'b': 'barricade',
+    };
+
+    const mapRaw = [
+        'ssssssssssssssssssssss',
+        'ssssddddsssssssdddsss',
+        'sssddddddsssssdddddss',
+        'ssddddddddssddddddds',
+        'sddddddddddddddddddss',
+        'sdddddddddddddwwwddss',
+        'sddddddddddddwooowdss',
+        'sddddddddddddwooowdss',
+        'sdddddddddddddDddddss',
+        'sddddddSSSddddddddds',
+        'sddddddSSSSdddddddds',
+        'sdddddddSSddddddddss',
+        'sddddddddddddddddddss',
+        'sdddddddddddwwwwwddss',
+        'sddddddddddwooooowdss',
+        'sddddddddddwooooowd ss',
+        'sdddddddddddDddddddss',
+        'sdddddddddddddddddss',
+        'ssddddddddddddddddss',
+        'sssddddddddddddddss',
+        'ssssdddddrrrddddssss',
+        'sssssssssrrrsssssssss',
+    ];
+
+    const map = mapRaw.map(row =>
+        row.split('').map(c => tileKey[c.trim()] || 'sand')
+    );
+
+    const heights = mapRaw.map(row =>
+        row.split('').map(c => {
+            if (c === 'w') return 2;
+            if (c === 'S') return 1;
+            if (c === 'b') return 1;
+            return 0;
+        })
+    );
+
+    const blocked = new Set(['wall', 'void', 'barricade']);
+
+    const entities = [];
+
+    // Raiders scattered around camp
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.raider_scout, 12, 8));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.raider, 16, 6));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.raider_gunner, 15, 10));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.raider_scout, 10, 12));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.raider, 14, 14));
+
+    // Boss inside the main building
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.raider_boss, 14, 15));
+
+    // Loot containers
+    entities.push(CharacterSystem.createContainer(
+        'raider_chest1', 'Raider Stash', 14, 7,
+        [
+            { ...ItemDatabase.stimpak, quantity: 2 },
+            { ...ItemDatabase.ammo_9mm, quantity: 15 },
+            { ...ItemDatabase.bottle_caps, quantity: 40 },
+            { ...ItemDatabase.jet, quantity: 1 },
+        ],
+        'crate'
+    ));
+
+    entities.push(CharacterSystem.createContainer(
+        'raider_chest2', 'Weapon Rack', 15, 15,
+        [
+            { ...ItemDatabase.pipe_pistol, quantity: 1 },
+            { ...ItemDatabase.ammo_12ga, quantity: 8 },
+            { ...ItemDatabase.buffout, quantity: 1 },
+        ],
+        'crate'
+    ));
+
+    entities.push(CharacterSystem.createContainer(
+        'raider_main_chest', 'Warlord\'s Strongbox', 13, 14,
+        [
+            { ...ItemDatabase.hunting_rifle, quantity: 1 },
+            { ...ItemDatabase.ammo_308, quantity: 15 },
+            { ...ItemDatabase.stimpak, quantity: 3 },
+            { ...ItemDatabase.bottle_caps, quantity: 200 },
+            { ...ItemDatabase.metal_armor, quantity: 1 },
+            { ...ItemDatabase.lucky_charm, quantity: 1 },
+        ],
+        'chest'
+    ));
+
+    // Rubble / old structure remains
+    entities.push(CharacterSystem.createContainer(
+        'rubble_cache', 'Rubble Pile', 8, 10,
+        [
+            { ...ItemDatabase.scrap_metal, quantity: 3 },
+            { ...ItemDatabase.healing_powder, quantity: 2 },
+            { ...ItemDatabase.scout_goggles, quantity: 1 },
+        ],
+        'crate'
+    ));
+
+    const transitions = [
+        {
+            x: 10, y: 21,
+            label: 'To Village',
+            targetArea: 'village',
+            targetX: 22, targetY: 12,
+        },
+        {
+            x: 11, y: 21,
+            label: 'To Village',
+            targetArea: 'village',
+            targetX: 22, targetY: 12,
+        },
+    ];
+
+    return {
+        id: 'wasteland',
+        name: 'Wasteland East - Raider Camp',
+        map,
+        heights,
+        blocked,
+        entities,
+        transitions,
+        playerStart: { x: 10, y: 20 },
+        ambientColor: '#c4943a11',
+    };
+}
+
+
 // ============================================
 // Dustwalker - HUD Manager
 // ============================================
@@ -5153,6 +5887,23 @@ class HUDManager {
         const btns = document.querySelectorAll('.action-btn');
         btns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.action === this.game.currentAction);
+        });
+
+        // Quick slots - show usable items
+        const consumables = player.inventory.filter(i => i.usable);
+        const quickSlots = document.querySelectorAll('.quick-slot');
+        quickSlots.forEach((slot, idx) => {
+            if (idx < consumables.length) {
+                const item = consumables[idx];
+                const shortName = item.name.length > 6 ? item.name.substring(0, 6) : item.name;
+                slot.textContent = shortName;
+                slot.title = `${item.name} (${idx + 1})`;
+                slot.classList.add('has-item');
+            } else {
+                slot.textContent = idx + 1;
+                slot.title = `Quick Slot ${idx + 1}`;
+                slot.classList.remove('has-item');
+            }
         });
 
         // Combat indicator
@@ -5292,6 +6043,21 @@ class HUDManager {
             skillsHtml += `<div class="cs-skill"><span>${isTag ? '* ' : ''}${skill.name}</span><span class="cs-val">${val}%</span></div>`;
         }
         skillsEl.innerHTML = skillsHtml;
+
+        // Perks display
+        const perksEl = document.getElementById('perks-list');
+        if (player.perks && player.perks.length > 0) {
+            let perksHtml = '';
+            for (const perkId of player.perks) {
+                const perk = PerkDatabase.find(p => p.id === perkId);
+                if (perk) {
+                    perksHtml += `<div class="perk-entry"><div class="perk-name">${perk.name}</div><div class="perk-desc">${perk.desc}</div></div>`;
+                }
+            }
+            perksEl.innerHTML = perksHtml;
+        } else {
+            perksEl.innerHTML = '<span style="color:#6b5a3a;font-size:12px">None yet. Perks are offered every 3 levels.</span>';
+        }
     }
 
     showLootScreen(container) {
@@ -5332,6 +6098,7 @@ class HUDManager {
         this.game.showScreen('loot-screen');
     }
 }
+
 
 // ============================================
 // Dustwalker - Screen Manager (Character Creation, Level Up, Map)
@@ -5493,9 +6260,50 @@ class ScreenManager {
             content.appendChild(row);
         }
 
-        document.getElementById('btn-confirm-levelup').onclick = () => {
-            this.game.hideScreen('levelup-screen');
-        };
+        // Perk selection every 3 levels
+        const perkSection = document.getElementById('levelup-perks');
+        if (perkSection) perkSection.remove();
+
+        if (player.level % 3 === 0) {
+            const availablePerks = PerkSystem.getAvailablePerks(player);
+            if (availablePerks.length > 0) {
+                const perkDiv = document.createElement('div');
+                perkDiv.id = 'levelup-perks';
+                perkDiv.innerHTML = '<h3 style="margin-top:12px;color:#d4a44a">Choose a Perk</h3>';
+
+                let selectedPerkId = null;
+
+                for (const perk of availablePerks) {
+                    const entry = document.createElement('div');
+                    entry.className = 'perk-pick';
+                    entry.innerHTML = `<div class="perk-name">${perk.name}</div><div class="perk-desc">${perk.desc}</div>`;
+                    entry.addEventListener('click', () => {
+                        selectedPerkId = perk.id;
+                        perkDiv.querySelectorAll('.perk-pick').forEach(el => el.classList.remove('selected'));
+                        entry.classList.add('selected');
+                    });
+                    perkDiv.appendChild(entry);
+                }
+
+                content.parentNode.insertBefore(perkDiv, document.getElementById('btn-confirm-levelup'));
+
+                document.getElementById('btn-confirm-levelup').onclick = () => {
+                    if (selectedPerkId) {
+                        PerkSystem.applyPerk(player, selectedPerkId);
+                        this.game.addMessage(`Perk acquired: ${PerkDatabase.find(p => p.id === selectedPerkId).name}`, 'xp');
+                    }
+                    this.game.hideScreen('levelup-screen');
+                };
+            } else {
+                document.getElementById('btn-confirm-levelup').onclick = () => {
+                    this.game.hideScreen('levelup-screen');
+                };
+            }
+        } else {
+            document.getElementById('btn-confirm-levelup').onclick = () => {
+                this.game.hideScreen('levelup-screen');
+            };
+        }
 
         this.game.showScreen('levelup-screen');
     }
@@ -5520,10 +6328,10 @@ class ScreenManager {
                 connections: ['village']
             },
             {
-                id: 'wasteland_east',
-                name: '???',
+                id: 'wasteland',
+                name: 'Raider Camp',
                 mapX: 320, mapY: 150,
-                discovered: false,
+                discovered: this.game.player.questFlags.raider_quest_accepted || this.game.player.questFlags.met_hank || false,
                 connections: ['village']
             },
             {
@@ -5538,6 +6346,7 @@ class ScreenManager {
         this.game.renderer.drawWorldMap(ctx, locations, this.game.currentArea?.id || 'village');
     }
 }
+
 
 // ============================================
 // Dustwalker - Main Game Controller
@@ -5611,6 +6420,12 @@ class Game {
             this.showScreen('character-screen');
         });
 
+        document.getElementById('btn-journal').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.updateJournal();
+            this.showScreen('journal-screen');
+        });
+
         document.getElementById('btn-pipboy').addEventListener('click', () => {
             this.audio.playSfx('click');
             this.screens.drawWorldMap();
@@ -5620,6 +6435,14 @@ class Game {
         document.getElementById('btn-save').addEventListener('click', () => {
             this.audio.playSfx('click');
             this.saveGame();
+        });
+
+        // Quick slot clicks
+        document.querySelectorAll('.quick-slot').forEach(slot => {
+            slot.addEventListener('click', () => {
+                this.audio.playSfx('click');
+                this.useQuickSlot(parseInt(slot.dataset.slot));
+            });
         });
 
         // Close buttons
@@ -5686,6 +6509,10 @@ class Game {
             case 'c':
                 this.hud.updateCharacterScreen();
                 this.showScreen('character-screen');
+                break;
+            case 'j':
+                this.updateJournal();
+                this.showScreen('journal-screen');
                 break;
             case 'p':
                 this.screens.drawWorldMap();
@@ -5997,6 +6824,7 @@ class Game {
         this.areas = {
             village: createVillageArea(),
             cave: createCaveArea(),
+            wasteland: createWastelandArea(),
         };
 
         // Load starting area
@@ -6156,6 +6984,7 @@ class Game {
             // Check if it's the cave crystal (quest item)
             if (item.id === 'cave_crystal') {
                 this.player.questFlags.cave_crystal_returned = true;
+                QuestSystem.advanceQuest(this.player, 'cave_crystal', 'return', this);
                 this.addMessage('You found the Dust Crystal! Return it to Elder Mara.', 'xp');
             }
         } else {
@@ -6174,6 +7003,7 @@ class Game {
 
                 if (item.id === 'cave_crystal') {
                     this.player.questFlags.cave_crystal_returned = true;
+                    QuestSystem.advanceQuest(this.player, 'cave_crystal', 'return', this);
                     this.addMessage('You found the Dust Crystal! Return it to Elder Mara.', 'xp');
                 }
             }
@@ -6271,6 +7101,43 @@ class Game {
         });
     }
 
+    updateJournal() {
+        const questList = document.getElementById('quest-list');
+        const active = QuestSystem.getActiveQuests(this.player);
+        const completed = QuestSystem.getCompletedQuests(this.player);
+
+        let html = '';
+        if (active.length === 0 && completed.length === 0) {
+            html = '<p style="color:#8a7a60;padding:10px">No quests yet. Talk to the villagers to find work.</p>';
+        }
+
+        if (active.length > 0) {
+            html += '<h3 style="color:#d4a44a;margin:0 0 8px">Active Quests</h3>';
+            for (const q of active) {
+                const stageText = QuestSystem.getCurrentStageText(this.player, q.id);
+                html += `<div class="quest-entry">`;
+                html += `<div class="quest-name">${q.name}</div>`;
+                html += `<div class="quest-giver">From: ${q.giver}</div>`;
+                html += `<div class="quest-desc">${q.description}</div>`;
+                html += `<div class="quest-objective">Current: ${stageText}</div>`;
+                html += `<div class="quest-rewards">Rewards: ${q.rewards}</div>`;
+                html += `</div>`;
+            }
+        }
+
+        if (completed.length > 0) {
+            html += '<h3 style="color:#6b8a50;margin:12px 0 8px">Completed Quests</h3>';
+            for (const q of completed) {
+                html += `<div class="quest-entry completed">`;
+                html += `<div class="quest-name">${q.name} [COMPLETE]</div>`;
+                html += `<div class="quest-giver">From: ${q.giver}</div>`;
+                html += `</div>`;
+            }
+        }
+
+        questList.innerHTML = html;
+    }
+
     advanceTime(hours) {
         this.gameTime.hour += hours;
         while (this.gameTime.hour >= 24) {
@@ -6335,6 +7202,7 @@ class Game {
             this.areas = {
                 village: createVillageArea(),
                 cave: createCaveArea(),
+                wasteland: createWastelandArea(),
             };
 
             // Load the saved area
@@ -6392,11 +7260,6 @@ window.addEventListener('DOMContentLoaded', () => {
     window.game = new Game();
 });
 
-
-// ---- Initialize Game ----
-window.addEventListener('DOMContentLoaded', () => {
-    window.game = new Game();
-});
     </script>
 </body>
 </html>

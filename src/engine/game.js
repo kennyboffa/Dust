@@ -70,6 +70,12 @@ class Game {
             this.showScreen('character-screen');
         });
 
+        document.getElementById('btn-journal').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.updateJournal();
+            this.showScreen('journal-screen');
+        });
+
         document.getElementById('btn-pipboy').addEventListener('click', () => {
             this.audio.playSfx('click');
             this.screens.drawWorldMap();
@@ -79,6 +85,14 @@ class Game {
         document.getElementById('btn-save').addEventListener('click', () => {
             this.audio.playSfx('click');
             this.saveGame();
+        });
+
+        // Quick slot clicks
+        document.querySelectorAll('.quick-slot').forEach(slot => {
+            slot.addEventListener('click', () => {
+                this.audio.playSfx('click');
+                this.useQuickSlot(parseInt(slot.dataset.slot));
+            });
         });
 
         // Close buttons
@@ -145,6 +159,10 @@ class Game {
             case 'c':
                 this.hud.updateCharacterScreen();
                 this.showScreen('character-screen');
+                break;
+            case 'j':
+                this.updateJournal();
+                this.showScreen('journal-screen');
                 break;
             case 'p':
                 this.screens.drawWorldMap();
@@ -456,6 +474,7 @@ class Game {
         this.areas = {
             village: createVillageArea(),
             cave: createCaveArea(),
+            wasteland: createWastelandArea(),
         };
 
         // Load starting area
@@ -615,6 +634,7 @@ class Game {
             // Check if it's the cave crystal (quest item)
             if (item.id === 'cave_crystal') {
                 this.player.questFlags.cave_crystal_returned = true;
+                QuestSystem.advanceQuest(this.player, 'cave_crystal', 'return', this);
                 this.addMessage('You found the Dust Crystal! Return it to Elder Mara.', 'xp');
             }
         } else {
@@ -633,6 +653,7 @@ class Game {
 
                 if (item.id === 'cave_crystal') {
                     this.player.questFlags.cave_crystal_returned = true;
+                    QuestSystem.advanceQuest(this.player, 'cave_crystal', 'return', this);
                     this.addMessage('You found the Dust Crystal! Return it to Elder Mara.', 'xp');
                 }
             }
@@ -730,6 +751,43 @@ class Game {
         });
     }
 
+    updateJournal() {
+        const questList = document.getElementById('quest-list');
+        const active = QuestSystem.getActiveQuests(this.player);
+        const completed = QuestSystem.getCompletedQuests(this.player);
+
+        let html = '';
+        if (active.length === 0 && completed.length === 0) {
+            html = '<p style="color:#8a7a60;padding:10px">No quests yet. Talk to the villagers to find work.</p>';
+        }
+
+        if (active.length > 0) {
+            html += '<h3 style="color:#d4a44a;margin:0 0 8px">Active Quests</h3>';
+            for (const q of active) {
+                const stageText = QuestSystem.getCurrentStageText(this.player, q.id);
+                html += `<div class="quest-entry">`;
+                html += `<div class="quest-name">${q.name}</div>`;
+                html += `<div class="quest-giver">From: ${q.giver}</div>`;
+                html += `<div class="quest-desc">${q.description}</div>`;
+                html += `<div class="quest-objective">Current: ${stageText}</div>`;
+                html += `<div class="quest-rewards">Rewards: ${q.rewards}</div>`;
+                html += `</div>`;
+            }
+        }
+
+        if (completed.length > 0) {
+            html += '<h3 style="color:#6b8a50;margin:12px 0 8px">Completed Quests</h3>';
+            for (const q of completed) {
+                html += `<div class="quest-entry completed">`;
+                html += `<div class="quest-name">${q.name} [COMPLETE]</div>`;
+                html += `<div class="quest-giver">From: ${q.giver}</div>`;
+                html += `</div>`;
+            }
+        }
+
+        questList.innerHTML = html;
+    }
+
     advanceTime(hours) {
         this.gameTime.hour += hours;
         while (this.gameTime.hour >= 24) {
@@ -794,6 +852,7 @@ class Game {
             this.areas = {
                 village: createVillageArea(),
                 cave: createCaveArea(),
+                wasteland: createWastelandArea(),
             };
 
             // Load the saved area

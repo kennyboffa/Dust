@@ -43,6 +43,23 @@ class HUDManager {
             btn.classList.toggle('active', btn.dataset.action === this.game.currentAction);
         });
 
+        // Quick slots - show usable items
+        const consumables = player.inventory.filter(i => i.usable);
+        const quickSlots = document.querySelectorAll('.quick-slot');
+        quickSlots.forEach((slot, idx) => {
+            if (idx < consumables.length) {
+                const item = consumables[idx];
+                const shortName = item.name.length > 6 ? item.name.substring(0, 6) : item.name;
+                slot.textContent = shortName;
+                slot.title = `${item.name} (${idx + 1})`;
+                slot.classList.add('has-item');
+            } else {
+                slot.textContent = idx + 1;
+                slot.title = `Quick Slot ${idx + 1}`;
+                slot.classList.remove('has-item');
+            }
+        });
+
         // Combat indicator
         const hud = document.getElementById('game-hud');
         hud.classList.toggle('combat-active', this.game.combat.active);
@@ -180,6 +197,21 @@ class HUDManager {
             skillsHtml += `<div class="cs-skill"><span>${isTag ? '* ' : ''}${skill.name}</span><span class="cs-val">${val}%</span></div>`;
         }
         skillsEl.innerHTML = skillsHtml;
+
+        // Perks display
+        const perksEl = document.getElementById('perks-list');
+        if (player.perks && player.perks.length > 0) {
+            let perksHtml = '';
+            for (const perkId of player.perks) {
+                const perk = PerkDatabase.find(p => p.id === perkId);
+                if (perk) {
+                    perksHtml += `<div class="perk-entry"><div class="perk-name">${perk.name}</div><div class="perk-desc">${perk.desc}</div></div>`;
+                }
+            }
+            perksEl.innerHTML = perksHtml;
+        } else {
+            perksEl.innerHTML = '<span style="color:#6b5a3a;font-size:12px">None yet. Perks are offered every 3 levels.</span>';
+        }
     }
 
     showLootScreen(container) {

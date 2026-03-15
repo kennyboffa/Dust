@@ -158,9 +158,50 @@ class ScreenManager {
             content.appendChild(row);
         }
 
-        document.getElementById('btn-confirm-levelup').onclick = () => {
-            this.game.hideScreen('levelup-screen');
-        };
+        // Perk selection every 3 levels
+        const perkSection = document.getElementById('levelup-perks');
+        if (perkSection) perkSection.remove();
+
+        if (player.level % 3 === 0) {
+            const availablePerks = PerkSystem.getAvailablePerks(player);
+            if (availablePerks.length > 0) {
+                const perkDiv = document.createElement('div');
+                perkDiv.id = 'levelup-perks';
+                perkDiv.innerHTML = '<h3 style="margin-top:12px;color:#d4a44a">Choose a Perk</h3>';
+
+                let selectedPerkId = null;
+
+                for (const perk of availablePerks) {
+                    const entry = document.createElement('div');
+                    entry.className = 'perk-pick';
+                    entry.innerHTML = `<div class="perk-name">${perk.name}</div><div class="perk-desc">${perk.desc}</div>`;
+                    entry.addEventListener('click', () => {
+                        selectedPerkId = perk.id;
+                        perkDiv.querySelectorAll('.perk-pick').forEach(el => el.classList.remove('selected'));
+                        entry.classList.add('selected');
+                    });
+                    perkDiv.appendChild(entry);
+                }
+
+                content.parentNode.insertBefore(perkDiv, document.getElementById('btn-confirm-levelup'));
+
+                document.getElementById('btn-confirm-levelup').onclick = () => {
+                    if (selectedPerkId) {
+                        PerkSystem.applyPerk(player, selectedPerkId);
+                        this.game.addMessage(`Perk acquired: ${PerkDatabase.find(p => p.id === selectedPerkId).name}`, 'xp');
+                    }
+                    this.game.hideScreen('levelup-screen');
+                };
+            } else {
+                document.getElementById('btn-confirm-levelup').onclick = () => {
+                    this.game.hideScreen('levelup-screen');
+                };
+            }
+        } else {
+            document.getElementById('btn-confirm-levelup').onclick = () => {
+                this.game.hideScreen('levelup-screen');
+            };
+        }
 
         this.game.showScreen('levelup-screen');
     }
@@ -185,10 +226,10 @@ class ScreenManager {
                 connections: ['village']
             },
             {
-                id: 'wasteland_east',
-                name: '???',
+                id: 'wasteland',
+                name: 'Raider Camp',
                 mapX: 320, mapY: 150,
-                discovered: false,
+                discovered: this.game.player.questFlags.raider_quest_accepted || this.game.player.questFlags.met_hank || false,
                 connections: ['village']
             },
             {

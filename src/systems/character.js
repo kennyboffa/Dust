@@ -104,6 +104,14 @@ class CharacterSystem {
             char.stats.damageResist += armor.damageResist || 0;
         }
 
+        // Apply accessory bonuses (to derived stats directly)
+        if (char.equipment && char.equipment.accessory) {
+            const acc = char.equipment.accessory;
+            if (acc.luck) char.stats.critChance += acc.luck;
+            if (acc.perception) char.stats.sequence += acc.perception * 2;
+            if (acc.armorClass) char.stats.armorClass += acc.armorClass;
+        }
+
         // Calculate skills
         char.skills = {};
         for (const [key, skill] of Object.entries(SKILLS)) {
@@ -115,6 +123,11 @@ class CharacterSystem {
 
         // Skill points per level
         char.stats.skillPointsPerLevel = 5 + (s.intelligence * 2);
+
+        // Reapply perks that modify stats
+        if (char.perks && char.perks.length > 0 && typeof PerkSystem !== 'undefined') {
+            PerkSystem.reapplyPerks(char);
+        }
 
         // Clamp HP
         if (char.stats.hp !== undefined) {
@@ -140,6 +153,9 @@ class CharacterSystem {
     }
 
     static addXP(char, amount) {
+        if (char.perks && char.perks.includes('swift_learner')) {
+            amount = Math.floor(amount * 1.2);
+        }
         char.xp += amount;
         const leveled = char.xp >= char.xpToNext;
         if (leveled) {

@@ -511,8 +511,8 @@ class IsometricRenderer {
             this.drawHumanoid(ctx, screen, z, entityType, facing);
         }
 
-        // HP bar
-        if (hp !== null && maxHp !== null && hp < maxHp) {
+        // HP bar (always show for enemies, show for others only when damaged)
+        if (hp !== null && maxHp !== null && (hp < maxHp || entityType !== 'player')) {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const barW = 22 * z;
             const barH = 2.5 * z;
