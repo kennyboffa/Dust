@@ -1190,11 +1190,10 @@ canvas {
     border-color: #d4a44a;
     background: rgba(80, 60, 25, 0.9);
 }
-
     </style>
 </head>
 <body>
-<div id="game-container">
+    <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="ui-layer">
             <!-- Title Screen -->
@@ -1376,7 +1375,10 @@ canvas {
             </div>
         </div>
     </div>
-    <script>
+
+    <!-- Game Scripts -->
+<script>
+// ==== src/engine/utils.js ====
 // ============================================
 // Dustwalker - Utility Functions
 // ============================================
@@ -1517,9 +1519,11 @@ const Utils = {
     }
 };
 
-
+// ==== src/engine/renderer.js ====
 // ============================================
-// Dustwalker - Isometric Renderer (Gritty Pixel Art)
+// Dustwalker - Isometric Renderer (Fallout 2 Style)
+// Dark, gritty pre-rendered aesthetic with muted earth tones,
+// heavy shadows, environmental decay, and retro-futuristic detail
 // ============================================
 
 class IsometricRenderer {
@@ -1533,45 +1537,58 @@ class IsometricRenderer {
         this.animationTimer = 0;
         this.time = 0;
 
-        // Dust particles
+        // Heavier dust/ash particle system
         this.particles = [];
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 80; i++) {
             this.particles.push({
                 x: Math.random() * 2000 - 1000,
                 y: Math.random() * 2000 - 1000,
-                vx: (Math.random() - 0.5) * 0.4,
-                vy: -Math.random() * 0.15 - 0.02,
-                size: Math.random() * 1.5 + 0.5,
-                alpha: Math.random() * 0.2 + 0.05,
-                life: Math.random() * 300 + 100,
+                vx: (Math.random() - 0.5) * 0.3 + 0.15,
+                vy: -Math.random() * 0.08 - 0.01,
+                size: Math.random() * 2 + 0.3,
+                alpha: Math.random() * 0.15 + 0.03,
+                life: Math.random() * 400 + 150,
+                type: Math.random() > 0.7 ? 'ash' : 'dust',
             });
         }
 
-        // Deterministic noise
+        // Deterministic noise (larger table for more variety)
         this.noiseSeed = [];
-        for (let i = 0; i < 512; i++) {
+        for (let i = 0; i < 1024; i++) {
             this.noiseSeed.push(Math.random());
         }
 
-        // Gritty post-apocalyptic palette
+        // Debris lookup per tile (deterministic)
+        this.debrisCache = {};
+
+        // Fallout 2 palette: very desaturated, dark earth tones, muted and grim
         this.tileColors = {
-            'dirt':        { top: '#7A6545', left: '#5A4525', right: '#6A5535', stroke: '#4A3515' },
-            'sand':        { top: '#B0A070', left: '#908050', right: '#A09060', stroke: '#807040' },
-            'grass':       { top: '#4A6A2A', left: '#2A4A0A', right: '#3A5A1A', stroke: '#1A3A00' },
-            'stone':       { top: '#707070', left: '#505050', right: '#606060', stroke: '#404040' },
-            'wood':        { top: '#6B5020', left: '#4B3010', right: '#5B4018', stroke: '#3B2008' },
-            'water':       { top: '#1A3366', left: '#0A2356', right: '#122D60', stroke: '#081D4A' },
-            'road':        { top: '#5A5A4A', left: '#3A3A2A', right: '#4A4A3A', stroke: '#2A2A1A' },
-            'cave_floor':  { top: '#3A3030', left: '#2A2020', right: '#302828', stroke: '#1A1010' },
-            'cave_wall':   { top: '#4A4040', left: '#2A2020', right: '#3A3030', stroke: '#1A1010' },
-            'cave_rock':   { top: '#555048', left: '#353028', right: '#454038', stroke: '#252018' },
-            'lava':        { top: '#AA3300', left: '#881100', right: '#992200', stroke: '#660000' },
-            'crystal':     { top: '#5599AA', left: '#337788', right: '#448899', stroke: '#226677' },
-            'wall':        { top: '#8A7A5A', left: '#5A4A2A', right: '#6A5A3A', stroke: '#4A3A1A' },
-            'wall_top':    { top: '#9A8A6A', left: '#6A5A3A', right: '#7A6A4A', stroke: '#5A4A2A' },
-            'door':        { top: '#5B3910', left: '#3B1900', right: '#4B2908', stroke: '#2B0F00' },
-            'void':        { top: '#050505', left: '#020202', right: '#030303', stroke: '#000000' },
+            'dirt':        { top: '#584830', left: '#3E3018', right: '#4A3C22', stroke: '#2E2210' },
+            'sand':        { top: '#8A7A55', left: '#6A5A3A', right: '#7A6A48', stroke: '#5A4A2E' },
+            'grass':       { top: '#3A5020', left: '#223810', right: '#2E4418', stroke: '#1A2E08' },
+            'stone':       { top: '#585450', left: '#3A3835', right: '#484642', stroke: '#2A2825' },
+            'wood':        { top: '#4A3818', left: '#34260C', right: '#403010', stroke: '#281E06' },
+            'water':       { top: '#152840', left: '#0C1C30', right: '#102238', stroke: '#081828' },
+            'road':        { top: '#484640', left: '#302E28', right: '#3C3A34', stroke: '#222018' },
+            'cave_floor':  { top: '#2A2220', left: '#1C1614', right: '#221C1A', stroke: '#120C0A' },
+            'cave_wall':   { top: '#3A3230', left: '#221A18', right: '#2E2624', stroke: '#140E0C' },
+            'cave_rock':   { top: '#403C34', left: '#282420', right: '#34302A', stroke: '#1C1814' },
+            'lava':        { top: '#882800', left: '#661000', right: '#771C00', stroke: '#500800' },
+            'crystal':     { top: '#3A7080', left: '#225060', right: '#2E6070', stroke: '#184050' },
+            'wall':        { top: '#686048', left: '#443C24', right: '#544C34', stroke: '#342C18' },
+            'wall_top':    { top: '#787058', left: '#504838', right: '#605844', stroke: '#403828' },
+            'door':        { top: '#46300E', left: '#2E1800', right: '#3A2406', stroke: '#200E00' },
+            'void':        { top: '#030303', left: '#010101', right: '#020202', stroke: '#000000' },
         };
+
+        // Ambient light color (warm wasteland sun, low angle)
+        this.ambientColor = { r: 180, g: 150, b: 100 };
+        this.shadowColor = { r: 20, g: 15, b: 10 };
+
+        // Pre-generate debris items for tiles
+        this._debrisTypes = [
+            'can', 'bone', 'glass', 'rebar', 'rock', 'shell', 'cloth', 'wire', 'pipe', 'bottle'
+        ];
 
         this.resize();
     }
@@ -1582,16 +1599,61 @@ class IsometricRenderer {
     }
 
     clear() {
-        this.ctx.fillStyle = '#080604';
+        this.ctx.fillStyle = '#040302';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     noise(x, y) {
-        return this.noiseSeed[((x * 73 + y * 137) & 511)];
+        return this.noiseSeed[((x * 73 + y * 137) & 1023)];
     }
 
     noise2(x, y) {
-        return this.noiseSeed[((x * 31 + y * 97 + 200) & 511)];
+        return this.noiseSeed[((x * 31 + y * 97 + 200) & 1023)];
+    }
+
+    noise3(x, y) {
+        return this.noiseSeed[((x * 53 + y * 179 + 500) & 1023)];
+    }
+
+    // Get deterministic debris list for a tile
+    getDebris(gx, gy) {
+        const key = gx + ',' + gy;
+        if (this.debrisCache[key]) return this.debrisCache[key];
+        const n = this.noise(gx * 5, gy * 3);
+        const n2 = this.noise2(gx * 3, gy * 7);
+        const items = [];
+        // Most tiles get 0-3 debris items
+        const count = Math.floor(n * 4);
+        for (let i = 0; i < count; i++) {
+            const ni = this.noise3(gx + i * 17, gy + i * 31);
+            const ni2 = this.noise(gx + i * 41, gy + i * 13);
+            items.push({
+                type: this._debrisTypes[Math.floor(ni * this._debrisTypes.length)],
+                ox: (ni - 0.5) * 0.7,  // offset from center, -0.35 to 0.35
+                oy: (ni2 - 0.5) * 0.7,
+                rot: ni * Math.PI * 2,
+                scale: 0.5 + ni2 * 0.6,
+            });
+        }
+        this.debrisCache[key] = items;
+        return items;
+    }
+
+    // Desaturate a hex color by amount (0-1)
+    desaturate(hex, amount) {
+        const [r, g, b] = this.hexToRgb(hex);
+        const gray = r * 0.299 + g * 0.587 + b * 0.114;
+        return this.rgbStr(
+            r + (gray - r) * amount,
+            g + (gray - g) * amount,
+            b + (gray - b) * amount
+        );
+    }
+
+    // Darken color
+    darken(hex, amount) {
+        const [r, g, b] = this.hexToRgb(hex);
+        return this.rgbStr(r * (1 - amount), g * (1 - amount), b * (1 - amount));
     }
 
     worldToScreen(gx, gy) {
@@ -1646,7 +1708,7 @@ class IsometricRenderer {
         );
     }
 
-    // ---- TILE RENDERING ----
+    // ---- TILE RENDERING (Fallout 2 style) ----
 
     drawTile(gx, gy, tileType, height = 0) {
         const colors = this.tileColors[tileType] || this.tileColors['dirt'];
@@ -1658,9 +1720,14 @@ class IsometricRenderer {
         const z = this.camera.zoom;
         const n = this.noise(gx, gy);
         const n2 = this.noise2(gx, gy);
+        const n3 = this.noise3(gx, gy);
 
-        // Slight per-tile color variation for gritty look
-        const variation = (n - 0.5) * 12;
+        // Per-tile color variation (darker, grittier)
+        const variation = (n - 0.5) * 8;
+
+        // Directional shadow: tiles cast shadow to bottom-right
+        const inShadow = height === 0 && n3 > 0.7;
+        const shadowDarken = inShadow ? -8 : 0;
 
         // Top face
         ctx.beginPath();
@@ -1669,25 +1736,45 @@ class IsometricRenderer {
         ctx.lineTo(screen.x, screen.y + th - hOffset);
         ctx.lineTo(screen.x - tw, screen.y - hOffset);
         ctx.closePath();
-        ctx.fillStyle = this.adjustColor(colors.top, variation);
+        ctx.fillStyle = this.adjustColor(colors.top, variation + shadowDarken);
         ctx.fill();
 
-        // Tile texture overlay
+        // Dithering noise overlay (pre-rendered sprite look)
         ctx.save();
         ctx.clip();
+        // Speckle dithering
+        for (let i = 0; i < 6; i++) {
+            const dx = this.noise(gx * 13 + i, gy * 17) - 0.5;
+            const dy = this.noise(gx * 17 + i, gy * 13) - 0.5;
+            const dark = this.noise(gx + i * 7, gy + i * 3) > 0.5;
+            ctx.fillStyle = dark ? `rgba(0,0,0,${0.04 + n * 0.04})` : `rgba(255,240,200,${0.02 + n2 * 0.02})`;
+            ctx.fillRect(screen.x + dx * tw * 1.4, screen.y - hOffset + dy * th * 1.4, z * 1.5, z);
+        }
+
         this.drawTileTexture(ctx, screen, tw, th, hOffset, z, gx, gy, tileType, n, n2);
+
+        // Ground shadow from nearby walls (ambient occlusion fake)
+        const aoStrength = 0.06 + n * 0.04;
+        ctx.fillStyle = `rgba(0,0,0,${aoStrength})`;
+        ctx.fillRect(screen.x - tw, screen.y - th - hOffset, tw * 2, th * 2);
+
         ctx.restore();
 
-        // Subtle edge line
+        // Edge lines (darker, more defined for pre-rendered look)
         ctx.beginPath();
         ctx.moveTo(screen.x, screen.y - th - hOffset);
         ctx.lineTo(screen.x + tw, screen.y - hOffset);
         ctx.lineTo(screen.x, screen.y + th - hOffset);
         ctx.lineTo(screen.x - tw, screen.y - hOffset);
         ctx.closePath();
-        ctx.strokeStyle = this.adjustColor(colors.stroke, variation);
-        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = this.adjustColor(colors.stroke, variation - 5);
+        ctx.lineWidth = 0.7;
         ctx.stroke();
+
+        // Draw debris/clutter on ground tiles
+        if (height === 0 && tileType !== 'water' && tileType !== 'lava' && tileType !== 'void') {
+            this.drawDebris(ctx, screen, tw, th, hOffset, z, gx, gy, tileType);
+        }
 
         // Wall sides
         if (height > 0) {
@@ -1696,7 +1783,10 @@ class IsometricRenderer {
     }
 
     drawWallSides(ctx, screen, tw, th, hOffset, z, gx, gy, tileType, colors, height, n) {
-        // Left face
+        const isStone = tileType === 'cave_wall' || tileType === 'cave_rock';
+        const brickH = 4 * z;
+
+        // ---- LEFT FACE ----
         ctx.beginPath();
         ctx.moveTo(screen.x - tw, screen.y - hOffset);
         ctx.lineTo(screen.x, screen.y + th - hOffset);
@@ -1706,39 +1796,61 @@ class IsometricRenderer {
         ctx.fillStyle = colors.left;
         ctx.fill();
 
-        // Brick/stone detail on left
         ctx.save();
         ctx.clip();
-        const brickH = 4 * z;
-        const isStone = tileType === 'cave_wall' || tileType === 'cave_rock';
-        for (let i = 0; i < height * 3; i++) {
+        // Brick/stone mortar
+        for (let i = 0; i < height * 4; i++) {
             const by = screen.y + th - i * brickH;
             const offset = (i % 2) * 6 * z;
-            ctx.strokeStyle = this.adjustColor(colors.left, -10 - this.noise(gx * 3 + i, gy) * 8);
-            ctx.lineWidth = 0.5;
-            // Horizontal mortar line
+            const mortarDark = -12 - this.noise(gx * 3 + i, gy) * 10;
+            ctx.strokeStyle = this.adjustColor(colors.left, mortarDark);
+            ctx.lineWidth = 0.6;
             ctx.beginPath();
             ctx.moveTo(screen.x - tw, by);
             ctx.lineTo(screen.x, by);
             ctx.stroke();
-            // Vertical mortar lines (offset every other row)
             if (!isStone) {
-                for (let j = 0; j < 3; j++) {
-                    const bx = screen.x - tw + offset + j * 10 * z;
+                for (let j = 0; j < 4; j++) {
+                    const bx = screen.x - tw + offset + j * 8 * z;
                     ctx.beginPath();
                     ctx.moveTo(bx, by);
                     ctx.lineTo(bx, by - brickH);
                     ctx.stroke();
                 }
             }
+            // Random damage/missing brick patches
+            if (this.noise(gx * 5 + i * 11, gy * 3) > 0.82) {
+                ctx.fillStyle = this.adjustColor(colors.left, -20);
+                const dw = (2 + this.noise(gx + i, gy) * 4) * z;
+                const dx = screen.x - tw * 0.6 + this.noise(gx * 2, gy + i) * tw * 0.4;
+                ctx.fillRect(dx, by - brickH, dw, brickH);
+            }
         }
-        // Weathering stains
-        ctx.fillStyle = `rgba(0,0,0,${0.05 + n * 0.08})`;
-        ctx.fillRect(screen.x - tw, screen.y + th - 8 * z, tw, 8 * z);
+        // Heavy weathering stains (water damage, rust)
+        ctx.fillStyle = `rgba(0,0,0,${0.08 + n * 0.1})`;
+        ctx.fillRect(screen.x - tw, screen.y + th - 10 * z, tw, 10 * z);
+        // Rust streak
+        if (this.noise(gx * 7, gy * 11) > 0.6) {
+            ctx.fillStyle = `rgba(80,40,15,${0.06 + n * 0.05})`;
+            const rx = screen.x - tw * 0.3;
+            ctx.fillRect(rx, screen.y - hOffset + 4 * z, 2 * z, hOffset * 0.6);
+        }
+        // Crack
+        if (this.noise2(gx * 9, gy * 5) > 0.75) {
+            ctx.strokeStyle = `rgba(0,0,0,${0.15 + n * 0.1})`;
+            ctx.lineWidth = 0.7;
+            ctx.beginPath();
+            const cx = screen.x - tw * 0.5;
+            ctx.moveTo(cx, screen.y - hOffset * 0.2);
+            ctx.lineTo(cx + 2 * z, screen.y - hOffset * 0.4);
+            ctx.lineTo(cx - z, screen.y - hOffset * 0.6);
+            ctx.lineTo(cx + z, screen.y - hOffset * 0.8);
+            ctx.stroke();
+        }
         ctx.restore();
 
         ctx.strokeStyle = colors.stroke;
-        ctx.lineWidth = 0.5;
+        ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.moveTo(screen.x - tw, screen.y - hOffset);
         ctx.lineTo(screen.x, screen.y + th - hOffset);
@@ -1747,43 +1859,80 @@ class IsometricRenderer {
         ctx.closePath();
         ctx.stroke();
 
-        // Right face
+        // ---- RIGHT FACE (darker, in shadow) ----
         ctx.beginPath();
         ctx.moveTo(screen.x + tw, screen.y - hOffset);
         ctx.lineTo(screen.x, screen.y + th - hOffset);
         ctx.lineTo(screen.x, screen.y + th);
         ctx.lineTo(screen.x + tw, screen.y);
         ctx.closePath();
-        ctx.fillStyle = colors.right;
+        ctx.fillStyle = this.adjustColor(colors.right, -5); // slightly darker shadow side
         ctx.fill();
 
         ctx.save();
         ctx.clip();
-        for (let i = 0; i < height * 3; i++) {
+        for (let i = 0; i < height * 4; i++) {
             const by = screen.y + th - i * brickH;
             const offset = (i % 2) * 6 * z;
-            ctx.strokeStyle = this.adjustColor(colors.right, -10 - this.noise(gx + i * 7, gy * 3) * 8);
-            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = this.adjustColor(colors.right, -12 - this.noise(gx + i * 7, gy * 3) * 10);
+            ctx.lineWidth = 0.6;
             ctx.beginPath();
             ctx.moveTo(screen.x, by);
             ctx.lineTo(screen.x + tw, by);
             ctx.stroke();
             if (!isStone) {
-                for (let j = 0; j < 3; j++) {
-                    const bx = screen.x + offset + j * 10 * z;
+                for (let j = 0; j < 4; j++) {
+                    const bx = screen.x + offset + j * 8 * z;
                     ctx.beginPath();
                     ctx.moveTo(bx, by);
                     ctx.lineTo(bx, by - brickH);
                     ctx.stroke();
                 }
             }
+            // Damage patches
+            if (this.noise(gx * 3 + i * 13, gy * 7) > 0.84) {
+                ctx.fillStyle = this.adjustColor(colors.right, -18);
+                const dw = (2 + this.noise(gx + i, gy * 2) * 3) * z;
+                const dx = screen.x + tw * 0.2 + this.noise(gx, gy + i * 2) * tw * 0.4;
+                ctx.fillRect(dx, by - brickH, dw, brickH);
+            }
         }
-        ctx.fillStyle = `rgba(0,0,0,${0.04 + n * 0.06})`;
-        ctx.fillRect(screen.x, screen.y + th - 6 * z, tw, 6 * z);
+        // Shadow side is darker
+        ctx.fillStyle = `rgba(0,0,0,${0.06 + n * 0.08})`;
+        ctx.fillRect(screen.x, screen.y + th - 8 * z, tw, 8 * z);
+        // Window frame (on taller walls)
+        if (height >= 2 && this.noise(gx * 11, gy * 7) > 0.5) {
+            const wy = screen.y - hOffset * 0.45;
+            const wx = screen.x + tw * 0.35;
+            const ww = 5 * z;
+            const wh = 6 * z;
+            ctx.fillStyle = '#0A0808';
+            ctx.fillRect(wx - ww / 2, wy - wh / 2, ww, wh);
+            ctx.strokeStyle = this.adjustColor(colors.right, -20);
+            ctx.lineWidth = 1;
+            ctx.strokeRect(wx - ww / 2, wy - wh / 2, ww, wh);
+            // Cross frame
+            ctx.beginPath();
+            ctx.moveTo(wx, wy - wh / 2);
+            ctx.lineTo(wx, wy + wh / 2);
+            ctx.moveTo(wx - ww / 2, wy);
+            ctx.lineTo(wx + ww / 2, wy);
+            ctx.stroke();
+            // Broken glass shard
+            if (this.noise2(gx * 13, gy * 11) > 0.4) {
+                ctx.fillStyle = `rgba(60,80,90,0.15)`;
+                ctx.beginPath();
+                ctx.moveTo(wx - ww / 2, wy - wh / 2);
+                ctx.lineTo(wx, wy);
+                ctx.lineTo(wx - ww / 2, wy);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
         ctx.restore();
 
         ctx.strokeStyle = colors.stroke;
-        ctx.lineWidth = 0.5;
+        ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.moveTo(screen.x + tw, screen.y - hOffset);
         ctx.lineTo(screen.x, screen.y + th - hOffset);
@@ -1791,130 +1940,349 @@ class IsometricRenderer {
         ctx.lineTo(screen.x + tw, screen.y);
         ctx.closePath();
         ctx.stroke();
+
+        // Exposed rebar on damaged walls
+        if (height >= 2 && this.noise3(gx, gy) > 0.7) {
+            ctx.strokeStyle = '#5A3020';
+            ctx.lineWidth = 0.8 * z;
+            const rx = screen.x - tw * 0.2;
+            const ry = screen.y - hOffset;
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            ctx.lineTo(rx + z, ry - 3 * z);
+            ctx.lineTo(rx + 2 * z, ry - 2 * z);
+            ctx.stroke();
+        }
+    }
+
+    // ---- DEBRIS / ENVIRONMENTAL CLUTTER ----
+
+    drawDebris(ctx, screen, tw, th, hOff, z, gx, gy, tileType) {
+        const debris = this.getDebris(gx, gy);
+        if (debris.length === 0) return;
+        const cx = screen.x;
+        const cy = screen.y - hOff;
+
+        for (const d of debris) {
+            const dx = cx + d.ox * tw;
+            const dy = cy + d.oy * th;
+            const s = d.scale * z;
+
+            switch (d.type) {
+                case 'can':
+                    // Tin can
+                    ctx.fillStyle = `rgba(90,80,60,${0.4 + d.scale * 0.2})`;
+                    ctx.fillRect(dx, dy, 3 * s, 2 * s);
+                    ctx.fillStyle = `rgba(120,100,70,${0.15})`;
+                    ctx.fillRect(dx + 0.5 * s, dy, 2 * s, 0.8 * s);
+                    break;
+                case 'bone':
+                    ctx.strokeStyle = `rgba(180,170,140,${0.3 + d.scale * 0.15})`;
+                    ctx.lineWidth = 0.8 * s;
+                    ctx.beginPath();
+                    ctx.moveTo(dx, dy);
+                    ctx.lineTo(dx + 4 * s, dy - s);
+                    ctx.stroke();
+                    // Knob
+                    ctx.fillStyle = `rgba(170,160,130,${0.25})`;
+                    ctx.beginPath();
+                    ctx.arc(dx, dy, 0.6 * s, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                case 'glass':
+                    // Broken glass shard
+                    ctx.fillStyle = `rgba(140,160,170,${0.1 + d.scale * 0.08})`;
+                    ctx.beginPath();
+                    ctx.moveTo(dx, dy);
+                    ctx.lineTo(dx + 2 * s, dy - s);
+                    ctx.lineTo(dx + 3 * s, dy + s);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                case 'rebar':
+                    ctx.strokeStyle = `rgba(100,50,30,${0.3 + d.scale * 0.1})`;
+                    ctx.lineWidth = 0.7 * s;
+                    ctx.beginPath();
+                    ctx.moveTo(dx, dy);
+                    ctx.lineTo(dx + 5 * s, dy - 2 * s);
+                    ctx.stroke();
+                    break;
+                case 'rock':
+                    ctx.fillStyle = `rgba(70,65,55,${0.25 + d.scale * 0.15})`;
+                    ctx.beginPath();
+                    ctx.ellipse(dx, dy, 1.5 * s, 1 * s, d.rot, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                case 'shell':
+                    // Bullet casing
+                    ctx.fillStyle = `rgba(150,130,60,${0.2 + d.scale * 0.1})`;
+                    ctx.fillRect(dx, dy, 1.5 * s, 0.7 * s);
+                    break;
+                case 'cloth':
+                    // Torn cloth/rag
+                    ctx.fillStyle = `rgba(80,70,50,${0.15 + d.scale * 0.1})`;
+                    ctx.beginPath();
+                    ctx.moveTo(dx, dy);
+                    ctx.quadraticCurveTo(dx + 2 * s, dy - s, dx + 4 * s, dy + 0.5 * s);
+                    ctx.lineTo(dx + 3 * s, dy + 1.5 * s);
+                    ctx.quadraticCurveTo(dx + 1 * s, dy + s, dx, dy);
+                    ctx.fill();
+                    break;
+                case 'wire':
+                    ctx.strokeStyle = `rgba(60,60,60,${0.2 + d.scale * 0.1})`;
+                    ctx.lineWidth = 0.5 * s;
+                    ctx.beginPath();
+                    ctx.moveTo(dx, dy);
+                    ctx.bezierCurveTo(dx + 2 * s, dy - 2 * s, dx + 3 * s, dy + s, dx + 5 * s, dy - s);
+                    ctx.stroke();
+                    break;
+                case 'pipe':
+                    ctx.fillStyle = `rgba(80,75,65,${0.3})`;
+                    ctx.fillRect(dx, dy, 6 * s, 1.2 * s);
+                    ctx.fillStyle = `rgba(60,55,45,${0.2})`;
+                    ctx.fillRect(dx, dy + 0.8 * s, 6 * s, 0.4 * s);
+                    break;
+                case 'bottle':
+                    ctx.fillStyle = `rgba(50,80,50,${0.15})`;
+                    ctx.beginPath();
+                    ctx.ellipse(dx, dy, 1.2 * s, 0.8 * s, d.rot, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillRect(dx + 1 * s, dy - 0.3 * s, 1.5 * s, 0.5 * s);
+                    break;
+            }
+        }
+
+        // Ground decals: oil stains, blood spatters, tire tracks
+        const n = this.noise(gx, gy);
+        const n2 = this.noise2(gx, gy);
+
+        // Oil stain
+        if (n > 0.78 && (tileType === 'road' || tileType === 'stone' || tileType === 'dirt')) {
+            ctx.fillStyle = `rgba(15,12,8,${0.12 + n2 * 0.08})`;
+            ctx.beginPath();
+            ctx.ellipse(cx + (n2 - 0.5) * 6, cy + (n - 0.5) * 4, 5 * z, 3 * z, n * 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Blood spatter (rare)
+        if (n2 > 0.88 && tileType !== 'water') {
+            ctx.fillStyle = `rgba(60,10,5,${0.1 + n * 0.06})`;
+            for (let i = 0; i < 3; i++) {
+                const bx = cx + (this.noise(gx + i * 19, gy * 3) - 0.5) * tw * 0.5;
+                const by = cy + (this.noise(gx * 3, gy + i * 23) - 0.5) * th * 0.5;
+                ctx.beginPath();
+                ctx.arc(bx, by, (0.5 + this.noise(gx + i, gy) * 1.5) * z, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Tire tracks on roads
+        if (tileType === 'road' && n > 0.4 && n < 0.65) {
+            ctx.strokeStyle = `rgba(30,28,20,${0.06})`;
+            ctx.lineWidth = 1.5 * z;
+            ctx.beginPath();
+            ctx.moveTo(cx - tw, cy - 2 * z);
+            ctx.lineTo(cx + tw, cy - 2 * z);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx - tw, cy + 2 * z);
+            ctx.lineTo(cx + tw, cy + 2 * z);
+            ctx.stroke();
+        }
     }
 
     drawTileTexture(ctx, screen, tw, th, hOff, z, gx, gy, type, n, n2) {
         const cx = screen.x;
         const cy = screen.y - hOff;
+        const n3 = this.noise3(gx, gy);
 
         if (type === 'grass') {
-            // Sparse, dry grass tufts (wasteland style)
-            const count = 4 + Math.floor(n * 3);
+            // Mostly dead, dried grass with rare green patches - Fallout 2 style
+            // Large dirt patches first
+            ctx.fillStyle = `rgba(60, 48, 28, ${0.2 + n2 * 0.15})`;
+            ctx.beginPath();
+            ctx.ellipse(cx + (n - 0.5) * 10, cy + (n2 - 0.3) * 6, 7 * z, 3 * z, n * 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            const count = 5 + Math.floor(n * 5);
             for (let i = 0; i < count; i++) {
                 const nx = this.noise(gx * 11 + i, gy * 7);
                 const ny = this.noise(gx * 7, gy * 11 + i);
                 const bx = cx + (nx - 0.5) * tw * 1.1;
                 const by = cy + (ny - 0.5) * th * 1.1;
-                const sway = Math.sin(this.time * 0.02 + gx + i * 0.7) * z;
-                const h = (2 + nx * 3) * z;
-                // Dead/brown grass mixed with green
-                const green = this.noise(gx + i * 3, gy + i * 5) > 0.4;
-                ctx.strokeStyle = green
-                    ? this.rgbStr(60 + n * 30, 90 + n * 20, 30, 0.6)
-                    : this.rgbStr(100 + n * 20, 80 + n * 15, 40, 0.5);
-                ctx.lineWidth = 0.8 * z;
+                const sway = Math.sin(this.time * 0.015 + gx + i * 0.7) * 0.5 * z;
+                const h = (2 + nx * 4) * z;
+                // Mostly brown/dead, rarely green
+                const alive = this.noise(gx + i * 3, gy + i * 5) > 0.7;
+                ctx.strokeStyle = alive
+                    ? this.rgbStr(40 + n * 20, 60 + n * 15, 20, 0.45)
+                    : this.rgbStr(75 + n * 15, 60 + n * 10, 30, 0.4);
+                ctx.lineWidth = 0.7 * z;
                 ctx.beginPath();
                 ctx.moveTo(bx, by);
                 ctx.lineTo(bx + sway, by - h);
                 ctx.stroke();
             }
-            // Dirt patches underneath
-            ctx.fillStyle = `rgba(90, 70, 40, ${0.15 + n2 * 0.1})`;
-            ctx.beginPath();
-            ctx.ellipse(cx + (n - 0.5) * 8, cy + (n2 - 0.3) * 5, 5 * z, 2 * z, n * 3, 0, Math.PI * 2);
-            ctx.fill();
+            // Scattered small rocks
+            for (let i = 0; i < 2; i++) {
+                const rx = cx + (this.noise(gx * 13 + i, gy * 5) - 0.5) * tw * 0.6;
+                const ry = cy + (this.noise(gx * 5, gy * 13 + i) - 0.5) * th * 0.6;
+                ctx.fillStyle = `rgba(55,50,40,${0.25})`;
+                ctx.beginPath();
+                ctx.ellipse(rx, ry, 1.5 * z, z, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         if (type === 'sand') {
-            // Wind-swept lines and pebbles
-            ctx.strokeStyle = `rgba(140, 120, 80, ${0.08 + n * 0.06})`;
+            // Wind-swept dune lines, scattered debris
+            ctx.strokeStyle = `rgba(100, 85, 55, ${0.06 + n * 0.05})`;
             ctx.lineWidth = 0.5 * z;
-            for (let i = 0; i < 3; i++) {
-                const y = cy + (i - 1) * 3 * z + n * 2;
+            for (let i = 0; i < 5; i++) {
+                const y = cy + (i - 2) * 2.5 * z + n * 2;
                 ctx.beginPath();
-                ctx.moveTo(cx - tw * 0.5, y);
-                ctx.quadraticCurveTo(cx, y - z, cx + tw * 0.5, y + n2 * z);
+                ctx.moveTo(cx - tw * 0.6, y);
+                ctx.quadraticCurveTo(cx, y - 0.8 * z, cx + tw * 0.6, y + n2 * 0.5 * z);
                 ctx.stroke();
             }
-            // Small stones
-            for (let i = 0; i < 2; i++) {
-                const sx = cx + (this.noise(gx * 9 + i, gy * 5) - 0.5) * tw * 0.7;
-                const sy = cy + (this.noise(gx * 5, gy * 9 + i) - 0.5) * th * 0.7;
-                ctx.fillStyle = `rgba(100, 85, 60, ${0.2 + n * 0.15})`;
-                ctx.fillRect(sx, sy, 1.5 * z, 1 * z);
+            // Pebbles and small stones
+            for (let i = 0; i < 4; i++) {
+                const sx = cx + (this.noise(gx * 9 + i, gy * 5) - 0.5) * tw * 0.8;
+                const sy = cy + (this.noise(gx * 5, gy * 9 + i) - 0.5) * th * 0.8;
+                ctx.fillStyle = `rgba(70, 60, 40, ${0.18 + n * 0.1})`;
+                ctx.beginPath();
+                ctx.ellipse(sx, sy, (0.8 + this.noise(gx + i, gy) * 1.2) * z, 0.6 * z, this.noise(gx * 3, gy + i) * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Faded footprints (rare)
+            if (n3 > 0.75) {
+                ctx.fillStyle = `rgba(80, 65, 42, ${0.05})`;
+                ctx.beginPath();
+                ctx.ellipse(cx - 2 * z, cy, 1.5 * z, 2.5 * z, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(cx + 2 * z, cy - 3 * z, 1.5 * z, 2.5 * z, -0.2, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 
         if (type === 'dirt') {
-            // Cracked, parched earth
-            ctx.strokeStyle = `rgba(60, 45, 20, ${0.12 + n * 0.1})`;
-            ctx.lineWidth = 0.6 * z;
-            if (n > 0.3) {
+            // Cracked, parched earth with heavy detail
+            ctx.strokeStyle = `rgba(40, 30, 12, ${0.14 + n * 0.12})`;
+            ctx.lineWidth = 0.7 * z;
+            // Main crack network
+            if (n > 0.25) {
                 ctx.beginPath();
-                ctx.moveTo(cx - 4 * z, cy - 1 * z);
+                ctx.moveTo(cx - 5 * z, cy - 2 * z);
                 ctx.lineTo(cx + n * 3 * z, cy + n2 * 2 * z);
-                ctx.lineTo(cx + 5 * z, cy - n2 * z);
+                ctx.lineTo(cx + 6 * z, cy - n2 * z);
                 ctx.stroke();
-            }
-            if (n2 > 0.5) {
+                // Branch cracks
                 ctx.beginPath();
-                ctx.moveTo(cx + 2 * z, cy + 2 * z);
-                ctx.lineTo(cx - 3 * z, cy + 4 * z);
+                ctx.moveTo(cx + n * 3 * z, cy + n2 * 2 * z);
+                ctx.lineTo(cx + 2 * z, cy + 4 * z);
                 ctx.stroke();
             }
-            // Tiny pebbles
-            ctx.fillStyle = `rgba(80, 60, 35, ${0.15 + n2 * 0.1})`;
-            ctx.fillRect(cx + n * 8 - 4, cy + n2 * 4 - 2, 1.5 * z, z);
+            if (n2 > 0.35) {
+                ctx.beginPath();
+                ctx.moveTo(cx + 3 * z, cy + z);
+                ctx.lineTo(cx - 4 * z, cy + 3 * z);
+                ctx.lineTo(cx - 6 * z, cy + z);
+                ctx.stroke();
+            }
+            // Pebbles scattered
+            for (let i = 0; i < 3; i++) {
+                const px = cx + (this.noise(gx * 7 + i, gy * 11) - 0.5) * tw * 0.7;
+                const py = cy + (this.noise(gx * 11, gy * 7 + i) - 0.5) * th * 0.7;
+                ctx.fillStyle = `rgba(55, 42, 22, ${0.18 + n2 * 0.1})`;
+                ctx.fillRect(px, py, 1.5 * z, z);
+            }
+            // Dried mud texture
+            ctx.fillStyle = `rgba(70, 55, 30, ${0.06 + n3 * 0.04})`;
+            ctx.beginPath();
+            ctx.ellipse(cx + (n - 0.5) * 6, cy - (n3 - 0.5) * 4, 4 * z, 2 * z, n * 1.5, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         if (type === 'road') {
-            // Cracked asphalt look
-            ctx.strokeStyle = `rgba(40, 35, 25, ${0.15 + n * 0.1})`;
-            ctx.lineWidth = 0.6 * z;
-            if (n > 0.4) {
+            // Cracked, potholed asphalt - Fallout 2 roads are broken and decayed
+            ctx.strokeStyle = `rgba(25, 22, 15, ${0.18 + n * 0.12})`;
+            ctx.lineWidth = 0.8 * z;
+            // Major crack
+            if (n > 0.3) {
                 ctx.beginPath();
-                ctx.moveTo(cx - 6 * z, cy - n2 * 2 * z);
-                ctx.lineTo(cx - 1 * z, cy + z);
-                ctx.lineTo(cx + 4 * z, cy - z);
+                ctx.moveTo(cx - 7 * z, cy - n2 * 2 * z);
+                ctx.lineTo(cx - 2 * z, cy + z);
+                ctx.lineTo(cx + 5 * z, cy - 0.5 * z);
+                ctx.lineTo(cx + 8 * z, cy + n * z);
                 ctx.stroke();
             }
-            // Worn paint line (center of road)
-            if (n2 > 0.6) {
-                ctx.fillStyle = `rgba(180, 160, 80, ${0.06 + n * 0.04})`;
-                ctx.fillRect(cx - z, cy - 0.5 * z, 2 * z, z);
+            // Secondary cracks
+            if (n2 > 0.45) {
+                ctx.lineWidth = 0.5 * z;
+                ctx.beginPath();
+                ctx.moveTo(cx - 3 * z, cy - 3 * z);
+                ctx.lineTo(cx + z, cy + 2 * z);
+                ctx.stroke();
+            }
+            // Pothole
+            if (n3 > 0.72) {
+                ctx.fillStyle = `rgba(20, 18, 12, ${0.15})`;
+                ctx.beginPath();
+                ctx.ellipse(cx + (n - 0.5) * 8, cy + (n2 - 0.5) * 4, 3 * z, 1.8 * z, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Worn center line
+            if (n2 > 0.5) {
+                ctx.fillStyle = `rgba(140, 120, 50, ${0.04 + n * 0.03})`;
+                ctx.fillRect(cx - 1.5 * z, cy - 0.5 * z, 3 * z, z);
             }
         }
 
         if (type === 'water') {
-            // Dark, murky wasteland water
-            const wave = Math.sin(this.time * 0.04 + gx * 2.5 + gy * 1.5) * 0.12 + 0.08;
-            ctx.fillStyle = this.rgbStr(40, 70, 100, wave);
-            const rx = cx + Math.sin(this.time * 0.025 + gy) * 2 * z;
+            // Dark, toxic-looking wasteland water with scum
+            const wave = Math.sin(this.time * 0.03 + gx * 2.5 + gy * 1.5) * 0.1 + 0.06;
+            ctx.fillStyle = this.rgbStr(25, 50, 65, wave);
+            const rx = cx + Math.sin(this.time * 0.02 + gy) * 1.5 * z;
             ctx.beginPath();
-            ctx.ellipse(rx, cy, 7 * z, 2 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(rx, cy, 8 * z, 2.5 * z, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Oil-slick sheen
-            const sheen = Math.sin(this.time * 0.06 + gx + gy * 2) * 0.04 + 0.03;
-            ctx.fillStyle = this.rgbStr(80, 100, 60, sheen);
+            // Greenish oil/scum slick
+            const sheen = Math.sin(this.time * 0.05 + gx + gy * 2) * 0.03 + 0.04;
+            ctx.fillStyle = this.rgbStr(50, 65, 35, sheen);
             ctx.beginPath();
-            ctx.ellipse(cx - 3 * z, cy + z, 4 * z, 1.5 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(cx - 3 * z, cy + z, 5 * z, 2 * z, 0, 0, Math.PI * 2);
             ctx.fill();
+            // Surface bubbles (rare)
+            if (this.noise(gx + Math.floor(this.time * 0.02), gy) > 0.9) {
+                ctx.strokeStyle = `rgba(40,60,70,0.15)`;
+                ctx.lineWidth = 0.5 * z;
+                ctx.beginPath();
+                ctx.arc(cx + (n - 0.5) * 6, cy + (n2 - 0.5) * 3, 1.5 * z, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            // Floating debris
+            if (n > 0.6) {
+                const fx = cx + Math.sin(this.time * 0.01 + gx) * 3 * z;
+                ctx.fillStyle = `rgba(50,40,25,0.25)`;
+                ctx.fillRect(fx - z, cy - 0.3 * z, 2 * z, 0.6 * z);
+            }
         }
 
         if (type === 'wood') {
-            // Wood grain
-            ctx.strokeStyle = `rgba(50, 30, 5, ${0.15 + n * 0.1})`;
-            ctx.lineWidth = 0.5 * z;
-            for (let i = 0; i < 3; i++) {
-                const y = cy + (i - 1) * 2.5 * z;
+            // Worn, splintered floorboards
+            ctx.strokeStyle = `rgba(30, 22, 5, ${0.18 + n * 0.12})`;
+            ctx.lineWidth = 0.6 * z;
+            for (let i = 0; i < 5; i++) {
+                const y = cy + (i - 2) * 2 * z;
                 ctx.beginPath();
-                ctx.moveTo(cx - tw * 0.5, y + n * z);
-                ctx.lineTo(cx + tw * 0.5, y - n2 * z);
+                ctx.moveTo(cx - tw * 0.6, y + n * 0.5 * z);
+                ctx.lineTo(cx + tw * 0.6, y - n2 * 0.5 * z);
                 ctx.stroke();
             }
-            // Knots
-            if (n > 0.7) {
-                ctx.fillStyle = `rgba(40, 25, 5, 0.2)`;
+            // Knots and damage
+            if (n > 0.6) {
+                ctx.fillStyle = `rgba(28, 18, 4, 0.25)`;
                 ctx.beginPath();
                 ctx.arc(cx + 3 * z, cy - z, 1.5 * z, 0, Math.PI * 2);
                 ctx.fill();
@@ -1922,63 +2290,174 @@ class IsometricRenderer {
         }
 
         if (type === 'door') {
-            // Door planks and handle
-            ctx.strokeStyle = 'rgba(30, 15, 0, 0.2)';
-            ctx.lineWidth = 0.5 * z;
+            // Heavy reinforced door - Fallout 2 style with metal bands
+            ctx.strokeStyle = 'rgba(20, 10, 0, 0.25)';
+            ctx.lineWidth = 0.7 * z;
+            // Vertical planks
+            for (let i = -1; i <= 1; i++) {
+                const dx = cx + i * 3.5 * z;
+                ctx.beginPath();
+                ctx.moveTo(dx, cy - th * 0.7);
+                ctx.lineTo(dx, cy + th * 0.7);
+                ctx.stroke();
+            }
+            // Horizontal metal bands
+            ctx.strokeStyle = `rgba(60,55,45,0.3)`;
+            ctx.lineWidth = 1.2 * z;
             ctx.beginPath();
-            ctx.moveTo(cx, cy - th * 0.6);
-            ctx.lineTo(cx, cy + th * 0.6);
+            ctx.moveTo(cx - tw * 0.3, cy - 2 * z);
+            ctx.lineTo(cx + tw * 0.3, cy - 2 * z);
             ctx.stroke();
-            // Handle
-            ctx.fillStyle = '#776644';
             ctx.beginPath();
-            ctx.arc(cx + 3 * z, cy, 1.2 * z, 0, Math.PI * 2);
+            ctx.moveTo(cx - tw * 0.3, cy + 2 * z);
+            ctx.lineTo(cx + tw * 0.3, cy + 2 * z);
+            ctx.stroke();
+            // Handle/knob
+            ctx.fillStyle = '#554433';
+            ctx.beginPath();
+            ctx.arc(cx + 4 * z, cy, 1.4 * z, 0, Math.PI * 2);
             ctx.fill();
-            ctx.strokeStyle = '#443322';
-            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = '#332211';
+            ctx.lineWidth = 0.6;
             ctx.stroke();
+            // Rust on handle
+            ctx.fillStyle = `rgba(100,50,20,0.15)`;
+            ctx.beginPath();
+            ctx.arc(cx + 4 * z, cy + 0.5 * z, z, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         if (type === 'cave_floor') {
-            // Scattered pebbles and grime
-            for (let i = 0; i < 3; i++) {
-                const px = cx + (this.noise(gx * 5 + i, gy * 9) - 0.5) * tw * 0.7;
-                const py = cy + (this.noise(gx * 9 + i, gy * 5) - 0.5) * th * 0.7;
-                ctx.fillStyle = `rgba(60, 50, 40, ${0.2 + n * 0.15})`;
+            // Dark, grimy cave floor with puddles and bones
+            for (let i = 0; i < 5; i++) {
+                const px = cx + (this.noise(gx * 5 + i, gy * 9) - 0.5) * tw * 0.8;
+                const py = cy + (this.noise(gx * 9 + i, gy * 5) - 0.5) * th * 0.8;
+                ctx.fillStyle = `rgba(45, 38, 30, ${0.2 + n * 0.15})`;
                 ctx.beginPath();
-                ctx.arc(px, py, (0.8 + n * 0.8) * z, 0, Math.PI * 2);
+                ctx.ellipse(px, py, (0.8 + n * 1) * z, (0.5 + n2 * 0.5) * z, this.noise(gx + i, gy) * 3, 0, Math.PI * 2);
                 ctx.fill();
             }
-            // Moisture stains
-            if (n > 0.6) {
-                ctx.fillStyle = `rgba(30, 30, 35, 0.1)`;
+            // Moisture/puddle stains
+            if (n > 0.55) {
+                ctx.fillStyle = `rgba(20, 22, 28, 0.12)`;
                 ctx.beginPath();
-                ctx.ellipse(cx, cy, 5 * z, 2 * z, n2 * 2, 0, Math.PI * 2);
+                ctx.ellipse(cx + (n2 - 0.5) * 4, cy, 6 * z, 2.5 * z, n2 * 2, 0, Math.PI * 2);
                 ctx.fill();
+                // Reflection highlight
+                ctx.fillStyle = `rgba(40,45,55,0.04)`;
+                ctx.beginPath();
+                ctx.ellipse(cx + (n2 - 0.5) * 4, cy - z, 3 * z, z, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Small bone fragment
+            if (n3 > 0.7) {
+                ctx.strokeStyle = `rgba(140,130,100,0.2)`;
+                ctx.lineWidth = 0.6 * z;
+                ctx.beginPath();
+                ctx.moveTo(cx + 2 * z, cy);
+                ctx.lineTo(cx + 5 * z, cy - z);
+                ctx.stroke();
             }
         }
 
         if (type === 'crystal') {
-            const glow = 0.15 + Math.sin(this.time * 0.05 + gx + gy) * 0.1;
-            // Crystal shards
-            ctx.fillStyle = this.rgbStr(80, 170, 200, glow + 0.15);
+            const glow = 0.12 + Math.sin(this.time * 0.04 + gx + gy) * 0.08;
+            // Crystal shards - slightly muted for Fallout 2 look
+            ctx.fillStyle = this.rgbStr(50, 120, 140, glow + 0.12);
             ctx.beginPath();
             ctx.moveTo(cx - 2 * z, cy + 2 * z);
-            ctx.lineTo(cx, cy - 5 * z);
+            ctx.lineTo(cx, cy - 6 * z);
             ctx.lineTo(cx + 2 * z, cy + 2 * z);
             ctx.closePath();
             ctx.fill();
-            ctx.fillStyle = this.rgbStr(100, 190, 220, glow + 0.1);
+            // Second shard
+            ctx.fillStyle = this.rgbStr(60, 130, 150, glow + 0.08);
             ctx.beginPath();
             ctx.moveTo(cx + z, cy + z);
-            ctx.lineTo(cx + 3 * z, cy - 3 * z);
+            ctx.lineTo(cx + 3 * z, cy - 4 * z);
             ctx.lineTo(cx + 4 * z, cy + z);
             ctx.closePath();
             ctx.fill();
-            // Glow aura
-            ctx.fillStyle = this.rgbStr(100, 180, 220, glow * 0.4);
+            // Shard outline
+            ctx.strokeStyle = this.rgbStr(30, 80, 100, 0.3);
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - 2 * z, cy + 2 * z);
+            ctx.lineTo(cx, cy - 6 * z);
+            ctx.lineTo(cx + 2 * z, cy + 2 * z);
+            ctx.closePath();
+            ctx.stroke();
+            // Subtle glow aura
+            ctx.fillStyle = this.rgbStr(60, 120, 150, glow * 0.25);
             ctx.beginPath();
             ctx.arc(cx, cy - z, 8 * z, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        if (type === 'lava') {
+            // Molten, bubbling lava
+            const pulse = Math.sin(this.time * 0.06 + gx * 3 + gy * 2) * 0.1 + 0.15;
+            ctx.fillStyle = this.rgbStr(180, 80, 10, pulse);
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 7 * z, 3 * z, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Hot spots
+            ctx.fillStyle = this.rgbStr(200, 120, 20, pulse * 0.6);
+            ctx.beginPath();
+            ctx.ellipse(cx + (n - 0.5) * 5, cy + (n2 - 0.5) * 2, 3 * z, 1.5 * z, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Dark crusted edges
+            ctx.fillStyle = `rgba(40,10,0,${0.15 + n * 0.1})`;
+            for (let i = 0; i < 3; i++) {
+                const lx = cx + (this.noise(gx + i * 5, gy) - 0.5) * tw * 0.8;
+                const ly = cy + (this.noise(gx, gy + i * 7) - 0.5) * th * 0.8;
+                ctx.beginPath();
+                ctx.ellipse(lx, ly, 2 * z, z, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        if (type === 'cave_wall' || type === 'cave_rock') {
+            // Rough stone texture
+            for (let i = 0; i < 4; i++) {
+                const px = cx + (this.noise(gx * 7 + i, gy * 3) - 0.5) * tw * 0.7;
+                const py = cy + (this.noise(gx * 3, gy * 7 + i) - 0.5) * th * 0.7;
+                ctx.fillStyle = `rgba(50, 44, 36, ${0.15 + n * 0.1})`;
+                ctx.beginPath();
+                ctx.ellipse(px, py, (1 + n2) * z, (0.6 + n) * z, this.noise(gx * 2 + i, gy) * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Mineral veins
+            if (n > 0.65) {
+                ctx.strokeStyle = `rgba(60, 55, 45, 0.12)`;
+                ctx.lineWidth = 0.5 * z;
+                ctx.beginPath();
+                ctx.moveTo(cx - 4 * z, cy);
+                ctx.quadraticCurveTo(cx, cy - 2 * z, cx + 5 * z, cy + z);
+                ctx.stroke();
+            }
+        }
+
+        if (type === 'stone') {
+            // Flagstone pattern
+            ctx.strokeStyle = `rgba(30, 28, 24, ${0.12 + n * 0.08})`;
+            ctx.lineWidth = 0.6 * z;
+            if (n > 0.3) {
+                ctx.beginPath();
+                ctx.moveTo(cx - 5 * z, cy + z);
+                ctx.lineTo(cx + 4 * z, cy - z);
+                ctx.stroke();
+            }
+            if (n2 > 0.4) {
+                ctx.beginPath();
+                ctx.moveTo(cx + z, cy - 3 * z);
+                ctx.lineTo(cx - z, cy + 3 * z);
+                ctx.stroke();
+            }
+            // Worn smooth spots
+            ctx.fillStyle = `rgba(70,68,62,${0.06})`;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 4 * z, 2 * z, n * 2, 0, Math.PI * 2);
             ctx.fill();
         }
     }
@@ -2004,15 +2483,27 @@ class IsometricRenderer {
         ctx.stroke();
     }
 
-    // ---- ENTITY RENDERING ----
+    // ---- ENTITY RENDERING (Fallout 2 style) ----
 
     drawEntity(gx, gy, entityType, facing = 'south', isSelected = false, hp = null, maxHp = null) {
         const screen = this.worldToScreen(gx, gy);
         const ctx = this.ctx;
         const z = this.camera.zoom;
 
+        // Entity shadow (darker, more defined than before)
+        if (entityType !== 'chest' && entityType !== 'crate' && entityType !== 'bones') {
+            const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
+            const isMutant = entityType === 'mutant';
+            const sw = (isSmall ? 8 : isMutant ? 12 : 9) * z;
+            const sh = (isSmall ? 3 : isMutant ? 5 : 4) * z;
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath();
+            ctx.ellipse(screen.x + 2 * z, screen.y + z, sw, sh, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         if (isSelected) {
-            this.drawTileHighlight(gx, gy, 'rgba(100, 200, 100, 0.2)', 'rgba(100, 200, 100, 0.5)');
+            this.drawTileHighlight(gx, gy, 'rgba(60, 140, 60, 0.15)', 'rgba(80, 160, 80, 0.4)');
         }
 
         if (entityType === 'chest' || entityType === 'crate') {
@@ -2031,27 +2522,32 @@ class IsometricRenderer {
             this.drawHumanoid(ctx, screen, z, entityType, facing);
         }
 
-        // HP bar (always show for enemies, show for others only when damaged)
+        // HP bar - Fallout 2 style (muted green/red, bordered)
         if (hp !== null && maxHp !== null && (hp < maxHp || entityType !== 'player')) {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
-            const barW = 22 * z;
-            const barH = 2.5 * z;
-            const barY = screen.y - (isSmall ? 18 : 38) * z;
+            const barW = 24 * z;
+            const barH = 3 * z;
+            const barY = screen.y - (isSmall ? 20 : 40) * z;
 
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(screen.x - barW/2 - 1, barY - 1, barW + 2, barH + 2);
+            // Dark background with border
+            ctx.fillStyle = 'rgba(0,0,0,0.8)';
+            ctx.fillRect(screen.x - barW/2 - 1.5, barY - 1.5, barW + 3, barH + 3);
+            ctx.strokeStyle = 'rgba(80,70,50,0.6)';
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(screen.x - barW/2 - 1.5, barY - 1.5, barW + 3, barH + 3);
 
             const hpRatio = hp / maxHp;
-            const r = Math.min(255, Math.floor(200 * (1 - hpRatio) + 80));
-            const g = Math.floor(150 * hpRatio);
-            ctx.fillStyle = this.rgbStr(r, g, 20);
+            // Fallout-style: muted olive-green to dull red
+            const r = Math.min(200, Math.floor(160 * (1 - hpRatio) + 60));
+            const g = Math.floor(120 * hpRatio + 20);
+            ctx.fillStyle = this.rgbStr(r, g, 15);
             ctx.fillRect(screen.x - barW/2, barY, barW * hpRatio, barH);
 
-            // Notches
-            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            // Pip notches (Fallout style)
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
             ctx.lineWidth = 0.5;
-            for (let i = 1; i < 4; i++) {
-                const nx = screen.x - barW/2 + (barW/4) * i;
+            for (let i = 1; i < 5; i++) {
+                const nx = screen.x - barW/2 + (barW/5) * i;
                 ctx.beginPath();
                 ctx.moveTo(nx, barY);
                 ctx.lineTo(nx, barY + barH);
@@ -2065,110 +2561,164 @@ class IsometricRenderer {
         const y = screen.y;
 
         // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.beginPath();
-        ctx.ellipse(x, y + z, 8 * z, 3 * z, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + z, y + z, 9 * z, 3.5 * z, 0.1, 0, Math.PI * 2);
         ctx.fill();
 
         if (type === 'chest') {
-            const bw = 14 * z, bh = 10 * z;
+            // Military footlocker / pre-war chest
+            const bw = 15 * z, bh = 11 * z;
             const by = y - bh - 2 * z;
             // Base
-            ctx.fillStyle = '#5A4010';
+            ctx.fillStyle = '#3E2C0A';
             ctx.fillRect(x - bw/2, by + 3 * z, bw, bh - 3 * z);
             // Lid
-            ctx.fillStyle = '#6B4E1A';
+            ctx.fillStyle = '#4A3812';
             ctx.fillRect(x - bw/2, by, bw, 4 * z);
-            // Metal trim
-            ctx.fillStyle = '#444';
-            ctx.fillRect(x - bw/2, by + 3.5 * z, bw, 1.2 * z);
-            ctx.fillRect(x - 1 * z, by, 2 * z, bh);
-            // Corners
-            ctx.fillStyle = '#555';
-            ctx.fillRect(x - bw/2, by, 2 * z, 2 * z);
-            ctx.fillRect(x + bw/2 - 2 * z, by, 2 * z, 2 * z);
-            // Lock
-            ctx.fillStyle = '#777';
-            ctx.fillRect(x - 1.5 * z, by + 4 * z, 3 * z, 2 * z);
-            ctx.fillStyle = '#333';
+            // Metal bands (heavier, rustier)
+            ctx.fillStyle = '#3A3530';
+            ctx.fillRect(x - bw/2, by + 3.5 * z, bw, 1.5 * z);
+            ctx.fillRect(x - 1.2 * z, by, 2.4 * z, bh);
+            // Rust on metal
+            ctx.fillStyle = 'rgba(90,40,15,0.2)';
+            ctx.fillRect(x - bw/2, by + 3.5 * z, bw * 0.4, 1.5 * z);
+            // Corner brackets
+            ctx.fillStyle = '#444038';
+            ctx.fillRect(x - bw/2, by, 2.5 * z, 2.5 * z);
+            ctx.fillRect(x + bw/2 - 2.5 * z, by, 2.5 * z, 2.5 * z);
+            ctx.fillRect(x - bw/2, by + bh - 2 * z, 2.5 * z, 2 * z);
+            ctx.fillRect(x + bw/2 - 2.5 * z, by + bh - 2 * z, 2.5 * z, 2 * z);
+            // Lock (heavy padlock)
+            ctx.fillStyle = '#555048';
+            ctx.fillRect(x - 2 * z, by + 4 * z, 4 * z, 2.5 * z);
+            ctx.fillStyle = '#222';
             ctx.beginPath();
-            ctx.arc(x, by + 5.2 * z, 0.5 * z, 0, Math.PI * 2);
+            ctx.arc(x, by + 5.5 * z, 0.6 * z, 0, Math.PI * 2);
             ctx.fill();
             // Outline
-            ctx.strokeStyle = '#2A1800';
+            ctx.strokeStyle = '#1E1200';
             ctx.lineWidth = 1;
             ctx.strokeRect(x - bw/2, by, bw, bh);
-            // Wear marks
-            ctx.fillStyle = 'rgba(0,0,0,0.08)';
-            ctx.fillRect(x - bw/2, by + bh - 3 * z, bw, 3 * z);
+            // Wear/scuff marks
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(x - bw/2, by + bh - 4 * z, bw, 4 * z);
+            // Scratch marks
+            ctx.strokeStyle = 'rgba(80,60,30,0.1)';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(x - 4 * z, by + 6 * z);
+            ctx.lineTo(x + 2 * z, by + 8 * z);
+            ctx.stroke();
         } else {
-            const bw = 12 * z, bh = 11 * z;
+            // Wooden supply crate
+            const bw = 13 * z, bh = 12 * z;
             const by = y - bh - 2 * z;
-            ctx.fillStyle = '#5B3B08';
+            ctx.fillStyle = '#402C06';
             ctx.fillRect(x - bw/2, by, bw, bh);
-            // Slats
-            ctx.strokeStyle = '#3B2B00';
+            // Wood slats with gaps
+            ctx.strokeStyle = '#2A1E00';
             ctx.lineWidth = 0.8;
-            for (let i = 1; i < 4; i++) {
+            for (let i = 1; i < 5; i++) {
                 ctx.beginPath();
-                ctx.moveTo(x - bw/2, by + (bh/4) * i);
-                ctx.lineTo(x + bw/2, by + (bh/4) * i);
+                ctx.moveTo(x - bw/2, by + (bh/5) * i);
+                ctx.lineTo(x + bw/2, by + (bh/5) * i);
                 ctx.stroke();
             }
-            // Nails
-            ctx.fillStyle = '#666';
+            // Vertical reinforcement
+            ctx.strokeStyle = '#2A1E00';
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(x, by);
+            ctx.lineTo(x, by + bh);
+            ctx.stroke();
+            // Nails (rusty)
+            ctx.fillStyle = '#5A4A38';
             const nailPositions = [[x - bw/2 + 2*z, by + 2*z], [x + bw/2 - 2*z, by + 2*z],
-                                   [x - bw/2 + 2*z, by + bh - 2*z], [x + bw/2 - 2*z, by + bh - 2*z]];
+                                   [x - bw/2 + 2*z, by + bh - 2*z], [x + bw/2 - 2*z, by + bh - 2*z],
+                                   [x, by + 2*z], [x, by + bh - 2*z]];
             for (const [nx, ny] of nailPositions) {
                 ctx.fillRect(nx - 0.5*z, ny - 0.5*z, z, z);
             }
-            ctx.strokeStyle = '#2A1800';
+            // Stenciled marking (faded)
+            ctx.fillStyle = 'rgba(100,90,60,0.08)';
+            ctx.fillRect(x - 3 * z, by + bh * 0.35, 6 * z, 3 * z);
+            ctx.strokeStyle = '#1E1200';
             ctx.lineWidth = 1;
             ctx.strokeRect(x - bw/2, by, bw, bh);
+            // Damage/splintering
+            ctx.fillStyle = 'rgba(60,45,15,0.15)';
+            ctx.fillRect(x + bw/2 - 3 * z, by + 2 * z, 2 * z, 4 * z);
         }
     }
 
     drawBones(ctx, screen, z) {
         const x = screen.x;
         const y = screen.y;
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        // Larger, grimmer bone pile - Fallout 2 skeletal remains
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
-        ctx.ellipse(x, y, 7 * z, 3 * z, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y, 8 * z, 3.5 * z, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Skull
-        ctx.fillStyle = '#BBAA88';
-        ctx.beginPath();
-        ctx.ellipse(x, y - 3 * z, 3.5 * z, 3 * z, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#887766';
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        // Eye sockets
-        ctx.fillStyle = '#1a1008';
-        ctx.beginPath();
-        ctx.ellipse(x - 1.2 * z, y - 3.5 * z, 1 * z, 0.8 * z, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(x + 1.2 * z, y - 3.5 * z, 1 * z, 0.8 * z, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Nose hole
-        ctx.fillStyle = '#2a1808';
-        ctx.beginPath();
-        ctx.arc(x, y - 2.2 * z, 0.5 * z, 0, Math.PI * 2);
-        ctx.fill();
-        // Crossbones
-        ctx.strokeStyle = '#BBAA88';
-        ctx.lineWidth = 1.5 * z;
+        // Ribcage/spine fragments scattered
+        ctx.strokeStyle = '#8A7E60';
+        ctx.lineWidth = 1.2 * z;
         ctx.lineCap = 'round';
+        // Scattered long bones
         ctx.beginPath();
-        ctx.moveTo(x - 6 * z, y - z);
-        ctx.lineTo(x + 6 * z, y + z);
+        ctx.moveTo(x - 7 * z, y - z);
+        ctx.lineTo(x + 5 * z, y + 2 * z);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(x + 6 * z, y - z);
-        ctx.lineTo(x - 6 * z, y + z);
+        ctx.moveTo(x + 4 * z, y - 2 * z);
+        ctx.lineTo(x - 5 * z, y + z);
+        ctx.stroke();
+        // Smaller fragments
+        ctx.lineWidth = 0.8 * z;
+        ctx.strokeStyle = '#7A6E50';
+        ctx.beginPath();
+        ctx.moveTo(x - 3 * z, y + 2 * z);
+        ctx.lineTo(x + z, y + 3 * z);
         ctx.stroke();
         ctx.lineCap = 'butt';
+        // Skull (yellowed, cracked)
+        ctx.fillStyle = '#908060';
+        ctx.beginPath();
+        ctx.ellipse(x + z, y - 3 * z, 3.8 * z, 3.2 * z, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#605840';
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+        // Skull crack
+        ctx.strokeStyle = '#504830';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x + z, y - 5.5 * z);
+        ctx.lineTo(x + 2 * z, y - 3 * z);
+        ctx.lineTo(x + 0.5 * z, y - 2 * z);
+        ctx.stroke();
+        // Eye sockets (darker, deeper)
+        ctx.fillStyle = '#100A04';
+        ctx.beginPath();
+        ctx.ellipse(x - 0.5 * z, y - 3.8 * z, 1.2 * z, 1 * z, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(x + 2.5 * z, y - 3.8 * z, 1.2 * z, 1 * z, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Nose cavity
+        ctx.fillStyle = '#1A1208';
+        ctx.beginPath();
+        ctx.moveTo(x + z, y - 2.8 * z);
+        ctx.lineTo(x + 0.5 * z, y - 2 * z);
+        ctx.lineTo(x + 1.5 * z, y - 2 * z);
+        ctx.closePath();
+        ctx.fill();
+        // Jaw fragment nearby
+        ctx.strokeStyle = '#8A7E60';
+        ctx.lineWidth = z;
+        ctx.beginPath();
+        ctx.arc(x + z, y - z, 2 * z, 0.3, Math.PI - 0.3);
+        ctx.stroke();
     }
 
     drawCreature(ctx, screen, z, type) {
@@ -2176,177 +2726,239 @@ class IsometricRenderer {
         const y = screen.y;
         const t = this.time;
 
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.beginPath();
-        ctx.ellipse(x, y, 7 * z, 3 * z, 0, 0, Math.PI * 2);
-        ctx.fill();
-
         if (type === 'rat') {
+            // Giant mutant rat - Fallout 2 style (larger, mangy, diseased)
             const bob = Math.sin(t * 0.1) * 0.5 * z;
-            // Body
-            ctx.fillStyle = '#5A4A3A';
+            // Body (darker, more mangy)
+            ctx.fillStyle = '#423424';
             ctx.beginPath();
-            ctx.ellipse(x, y - 5 * z + bob, 6 * z, 3.5 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, y - 5 * z + bob, 7 * z, 4 * z, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Fur texture
-            ctx.fillStyle = '#4A3A2A';
+            // Patchy fur (mange)
+            ctx.fillStyle = '#362818';
             ctx.beginPath();
-            ctx.ellipse(x - z, y - 5 * z + bob, 3 * z, 2 * z, 0.3, 0, Math.PI * 2);
+            ctx.ellipse(x - z, y - 5 * z + bob, 3.5 * z, 2.5 * z, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Bare skin patches (diseased)
+            ctx.fillStyle = '#5A4838';
+            ctx.beginPath();
+            ctx.ellipse(x + 2 * z, y - 4 * z + bob, 2 * z, 1.5 * z, 0.5, 0, Math.PI * 2);
             ctx.fill();
             // Head
-            ctx.fillStyle = '#6A5A4A';
+            ctx.fillStyle = '#504030';
             ctx.beginPath();
-            ctx.ellipse(x + 5 * z, y - 6 * z + bob, 3 * z, 2.5 * z, 0.3, 0, Math.PI * 2);
+            ctx.ellipse(x + 5.5 * z, y - 6 * z + bob, 3.5 * z, 2.8 * z, 0.3, 0, Math.PI * 2);
             ctx.fill();
-            // Snout
-            ctx.fillStyle = '#7A6A5A';
+            // Snout (longer, more pointed)
+            ctx.fillStyle = '#5A4838';
             ctx.beginPath();
-            ctx.ellipse(x + 7.5 * z, y - 6 * z + bob, 1.2 * z, 1 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(x + 8.5 * z, y - 6 * z + bob, 1.5 * z, 1.2 * z, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Eyes (beady)
+            // Teeth
+            ctx.fillStyle = '#AA9960';
+            ctx.fillRect(x + 9.5 * z, y - 6.5 * z + bob, 0.6 * z, 1.2 * z);
+            ctx.fillRect(x + 9.5 * z, y - 5.5 * z + bob, 0.6 * z, 0.8 * z);
+            // Eyes (glowing, radioactive)
             ctx.fillStyle = '#111';
             ctx.beginPath();
-            ctx.arc(x + 6 * z, y - 7 * z + bob, 0.7 * z, 0, Math.PI * 2);
+            ctx.arc(x + 6.5 * z, y - 7.2 * z + bob, 0.9 * z, 0, Math.PI * 2);
             ctx.fill();
-            // Eye gleam
-            ctx.fillStyle = '#FF4400';
+            ctx.fillStyle = '#CC3300';
             ctx.beginPath();
-            ctx.arc(x + 5.8 * z, y - 7.2 * z + bob, 0.3 * z, 0, Math.PI * 2);
+            ctx.arc(x + 6.3 * z, y - 7.4 * z + bob, 0.4 * z, 0, Math.PI * 2);
             ctx.fill();
-            // Ears
-            ctx.fillStyle = '#7A5A4A';
+            // Ears (tattered)
+            ctx.fillStyle = '#5A4030';
             ctx.beginPath();
-            ctx.ellipse(x + 3.5 * z, y - 9 * z + bob, 1.5 * z, 2 * z, -0.3, 0, Math.PI * 2);
+            ctx.ellipse(x + 3.5 * z, y - 9.5 * z + bob, 1.8 * z, 2.2 * z, -0.3, 0, Math.PI * 2);
             ctx.fill();
-            // Tail
-            ctx.strokeStyle = '#6A5A4A';
-            ctx.lineWidth = 1 * z;
+            // Notch in ear
+            ctx.fillStyle = '#423424';
+            ctx.fillRect(x + 3 * z, y - 11 * z + bob, 1.5 * z, z);
+            // Tail (thicker, segmented)
+            ctx.strokeStyle = '#504030';
+            ctx.lineWidth = 1.2 * z;
             ctx.beginPath();
-            ctx.moveTo(x - 6 * z, y - 5 * z + bob);
-            ctx.quadraticCurveTo(x - 10 * z, y - 9 * z, x - 8 * z, y - 12 * z + bob);
+            ctx.moveTo(x - 7 * z, y - 5 * z + bob);
+            ctx.quadraticCurveTo(x - 11 * z, y - 9 * z, x - 9 * z, y - 13 * z + bob);
             ctx.stroke();
             // Outline
-            ctx.strokeStyle = '#3A2A1A';
-            ctx.lineWidth = 0.6;
+            ctx.strokeStyle = '#2A1C10';
+            ctx.lineWidth = 0.7;
             ctx.beginPath();
-            ctx.ellipse(x, y - 5 * z + bob, 6 * z, 3.5 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, y - 5 * z + bob, 7 * z, 4 * z, 0, 0, Math.PI * 2);
             ctx.stroke();
         }
 
         if (type === 'scorpion') {
+            // Radscorpion - Fallout 2 style (armored, menacing)
             const bob = Math.sin(t * 0.07) * 0.4 * z;
-            // Body
-            ctx.fillStyle = '#6A3510';
+            // Body (darker carapace)
+            ctx.fillStyle = '#4A2808';
             ctx.beginPath();
-            ctx.ellipse(x, y - 4 * z + bob, 7 * z, 4 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, y - 4 * z + bob, 8 * z, 4.5 * z, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Armour plates
-            ctx.fillStyle = '#7A4520';
+            // Segmented armor plates
+            ctx.fillStyle = '#5A3418';
             ctx.beginPath();
-            ctx.ellipse(x - z, y - 5 * z + bob, 4 * z, 2.5 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(x - z, y - 5 * z + bob, 4.5 * z, 3 * z, 0, 0, Math.PI * 2);
             ctx.fill();
+            ctx.fillStyle = '#503020';
+            ctx.beginPath();
+            ctx.ellipse(x + 2 * z, y - 4 * z + bob, 3 * z, 2 * z, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Chitin segment lines
+            ctx.strokeStyle = '#3A1C08';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(x - 3 * z, y - 4 * z + bob);
+            ctx.lineTo(x + z, y - 4 * z + bob);
+            ctx.stroke();
             // Head
-            ctx.fillStyle = '#8A5530';
+            ctx.fillStyle = '#604020';
             ctx.beginPath();
-            ctx.ellipse(x + 6 * z, y - 5 * z + bob, 3 * z, 2.5 * z, 0.2, 0, Math.PI * 2);
+            ctx.ellipse(x + 6.5 * z, y - 5 * z + bob, 3.5 * z, 2.8 * z, 0.2, 0, Math.PI * 2);
             ctx.fill();
-            // Pincers
-            ctx.strokeStyle = '#6A3510';
-            ctx.lineWidth = 2 * z;
+            // Mandibles
+            ctx.fillStyle = '#3A2010';
+            ctx.beginPath();
+            ctx.moveTo(x + 9 * z, y - 5 * z + bob);
+            ctx.lineTo(x + 10.5 * z, y - 6 * z + bob);
+            ctx.lineTo(x + 10 * z, y - 4.5 * z + bob);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(x + 9 * z, y - 5 * z + bob);
+            ctx.lineTo(x + 10.5 * z, y - 4 * z + bob);
+            ctx.lineTo(x + 10 * z, y - 5.5 * z + bob);
+            ctx.closePath();
+            ctx.fill();
+            // Pincers (heavier, more menacing)
+            ctx.strokeStyle = '#4A2808';
+            ctx.lineWidth = 2.2 * z;
             ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.moveTo(x + 8 * z, y - 6 * z + bob);
-            ctx.lineTo(x + 12 * z, y - 9 * z + bob);
+            ctx.moveTo(x + 8 * z, y - 6.5 * z + bob);
+            ctx.lineTo(x + 13 * z, y - 10 * z + bob);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(x + 12 * z, y - 9 * z + bob);
-            ctx.lineTo(x + 10 * z, y - 7 * z + bob);
+            ctx.moveTo(x + 13 * z, y - 10 * z + bob);
+            ctx.lineTo(x + 10.5 * z, y - 7.5 * z + bob);
             ctx.stroke();
             ctx.beginPath();
             ctx.moveTo(x + 8 * z, y - 3 * z + bob);
-            ctx.lineTo(x + 12 * z, y - 1 * z + bob);
+            ctx.lineTo(x + 13 * z, y - 0.5 * z + bob);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(x + 12 * z, y - 1 * z + bob);
-            ctx.lineTo(x + 10 * z, y - 3 * z + bob);
+            ctx.moveTo(x + 13 * z, y - 0.5 * z + bob);
+            ctx.lineTo(x + 10.5 * z, y - 3 * z + bob);
             ctx.stroke();
             ctx.lineCap = 'butt';
-            // Tail segments
-            ctx.strokeStyle = '#7A4520';
-            ctx.lineWidth = 2.5 * z;
+            // Tail segments (darker, more armored)
+            ctx.strokeStyle = '#5A3418';
+            ctx.lineWidth = 3 * z;
             ctx.beginPath();
-            ctx.moveTo(x - 6 * z, y - 4 * z + bob);
-            ctx.quadraticCurveTo(x - 10 * z, y - 10 * z, x - 8 * z, y - 16 * z + bob);
-            ctx.quadraticCurveTo(x - 6 * z, y - 18 * z, x - 5 * z, y - 17 * z + bob);
+            ctx.moveTo(x - 7 * z, y - 4 * z + bob);
+            ctx.quadraticCurveTo(x - 11 * z, y - 11 * z, x - 9 * z, y - 17 * z + bob);
+            ctx.quadraticCurveTo(x - 7 * z, y - 19 * z, x - 5.5 * z, y - 18 * z + bob);
             ctx.stroke();
-            // Stinger (venomous green-yellow)
-            ctx.fillStyle = '#88AA22';
+            // Tail segment lines
+            ctx.strokeStyle = '#3A1C08';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < 4; i++) {
+                const ty = y - 6 * z - i * 3 * z + bob;
+                const tx = x - 8 * z - i * 0.5 * z;
+                ctx.beginPath();
+                ctx.arc(tx, ty, 1.5 * z, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            // Stinger (muted poisonous green)
+            ctx.fillStyle = '#607A18';
             ctx.beginPath();
-            ctx.moveTo(x - 5 * z, y - 17 * z + bob);
-            ctx.lineTo(x - 4 * z, y - 20 * z + bob);
-            ctx.lineTo(x - 6 * z, y - 18 * z + bob);
+            ctx.moveTo(x - 5.5 * z, y - 18 * z + bob);
+            ctx.lineTo(x - 4.5 * z, y - 21 * z + bob);
+            ctx.lineTo(x - 6.5 * z, y - 19 * z + bob);
             ctx.closePath();
             ctx.fill();
-            // Venom drip
-            ctx.fillStyle = this.rgbStr(120, 180, 30, 0.3 + Math.sin(t * 0.1) * 0.15);
+            // Venom drip (muted)
+            ctx.fillStyle = this.rgbStr(80, 120, 20, 0.2 + Math.sin(t * 0.1) * 0.1);
             ctx.beginPath();
-            ctx.arc(x - 4 * z, y - 20 * z + bob + Math.sin(t * 0.08) * z, z, 0, Math.PI * 2);
+            ctx.arc(x - 4.5 * z, y - 21 * z + bob + Math.sin(t * 0.08) * z, 0.8 * z, 0, Math.PI * 2);
             ctx.fill();
-            // Eyes
-            ctx.fillStyle = '#FF3300';
+            // Eyes (dark red)
+            ctx.fillStyle = '#AA2200';
             ctx.beginPath();
-            ctx.arc(x + 7 * z, y - 6 * z + bob, 0.8 * z, 0, Math.PI * 2);
+            ctx.arc(x + 7.5 * z, y - 6 * z + bob, 0.9 * z, 0, Math.PI * 2);
             ctx.fill();
-            // Legs
-            ctx.strokeStyle = '#5A2510';
-            ctx.lineWidth = 0.8 * z;
+            ctx.fillStyle = '#661100';
+            ctx.beginPath();
+            ctx.arc(x + 7.5 * z, y - 6 * z + bob, 0.4 * z, 0, Math.PI * 2);
+            ctx.fill();
+            // Legs (jointed, chitin-covered)
+            ctx.strokeStyle = '#3A1C08';
+            ctx.lineWidth = 1 * z;
             for (let i = 0; i < 4; i++) {
                 const lx = x - 3 * z + i * 3 * z;
                 const sway = Math.sin(t * 0.1 + i * 1.5) * 0.8 * z;
+                // Left leg (jointed)
                 ctx.beginPath();
                 ctx.moveTo(lx, y - 2 * z + bob);
-                ctx.lineTo(lx - 4 * z + sway, y + 1.5 * z);
+                ctx.lineTo(lx - 2.5 * z, y - 4 * z + bob);
+                ctx.lineTo(lx - 5 * z + sway, y + 1.5 * z);
                 ctx.stroke();
+                // Right leg (jointed)
                 ctx.beginPath();
                 ctx.moveTo(lx, y - 2 * z + bob);
-                ctx.lineTo(lx + 4 * z - sway, y + 1.5 * z);
+                ctx.lineTo(lx + 2.5 * z, y - 4 * z + bob);
+                ctx.lineTo(lx + 5 * z - sway, y + 1.5 * z);
                 ctx.stroke();
             }
+            // Outline
+            ctx.strokeStyle = '#2A1404';
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.ellipse(x, y - 4 * z + bob, 8 * z, 4.5 * z, 0, 0, Math.PI * 2);
+            ctx.stroke();
         }
 
         if (type === 'cave_spider') {
+            // Giant cave spider - darker, more menacing
             const bob = Math.sin(t * 0.12) * 0.4 * z;
-            // Abdomen
-            ctx.fillStyle = '#222';
+            // Abdomen (darker)
+            ctx.fillStyle = '#181418';
             ctx.beginPath();
-            ctx.ellipse(x - z, y - 5 * z + bob, 5.5 * z, 4 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(x - z, y - 5 * z + bob, 6 * z, 4.5 * z, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Pattern on abdomen
-            ctx.fillStyle = '#333';
+            // Pattern on abdomen (subtle hourglass)
+            ctx.fillStyle = '#282024';
             ctx.beginPath();
-            ctx.moveTo(x - z, y - 8 * z + bob);
+            ctx.moveTo(x - z, y - 8.5 * z + bob);
             ctx.lineTo(x + 2 * z, y - 5 * z + bob);
-            ctx.lineTo(x - z, y - 2 * z + bob);
+            ctx.lineTo(x - z, y - 1.5 * z + bob);
             ctx.lineTo(x - 4 * z, y - 5 * z + bob);
             ctx.closePath();
             ctx.fill();
-            // Cephalothorax
-            ctx.fillStyle = '#2A2A2A';
+            // Reddish warning pattern
+            ctx.fillStyle = 'rgba(100,20,10,0.2)';
             ctx.beginPath();
-            ctx.ellipse(x + 4 * z, y - 6 * z + bob, 3 * z, 2.5 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(x - z, y - 5 * z + bob, 2 * z, 1.5 * z, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Eyes (cluster of red dots)
+            // Cephalothorax
+            ctx.fillStyle = '#201C20';
+            ctx.beginPath();
+            ctx.ellipse(x + 4.5 * z, y - 6.5 * z + bob, 3.5 * z, 2.8 * z, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Eyes (cluster of dark red dots)
             const eyePositions = [[-0.5, -1], [0.5, -1], [-1, -0.3], [1, -0.3], [0, -1.5], [-0.3, 0], [0.3, 0], [0, -0.6]];
-            ctx.fillStyle = '#CC0000';
+            ctx.fillStyle = '#881100';
             for (const [ex, ey] of eyePositions) {
                 ctx.beginPath();
-                ctx.arc(x + 5.5 * z + ex * z, y - 7 * z + ey * z + bob, 0.4 * z, 0, Math.PI * 2);
+                ctx.arc(x + 6 * z + ex * z, y - 7.5 * z + ey * z + bob, 0.45 * z, 0, Math.PI * 2);
                 ctx.fill();
             }
-            // Fangs
-            ctx.strokeStyle = '#555';
-            ctx.lineWidth = 1.2 * z;
+            // Fangs (chelicerae - larger, dripping)
+            ctx.strokeStyle = '#3A3530';
+            ctx.lineWidth = 1.4 * z;
             ctx.beginPath();
             ctx.moveTo(x + 6 * z, y - 5 * z + bob);
             ctx.lineTo(x + 7 * z, y - 3.5 * z + bob);
@@ -2355,26 +2967,43 @@ class IsometricRenderer {
             ctx.moveTo(x + 5 * z, y - 5 * z + bob);
             ctx.lineTo(x + 4 * z, y - 3.5 * z + bob);
             ctx.stroke();
-            // Legs (8 jointed legs)
-            ctx.strokeStyle = '#1A1A1A';
-            ctx.lineWidth = 0.8 * z;
+            // Legs (8 jointed legs - darker, hairier)
+            ctx.strokeStyle = '#121012';
+            ctx.lineWidth = 0.9 * z;
             for (let i = 0; i < 4; i++) {
                 const lx = x - 2 * z + i * 2.5 * z;
                 const sway = Math.sin(t * 0.14 + i * 1.3) * 1.2 * z;
-                const midY = y - 9 * z + bob;
+                const midY = y - 10 * z + bob;
                 // Left
                 ctx.beginPath();
-                ctx.moveTo(lx, y - 4 * z + bob);
-                ctx.lineTo(lx - 5 * z, midY);
-                ctx.lineTo(lx - 7 * z + sway, y + z);
+                ctx.moveTo(lx, y - 4.5 * z + bob);
+                ctx.lineTo(lx - 5.5 * z, midY);
+                ctx.lineTo(lx - 8 * z + sway, y + z);
                 ctx.stroke();
                 // Right
                 ctx.beginPath();
-                ctx.moveTo(lx, y - 4 * z + bob);
-                ctx.lineTo(lx + 5 * z, midY);
-                ctx.lineTo(lx + 7 * z - sway, y + z);
+                ctx.moveTo(lx, y - 4.5 * z + bob);
+                ctx.lineTo(lx + 5.5 * z, midY);
+                ctx.lineTo(lx + 8 * z - sway, y + z);
                 ctx.stroke();
             }
+            // Leg hair tufts
+            ctx.strokeStyle = '#1A1418';
+            ctx.lineWidth = 0.3 * z;
+            for (let i = 0; i < 4; i++) {
+                const hx = x - 2 * z + i * 2.5 * z - 3 * z;
+                const hy = y - 7 * z + bob;
+                ctx.beginPath();
+                ctx.moveTo(hx, hy);
+                ctx.lineTo(hx - z, hy - z);
+                ctx.stroke();
+            }
+            // Abdomen outline
+            ctx.strokeStyle = '#0E0A0E';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.ellipse(x - z, y - 5 * z + bob, 6 * z, 4.5 * z, 0, 0, Math.PI * 2);
+            ctx.stroke();
         }
     }
 
@@ -2386,23 +3015,19 @@ class IsometricRenderer {
         const isMutant = type === 'mutant';
         const sc = isMutant ? 1.4 : 1;
 
-        // Color sets by type (gritty palette)
+        // Fallout 2 palette: very desaturated, muted, dark
         const palettes = {
-            'player':  { skin: '#C4A070', shirt: '#8A6A30', pants: '#4A3A20', boots: '#2A1A0A', hair: '#3A2A1A', belt: '#3A2810', accent: '#AA8840' },
-            'villager':{ skin: '#B09878', shirt: '#6A7A8A', pants: '#3A3A3A', boots: '#222', hair: '#5A4A3A', belt: '#333', accent: '#556677' },
-            'merchant':{ skin: '#B09878', shirt: '#8A6A35', pants: '#3A3020', boots: '#2A1A0A', hair: '#4A3A2A', belt: '#443322', accent: '#AA8855' },
-            'elder':   { skin: '#B09878', shirt: '#6A4488', pants: '#2A2040', boots: '#1A1020', hair: '#AAAAAA', belt: '#3A2A4A', accent: '#8866AA' },
-            'guard':   { skin: '#B09878', shirt: '#4A6A2A', pants: '#2A3A1A', boots: '#1A1A0A', hair: '#3A2A1A', belt: '#3A3A20', accent: '#667744' },
-            'raider':  { skin: '#B09070', shirt: '#6A1A1A', pants: '#2A1010', boots: '#1A0A0A', hair: '#222', belt: '#4A2020', accent: '#882222' },
-            'mutant':  { skin: '#5A8A20', shirt: '#3A5A10', pants: '#2A3A08', boots: '#1A2A00', hair: '#4A7A10', belt: '#3A4A10', accent: '#6AAA20' },
+            'player':  { skin: '#9A8058', shirt: '#6A5020', pants: '#3A2C18', boots: '#201408', hair: '#2A1C10', belt: '#2E2008', accent: '#887030' },
+            'villager':{ skin: '#907860', shirt: '#505A62', pants: '#2E2E2E', boots: '#1A1A1A', hair: '#443828', belt: '#282828', accent: '#404850' },
+            'merchant':{ skin: '#907860', shirt: '#6A5028', pants: '#2E2418', boots: '#201408', hair: '#3A2C1C', belt: '#342418', accent: '#887040' },
+            'elder':   { skin: '#907860', shirt: '#4A3060', pants: '#201830', boots: '#140C18', hair: '#888888', belt: '#2A2038', accent: '#604880' },
+            'guard':   { skin: '#907860', shirt: '#3A5020', pants: '#222E14', boots: '#141408', hair: '#2A1C10', belt: '#2E2E18', accent: '#4A5830' },
+            'raider':  { skin: '#887058', shirt: '#4A1210', pants: '#200C0C', boots: '#140808', hair: '#1A1A1A', belt: '#381818', accent: '#601818' },
+            'mutant':  { skin: '#406A14', shirt: '#2A4408', pants: '#1E2E04', boots: '#142000', hair: '#386008', belt: '#2A3808', accent: '#4A8018' },
         };
         const p = palettes[type] || palettes['villager'];
 
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.beginPath();
-        ctx.ellipse(x, y, (isMutant ? 11 : 8) * z, (isMutant ? 4.5 : 3.5) * z, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Shadow (already drawn in drawEntity, skip duplicate)
 
         const baseY = y - 2 * z;
 
@@ -2683,15 +3308,15 @@ class IsometricRenderer {
         const screen = this.worldToScreen(gx, gy);
         const ctx = this.ctx;
         const z = this.camera.zoom;
-        const pulse = 0.15 + Math.sin(this.time * 0.05) * 0.08;
+        const pulse = 0.1 + Math.sin(this.time * 0.04) * 0.06;
 
         this.drawTileHighlight(gx, gy,
-            `rgba(80, 120, 200, ${pulse})`,
-            'rgba(80, 120, 200, 0.5)'
+            `rgba(50, 80, 120, ${pulse})`,
+            'rgba(50, 80, 120, 0.35)'
         );
 
-        const arrowY = screen.y - 10 * z + Math.sin(this.time * 0.07) * 2 * z;
-        ctx.fillStyle = '#5588CC';
+        const arrowY = screen.y - 10 * z + Math.sin(this.time * 0.06) * 2 * z;
+        ctx.fillStyle = '#3A6088';
         ctx.beginPath();
         ctx.moveTo(screen.x, arrowY - 4 * z);
         ctx.lineTo(screen.x + 3 * z, arrowY);
@@ -2702,9 +3327,9 @@ class IsometricRenderer {
         ctx.font = `bold ${9 * z}px 'Courier New'`;
         ctx.textAlign = 'center';
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.strokeText(label, screen.x, arrowY - 6 * z);
-        ctx.fillStyle = '#88BBFF';
+        ctx.fillStyle = '#607890';
         ctx.fillText(label, screen.x, arrowY - 6 * z);
     }
 
@@ -2725,8 +3350,9 @@ class IsometricRenderer {
             if (p.life <= 0) {
                 p.x = camX + (Math.random() - 0.5) * cw / z;
                 p.y = camY + (Math.random() - 0.5) * ch / z;
-                p.life = Math.random() * 300 + 100;
-                p.alpha = Math.random() * 0.2 + 0.05;
+                p.life = Math.random() * 400 + 150;
+                p.alpha = Math.random() * 0.12 + 0.02;
+                p.type = Math.random() > 0.7 ? 'ash' : 'dust';
             }
 
             const sx = (p.x - camX) * z + cw / 2;
@@ -2734,9 +3360,70 @@ class IsometricRenderer {
 
             if (sx < -10 || sx > cw + 10 || sy < -10 || sy > ch + 10) continue;
 
-            const fade = Math.min(1, p.life / 50);
-            ctx.fillStyle = this.rgbStr(160, 140, 100, p.alpha * fade);
-            ctx.fillRect(sx, sy, p.size * z, p.size * z * 0.6);
+            const fade = Math.min(1, p.life / 60);
+            if (p.type === 'ash') {
+                // Ash particles: lighter, float more
+                ctx.fillStyle = this.rgbStr(120, 110, 90, p.alpha * fade * 0.7);
+                ctx.beginPath();
+                ctx.ellipse(sx, sy, p.size * z * 0.8, p.size * z * 0.3, p.x * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Dust particles: brownish, rectangular
+                ctx.fillStyle = this.rgbStr(110, 90, 60, p.alpha * fade);
+                ctx.fillRect(sx, sy, p.size * z, p.size * z * 0.5);
+            }
+        }
+    }
+
+    // Heavy vignette for Fallout 2 atmosphere
+    drawVignette(ctx, strength = 0.5) {
+        const cw = this.canvas.width;
+        const ch = this.canvas.height;
+        const grad = ctx.createRadialGradient(
+            cw / 2, ch / 2, Math.min(cw, ch) * 0.15,
+            cw / 2, ch / 2, Math.max(cw, ch) * 0.65
+        );
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.5, `rgba(0,0,0,${strength * 0.15})`);
+        grad.addColorStop(1, `rgba(0,0,0,${strength})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, cw, ch);
+    }
+
+    // Film grain effect - Fallout 2's pre-rendered look
+    drawFilmGrain(ctx) {
+        const cw = this.canvas.width;
+        const ch = this.canvas.height;
+        // Scanline effect (subtle)
+        if (this.time % 2 === 0) {
+            ctx.fillStyle = 'rgba(0,0,0,0.015)';
+            for (let y = 0; y < ch; y += 3) {
+                ctx.fillRect(0, y, cw, 1);
+            }
+        }
+        // Random grain speckles
+        const grainCount = 20;
+        for (let i = 0; i < grainCount; i++) {
+            const gx = (this.noiseSeed[(this.time * 3 + i * 7) & 1023]) * cw;
+            const gy = (this.noiseSeed[(this.time * 5 + i * 11 + 100) & 1023]) * ch;
+            const bright = this.noiseSeed[(this.time + i * 13 + 200) & 1023] > 0.5;
+            ctx.fillStyle = bright ? `rgba(255,240,200,0.015)` : `rgba(0,0,0,0.025)`;
+            ctx.fillRect(gx, gy, 1 + (i & 1), 1);
+        }
+    }
+
+    // Warm color overlay for desert/wasteland areas
+    drawColorGrade(ctx, areaId) {
+        const cw = this.canvas.width;
+        const ch = this.canvas.height;
+        if (areaId === 'cave') {
+            // Cool blue tint for caves
+            ctx.fillStyle = 'rgba(0,5,15,0.06)';
+            ctx.fillRect(0, 0, cw, ch);
+        } else {
+            // Warm sepia tint for outdoor wasteland
+            ctx.fillStyle = 'rgba(20,12,0,0.04)';
+            ctx.fillRect(0, 0, cw, ch);
         }
     }
 
@@ -2785,34 +3472,31 @@ class IsometricRenderer {
         if (gameState.highlights) {
             for (const h of gameState.highlights) {
                 if (h.type === 'move') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(80, 160, 80, 0.12)', 'rgba(80, 160, 80, 0.25)');
+                    this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.1)', 'rgba(50, 110, 50, 0.2)');
                 } else if (h.type === 'attack') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(180, 40, 40, 0.12)', 'rgba(180, 40, 40, 0.3)');
+                    this.drawTileHighlight(h.x, h.y, 'rgba(140, 30, 20, 0.1)', 'rgba(140, 30, 20, 0.25)');
                 } else if (h.type === 'path') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(80, 160, 80, 0.25)', 'rgba(80, 160, 80, 0.4)');
+                    this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.2)', 'rgba(50, 110, 50, 0.35)');
                 }
             }
         }
 
         if (gameState.hoverTile) {
             this.drawTileHighlight(gameState.hoverTile.x, gameState.hoverTile.y,
-                'rgba(160, 120, 50, 0.12)', 'rgba(160, 120, 50, 0.35)');
+                'rgba(120, 90, 35, 0.1)', 'rgba(120, 90, 35, 0.3)');
         }
 
-        // Particles
+        // Particles (dust and ash)
         this.drawParticles(this.ctx);
 
-        // Cave darkness
+        // Color grade (warm sepia for wasteland, cool for caves)
+        this.drawColorGrade(this.ctx, area.id);
+
+        // Vignette (heavier for caves, always present for Fallout 2 look)
         if (area.id === 'cave') {
-            // Vignette effect
-            const grad = this.ctx.createRadialGradient(
-                this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.2,
-                this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.7
-            );
-            grad.addColorStop(0, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.4)');
-            this.ctx.fillStyle = grad;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.drawVignette(this.ctx, 0.65);
+        } else {
+            this.drawVignette(this.ctx, 0.4);
         }
 
         // Floating texts
@@ -2822,10 +3506,14 @@ class IsometricRenderer {
             }
         }
 
-        // Film grain overlay (subtle)
-        if (this.time % 3 === 0) {
-            this.ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.02})`;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // Film grain and scanlines (Fallout 2 pre-rendered aesthetic)
+        this.drawFilmGrain(this.ctx);
+
+        // Heat shimmer effect for outdoor areas (subtle)
+        if (area.id !== 'cave' && this.time % 4 === 0) {
+            const shimmer = Math.sin(this.time * 0.03) * 0.008 + 0.005;
+            this.ctx.fillStyle = `rgba(180,150,100,${shimmer})`;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height * 0.3);
         }
     }
 
@@ -2838,15 +3526,24 @@ class IsometricRenderer {
     }
 
     drawWorldMap(ctx, locations, currentLocation) {
-        ctx.fillStyle = '#12090A';
+        // Fallout 2 world map: dark parchment/monitor green style
+        ctx.fillStyle = '#0A0806';
         ctx.fillRect(0, 0, 400, 300);
 
-        // Terrain texture
-        for (let i = 0; i < 120; i++) {
+        // Terrain texture (more noise, worn map feel)
+        for (let i = 0; i < 200; i++) {
             const x = (i * 37 + i * i * 3) % 400;
             const y = (i * 53 + i * 7) % 300;
-            ctx.fillStyle = `rgba(40, 30, 15, ${0.3 + (i % 5) * 0.1})`;
-            ctx.fillRect(x, y, 1 + (i % 2), 1);
+            ctx.fillStyle = `rgba(30, 24, 12, ${0.2 + (i % 7) * 0.06})`;
+            ctx.fillRect(x, y, 1 + (i % 3), 1);
+        }
+        // Faded contour lines
+        for (let i = 0; i < 5; i++) {
+            ctx.strokeStyle = `rgba(30,25,15,0.12)`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.ellipse(200 + i * 20, 150 - i * 10, 100 + i * 30, 60 + i * 15, 0.3, 0, Math.PI * 2);
+            ctx.stroke();
         }
 
         for (const loc of locations) {
@@ -2859,9 +3556,9 @@ class IsometricRenderer {
                         ctx.beginPath();
                         ctx.moveTo(loc.mapX, loc.mapY);
                         ctx.lineTo(conn.mapX, conn.mapY);
-                        ctx.strokeStyle = '#3A2A10';
+                        ctx.strokeStyle = '#2A1C08';
                         ctx.lineWidth = 1;
-                        ctx.setLineDash([3, 5]);
+                        ctx.setLineDash([2, 4]);
                         ctx.stroke();
                         ctx.setLineDash([]);
                     }
@@ -2869,31 +3566,50 @@ class IsometricRenderer {
             }
 
             if (isCurrent) {
-                ctx.fillStyle = 'rgba(160, 120, 50, 0.1)';
+                // Pulsing highlight
+                const pulse = 0.06 + Math.sin(this.time * 0.05) * 0.03;
+                ctx.fillStyle = `rgba(120, 90, 30, ${pulse})`;
                 ctx.beginPath();
-                ctx.arc(loc.mapX, loc.mapY, 14, 0, Math.PI * 2);
+                ctx.arc(loc.mapX, loc.mapY, 16, 0, Math.PI * 2);
                 ctx.fill();
             }
 
+            // Location dot with pip-boy style circle
             ctx.beginPath();
-            ctx.arc(loc.mapX, loc.mapY, isCurrent ? 7 : 4, 0, Math.PI * 2);
-            ctx.fillStyle = isCurrent ? '#AA8030' : (loc.discovered ? '#5A4A2A' : '#2A1A0A');
+            ctx.arc(loc.mapX, loc.mapY, isCurrent ? 6 : 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = isCurrent ? '#887020' : (loc.discovered ? '#443A1C' : '#1A1208');
             ctx.fill();
-            ctx.strokeStyle = isCurrent ? '#CCAA60' : '#3A2A10';
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = isCurrent ? '#AA9040' : '#2A1C08';
+            ctx.lineWidth = 1.2;
             ctx.stroke();
 
+            // Inner dot for current
+            if (isCurrent) {
+                ctx.beginPath();
+                ctx.arc(loc.mapX, loc.mapY, 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#CCAA50';
+                ctx.fill();
+            }
+
             if (loc.discovered || isCurrent) {
-                ctx.font = '9px Courier New';
+                ctx.font = '8px Courier New';
                 ctx.textAlign = 'center';
-                ctx.fillStyle = isCurrent ? '#AA8030' : '#5A4A2A';
-                ctx.fillText(loc.name, loc.mapX, loc.mapY + 16);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeText(loc.name, loc.mapX, loc.mapY + 15);
+                ctx.fillStyle = isCurrent ? '#887020' : '#3A3018';
+                ctx.fillText(loc.name, loc.mapX, loc.mapY + 15);
             }
         }
+
+        // Map border
+        ctx.strokeStyle = '#2A1C08';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, 398, 298);
     }
 }
 
-
+// ==== src/engine/input.js ====
 // ============================================
 // Dustwalker - Input Handler
 // ============================================
@@ -3140,7 +3856,7 @@ class InputHandler {
     }
 }
 
-
+// ==== src/engine/audio.js ====
 // ============================================
 // Dustwalker - Audio Manager (Web Audio API)
 // ============================================
@@ -3247,7 +3963,7 @@ class AudioManager {
     }
 }
 
-
+// ==== src/systems/character.js ====
 // ============================================
 // Dustwalker - Character System (S.P.E.C.I.A.L.)
 // ============================================
@@ -3530,133 +4246,7 @@ class CharacterSystem {
     }
 }
 
-
-// ============================================
-// Dustwalker - Perks System
-// ============================================
-
-const PerkDatabase = [
-    {
-        id: 'toughness',
-        name: 'Toughness',
-        desc: '+20% damage resistance. You shrug off hits like a wasteland veteran.',
-        levelReq: 2,
-        statReq: { endurance: 5 },
-        effect: (player) => { player.stats.damageResist += 20; },
-    },
-    {
-        id: 'quick_pockets',
-        name: 'Quick Pockets',
-        desc: 'Using items in combat costs 1 less AP.',
-        levelReq: 2,
-        statReq: { agility: 5 },
-        effect: () => {},
-    },
-    {
-        id: 'sharpshooter',
-        name: 'Sharpshooter',
-        desc: '+15% hit chance with ranged weapons. Steady hands, steady aim.',
-        levelReq: 3,
-        statReq: { perception: 6 },
-        effect: (player) => {
-            player.skills.smallGuns = (player.skills.smallGuns || 0) + 15;
-        },
-    },
-    {
-        id: 'iron_fist',
-        name: 'Iron Fist',
-        desc: '+3 melee damage. Your fists and weapons hit harder.',
-        levelReq: 2,
-        statReq: { strength: 6 },
-        effect: (player) => { player.stats.meleeDmg += 3; },
-    },
-    {
-        id: 'fortune_finder',
-        name: 'Fortune Finder',
-        desc: 'Find more caps in containers and on enemies. Luck favors the greedy.',
-        levelReq: 2,
-        statReq: { luck: 6 },
-        effect: () => {},
-    },
-    {
-        id: 'medic',
-        name: 'Field Medic',
-        desc: 'Healing items restore 50% more HP. Every stimpak counts.',
-        levelReq: 3,
-        statReq: { intelligence: 6 },
-        effect: () => {},
-    },
-    {
-        id: 'swift_learner',
-        name: 'Swift Learner',
-        desc: '+20% XP from all sources. Knowledge is power.',
-        levelReq: 2,
-        statReq: { intelligence: 5 },
-        effect: () => {},
-    },
-    {
-        id: 'stonewall',
-        name: 'Stonewall',
-        desc: '+3 Armor Class. You become harder to hit.',
-        levelReq: 3,
-        statReq: { agility: 6 },
-        effect: (player) => { player.stats.armorClass += 3; },
-    },
-    {
-        id: 'silver_tongue',
-        name: 'Silver Tongue',
-        desc: '+20 Speech skill. Words are your greatest weapon.',
-        levelReq: 2,
-        statReq: { charisma: 6 },
-        effect: (player) => { player.skills.speech = (player.skills.speech || 0) + 20; },
-    },
-    {
-        id: 'bonus_move',
-        name: 'Bonus Move',
-        desc: '+2 max Action Points. More actions per turn.',
-        levelReq: 4,
-        statReq: { agility: 7 },
-        effect: (player) => { player.stats.maxAp += 2; },
-    },
-];
-
-class PerkSystem {
-    static getAvailablePerks(player) {
-        return PerkDatabase.filter(perk => {
-            // Already has it?
-            if (player.perks.includes(perk.id)) return false;
-            // Level check
-            if (player.level < perk.levelReq) return false;
-            // Stat check
-            for (const [stat, val] of Object.entries(perk.statReq)) {
-                if ((player.special[stat] || 0) < val) return false;
-            }
-            return true;
-        });
-    }
-
-    static applyPerk(player, perkId) {
-        const perk = PerkDatabase.find(p => p.id === perkId);
-        if (!perk) return false;
-        if (player.perks.includes(perkId)) return false;
-        player.perks.push(perkId);
-        perk.effect(player);
-        return true;
-    }
-
-    static reapplyPerks(player) {
-        for (const perkId of player.perks) {
-            const perk = PerkDatabase.find(p => p.id === perkId);
-            if (perk) perk.effect(player);
-        }
-    }
-
-    static hasPerk(player, perkId) {
-        return player.perks.includes(perkId);
-    }
-}
-
-
+// ==== src/systems/combat.js ====
 // ============================================
 // Dustwalker - Turn-Based Combat System
 // ============================================
@@ -3959,7 +4549,7 @@ class CombatSystem {
     }
 }
 
-
+// ==== src/systems/inventory.js ====
 // ============================================
 // Dustwalker - Inventory & Equipment System
 // ============================================
@@ -4124,7 +4714,7 @@ class InventorySystem {
     }
 }
 
-
+// ==== src/systems/dialogue.js ====
 // ============================================
 // Dustwalker - Dialogue System
 // ============================================
@@ -4267,7 +4857,7 @@ class DialogueSystem {
     }
 }
 
-
+// ==== src/systems/ai.js ====
 // ============================================
 // Dustwalker - Enemy AI System
 // ============================================
@@ -4428,7 +5018,7 @@ class AISystem {
     }
 }
 
-
+// ==== src/data/items.js ====
 // ============================================
 // Dustwalker - Item Database
 // ============================================
@@ -4632,7 +5222,7 @@ const ItemDatabase = {
     },
 };
 
-
+// ==== src/data/enemies.js ====
 // ============================================
 // Dustwalker - Enemy Templates
 // ============================================
@@ -4858,7 +5448,133 @@ const EnemyTemplates = {
     },
 };
 
+// ==== src/data/perks.js ====
+// ============================================
+// Dustwalker - Perks System
+// ============================================
 
+const PerkDatabase = [
+    {
+        id: 'toughness',
+        name: 'Toughness',
+        desc: '+20% damage resistance. You shrug off hits like a wasteland veteran.',
+        levelReq: 2,
+        statReq: { endurance: 5 },
+        effect: (player) => { player.stats.damageResist += 20; },
+    },
+    {
+        id: 'quick_pockets',
+        name: 'Quick Pockets',
+        desc: 'Using items in combat costs 1 less AP.',
+        levelReq: 2,
+        statReq: { agility: 5 },
+        effect: () => {},
+    },
+    {
+        id: 'sharpshooter',
+        name: 'Sharpshooter',
+        desc: '+15% hit chance with ranged weapons. Steady hands, steady aim.',
+        levelReq: 3,
+        statReq: { perception: 6 },
+        effect: (player) => {
+            player.skills.smallGuns = (player.skills.smallGuns || 0) + 15;
+        },
+    },
+    {
+        id: 'iron_fist',
+        name: 'Iron Fist',
+        desc: '+3 melee damage. Your fists and weapons hit harder.',
+        levelReq: 2,
+        statReq: { strength: 6 },
+        effect: (player) => { player.stats.meleeDmg += 3; },
+    },
+    {
+        id: 'fortune_finder',
+        name: 'Fortune Finder',
+        desc: 'Find more caps in containers and on enemies. Luck favors the greedy.',
+        levelReq: 2,
+        statReq: { luck: 6 },
+        effect: () => {},
+    },
+    {
+        id: 'medic',
+        name: 'Field Medic',
+        desc: 'Healing items restore 50% more HP. Every stimpak counts.',
+        levelReq: 3,
+        statReq: { intelligence: 6 },
+        effect: () => {},
+    },
+    {
+        id: 'swift_learner',
+        name: 'Swift Learner',
+        desc: '+20% XP from all sources. Knowledge is power.',
+        levelReq: 2,
+        statReq: { intelligence: 5 },
+        effect: () => {},
+    },
+    {
+        id: 'stonewall',
+        name: 'Stonewall',
+        desc: '+3 Armor Class. You become harder to hit.',
+        levelReq: 3,
+        statReq: { agility: 6 },
+        effect: (player) => { player.stats.armorClass += 3; },
+    },
+    {
+        id: 'silver_tongue',
+        name: 'Silver Tongue',
+        desc: '+20 Speech skill. Words are your greatest weapon.',
+        levelReq: 2,
+        statReq: { charisma: 6 },
+        effect: (player) => { player.skills.speech = (player.skills.speech || 0) + 20; },
+    },
+    {
+        id: 'bonus_move',
+        name: 'Bonus Move',
+        desc: '+2 max Action Points. More actions per turn.',
+        levelReq: 4,
+        statReq: { agility: 7 },
+        effect: (player) => { player.stats.maxAp += 2; },
+    },
+];
+
+class PerkSystem {
+    static getAvailablePerks(player) {
+        return PerkDatabase.filter(perk => {
+            // Already has it?
+            if (player.perks.includes(perk.id)) return false;
+            // Level check
+            if (player.level < perk.levelReq) return false;
+            // Stat check
+            for (const [stat, val] of Object.entries(perk.statReq)) {
+                if ((player.special[stat] || 0) < val) return false;
+            }
+            return true;
+        });
+    }
+
+    static applyPerk(player, perkId) {
+        const perk = PerkDatabase.find(p => p.id === perkId);
+        if (!perk) return false;
+        if (player.perks.includes(perkId)) return false;
+        player.perks.push(perkId);
+        perk.effect(player);
+        return true;
+    }
+
+    static reapplyPerks(player) {
+        for (const perkId of player.perks) {
+            const perk = PerkDatabase.find(p => p.id === perkId);
+            if (perk) perk.effect(player);
+        }
+    }
+
+    static hasPerk(player, perkId) {
+        return player.perks.includes(perkId);
+    }
+}
+
+// ==== src/data/quests.js ====
 // ============================================
 // Dustwalker - Quest Definitions
 // ============================================
@@ -4946,7 +5662,7 @@ class QuestSystem {
     }
 }
 
-
+// ==== src/data/dialogues.js ====
 // ============================================
 // Dustwalker - Dialogue Database
 // ============================================
@@ -5402,7 +6118,7 @@ const DialogueDatabase = {
     },
 };
 
-
+// ==== src/areas/village.js ====
 // ============================================
 // Dustwalker - Dusthaven Village Area
 // ============================================
@@ -5555,7 +6271,7 @@ function createVillageArea() {
     };
 }
 
-
+// ==== src/areas/cave.js ====
 // ============================================
 // Dustwalker - Cave Area
 // ============================================
@@ -5702,7 +6418,7 @@ function createCaveArea() {
     };
 }
 
-
+// ==== src/areas/wasteland.js ====
 // ============================================
 // Dustwalker - Wasteland East (Raider Camp)
 // ============================================
@@ -5843,7 +6559,7 @@ function createWastelandArea() {
     };
 }
 
-
+// ==== src/ui/hud.js ====
 // ============================================
 // Dustwalker - HUD Manager
 // ============================================
@@ -6099,7 +6815,7 @@ class HUDManager {
     }
 }
 
-
+// ==== src/ui/screens.js ====
 // ============================================
 // Dustwalker - Screen Manager (Character Creation, Level Up, Map)
 // ============================================
@@ -6347,7 +7063,7 @@ class ScreenManager {
     }
 }
 
-
+// ==== src/engine/game.js ====
 // ============================================
 // Dustwalker - Main Game Controller
 // ============================================
@@ -7260,6 +7976,6 @@ window.addEventListener('DOMContentLoaded', () => {
     window.game = new Game();
 });
 
-    </script>
+</script>
 </body>
 </html>
