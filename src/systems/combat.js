@@ -301,6 +301,11 @@ class CombatSystem {
             return false;
         }
 
+        const dx = targetX - entity.x;
+        const dy = targetY - entity.y;
+        if (dx !== 0 || dy !== 0) {
+            entity.facing = this.game.getFacing(dx, dy);
+        }
         entity.x = targetX;
         entity.y = targetY;
         this.game.audio.playSfx('step');

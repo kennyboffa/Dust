@@ -29,6 +29,8 @@ class Game {
         this.selectedEntity = null;
 
         this.areaStates = {}; // Persist entity states when switching areas
+        this.npcHomes = {}; // Store NPC home positions for wandering
+        this.wanderTimer = 0;
 
         this.setupUI();
         this.setupInput();
@@ -278,6 +280,14 @@ class Game {
         }
     }
 
+    // Compute facing direction from movement delta
+    getFacing(dx, dy) {
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            return dx > 0 ? 'east' : 'west';
+        }
+        return dy > 0 ? 'south' : 'north';
+    }
+
     animateMovement(path) {
         let step = 0;
         const animate = () => {
@@ -287,6 +297,11 @@ class Game {
                 return;
             }
 
+            const dx = path[step].x - this.player.x;
+            const dy = path[step].y - this.player.y;
+            if (dx !== 0 || dy !== 0) {
+                this.player.facing = this.getFacing(dx, dy);
+            }
             this.player.x = path[step].x;
             this.player.y = path[step].y;
             this.renderer.centerOn(this.player.x, this.player.y);
@@ -346,6 +361,11 @@ class Game {
                     this.hud.showLootScreen(target);
                 }
                 return;
+            }
+            const dx = path[step].x - this.player.x;
+            const dy = path[step].y - this.player.y;
+            if (dx !== 0 || dy !== 0) {
+                this.player.facing = this.getFacing(dx, dy);
             }
             this.player.x = path[step].x;
             this.player.y = path[step].y;
@@ -511,6 +531,14 @@ class Game {
 
         // Add player
         this.entities.push(this.player);
+
+        // Store NPC home positions for wandering
+        this.npcHomes = {};
+        for (const ent of this.entities) {
+            if (ent.type === 'npc') {
+                this.npcHomes[ent.id] = { x: ent.x, y: ent.y };
+            }
+        }
 
         // Center camera
         this.renderer.centerOn(this.player.x, this.player.y);
@@ -933,6 +961,44 @@ class Game {
 
     // ---- Main Game Loop ----
 
+    // NPC wandering - move NPCs 1-2 tiles occasionally, staying near home
+    updateNPCWander() {
+        if (this.state !== 'exploration' || this.combat.active) return;
+        this.wanderTimer++;
+        if (this.wanderTimer < 120) return; // ~2 seconds at 60fps
+        this.wanderTimer = 0;
+
+        for (const ent of this.entities) {
+            if (ent.type !== 'npc' || !this.npcHomes[ent.id]) continue;
+            // 30% chance to move each cycle
+            if (Math.random() > 0.3) continue;
+
+            const home = this.npcHomes[ent.id];
+            const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+            // Shuffle directions
+            for (let i = dirs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+            }
+
+            for (const [dx, dy] of dirs) {
+                const nx = ent.x + dx;
+                const ny = ent.y + dy;
+                // Stay within 5 tiles of home
+                const distFromHome = Utils.gridDistance(nx, ny, home.x, home.y);
+                if (distFromHome > 5) continue;
+                if (!this.isWalkableFor(nx, ny, ent)) continue;
+                // Don't walk onto player
+                if (this.player && nx === this.player.x && ny === this.player.y) continue;
+
+                ent.facing = this.getFacing(dx, dy);
+                ent.x = nx;
+                ent.y = ny;
+                break;
+            }
+        }
+    }
+
     gameLoop() {
         // Update floating texts
         this.floatingTexts = this.floatingTexts.filter(ft => {
@@ -940,6 +1006,9 @@ class Game {
             ft.offsetY -= 0.5;
             return ft.life > 0;
         });
+
+        // NPC wandering
+        this.updateNPCWander();
 
         // Render
         if (this.currentArea && this.state !== 'title' && this.state !== 'creation') {

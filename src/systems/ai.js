@@ -123,6 +123,11 @@ class AISystem {
         if (path && path.length > 0) {
             const next = path[0];
             if (this.game.isWalkableFor(next.x, next.y, entity)) {
+                const mdx = next.x - entity.x;
+                const mdy = next.y - entity.y;
+                if (mdx !== 0 || mdy !== 0) {
+                    entity.facing = this.game.getFacing(mdx, mdy);
+                }
                 CharacterSystem.useAP(entity, 1);
                 entity.x = next.x;
                 entity.y = next.y;
@@ -141,6 +146,9 @@ class AISystem {
         const newY = entity.y + ndy;
 
         if (this.game.isWalkableFor(newX, newY, entity)) {
+            if (ndx !== 0 || ndy !== 0) {
+                entity.facing = this.game.getFacing(ndx, ndy);
+            }
             CharacterSystem.useAP(entity, 1);
             entity.x = newX;
             entity.y = newY;

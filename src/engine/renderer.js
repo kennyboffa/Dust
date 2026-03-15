@@ -18,6 +18,16 @@ class SpriteGenerator {
         return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
     }
 
+    // Create a horizontally mirrored copy of a canvas
+    static mirrorSprite(canvas) {
+        const c = this.createCanvas(canvas.width, canvas.height);
+        const ctx = c.getContext('2d');
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(canvas, 0, 0);
+        return c;
+    }
+
     // ---- POST-PROCESS: add noise, edge darkening, wear for pre-rendered look ----
     static weatherSprite(canvas, intensity = 1.0) {
         const ctx = canvas.getContext('2d');
@@ -329,12 +339,12 @@ class SpriteGenerator {
     }
 
     // ---- HUMANOID SPRITE GENERATION (64x80 sprite with proper proportions) ----
-    static generateHumanoidSprite(type, frame) {
+    static generateHumanoidSprite(type, frame, facing = 'south') {
         const w = 64, h = 80;
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
         const cx = w / 2, baseY = h - 4;
-        const rng = this.seededRandom(type.length * 1000 + frame * 100);
+        const rng = this.seededRandom(type.length * 1000 + frame * 100 + (facing === 'north' ? 7 : 0));
 
         // Palette lookup
         const palettes = {
@@ -599,126 +609,172 @@ class SpriteGenerator {
         ctx.beginPath();
         ctx.ellipse(cx, headY, headR, headR * 1.1, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Facial shadow (right side)
-        ctx.fillStyle = rgba(p.skin, 0.15, -22);
-        ctx.beginPath();
-        ctx.ellipse(cx + 1.5, headY + 0.5, headR * 0.6, headR * 0.9, 0.2, 0, Math.PI * 2);
-        ctx.fill();
 
-        // Hair
-        if (!isMutant) {
-            ctx.fillStyle = rgb(p.hair);
+        if (facing === 'north') {
+            // ---- BACK OF HEAD ----
+            // Full hair coverage
+            if (!isMutant) {
+                ctx.fillStyle = rgb(p.hair);
+                ctx.beginPath();
+                ctx.ellipse(cx, headY, headR + 0.5, headR * 1.05, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Hair texture lines
+                ctx.strokeStyle = rgb(p.hair, -12);
+                ctx.lineWidth = 0.4;
+                for (let i = 0; i < 5; i++) {
+                    const hx = cx - headR * 0.5 + i * headR * 0.25;
+                    ctx.beginPath();
+                    ctx.moveTo(hx, headY - headR * 0.8);
+                    ctx.quadraticCurveTo(hx + (rng()-0.5)*2, headY, hx + (rng()-0.5)*3, headY + headR * 0.7);
+                    ctx.stroke();
+                }
+                // Hair highlight
+                ctx.fillStyle = rgba(p.hair, 0.1, 15);
+                ctx.beginPath();
+                ctx.ellipse(cx, headY - 2, headR * 0.5, headR * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Mutant back of head - lumpy
+                ctx.fillStyle = rgba(p.skin, 1, -10);
+                ctx.beginPath();
+                ctx.ellipse(cx, headY, headR, headR * 1.1, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(40,60,10,0.2)';
+                ctx.beginPath();
+                ctx.arc(cx + 3, headY - 2, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Neck visible from behind
+            ctx.fillStyle = rgb(p.skin, -8);
+            ctx.fillRect(cx - 2 * sc, headY + headR * 0.8, 4 * sc, 3);
+            // Ear hints (sides)
+            ctx.fillStyle = rgb(p.skin, -5);
             ctx.beginPath();
-            ctx.ellipse(cx, headY - 2, headR + 0.8, headR * 0.65, 0, Math.PI, Math.PI * 2);
+            ctx.ellipse(cx - headR - 0.5, headY, 1.5, 2.5, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Sideburns
-            ctx.fillRect(cx - headR - 0.5, headY - 2.5, 2, 6);
-            ctx.fillRect(cx + headR - 1.5, headY - 2.5, 2, 6);
-            // Hair highlight
-            ctx.fillStyle = rgba(p.hair, 0.12, 20);
             ctx.beginPath();
-            ctx.ellipse(cx - 1, headY - 2.5, headR * 0.5, headR * 0.3, -0.3, 0, Math.PI * 2);
+            ctx.ellipse(cx + headR + 0.5, headY, 1.5, 2.5, 0, 0, Math.PI * 2);
             ctx.fill();
-        }
-
-        // Stubble/5 o'clock shadow
-        if (type === 'player' || type === 'raider' || type === 'guard') {
-            ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        } else {
+            // ---- FRONT-FACING HEAD ----
+            // Facial shadow (right side)
+            ctx.fillStyle = rgba(p.skin, 0.15, -22);
             ctx.beginPath();
-            ctx.ellipse(cx, headY + 2.5, headR * 0.65, headR * 0.45, 0, 0, Math.PI);
+            ctx.ellipse(cx + 1.5, headY + 0.5, headR * 0.6, headR * 0.9, 0.2, 0, Math.PI * 2);
             ctx.fill();
-        }
 
-        // Eyes (more detailed)
-        // Eye whites
-        ctx.fillStyle = '#CCC';
-        ctx.beginPath();
-        ctx.ellipse(cx - 2.5 * sc, headY - 0.5, 1.6, 1.1, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(cx + 2.5 * sc, headY - 0.5, 1.6, 1.1, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Irises
-        const eyeColor = isMutant ? '#8AA800' : '#332818';
-        ctx.fillStyle = eyeColor;
-        ctx.beginPath();
-        ctx.arc(cx - 2.2 * sc, headY - 0.3, 0.85, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + 2.8 * sc, headY - 0.3, 0.85, 0, Math.PI * 2);
-        ctx.fill();
-        // Pupils
-        ctx.fillStyle = '#0A0A0A';
-        ctx.beginPath();
-        ctx.arc(cx - 2.2 * sc, headY - 0.3, 0.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + 2.8 * sc, headY - 0.3, 0.4, 0, Math.PI * 2);
-        ctx.fill();
-        // Eye highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.35)';
-        ctx.beginPath();
-        ctx.arc(cx - 2.5 * sc, headY - 0.7, 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + 2.5 * sc, headY - 0.7, 0.3, 0, Math.PI * 2);
-        ctx.fill();
+            // Hair
+            if (!isMutant) {
+                ctx.fillStyle = rgb(p.hair);
+                ctx.beginPath();
+                ctx.ellipse(cx, headY - 2, headR + 0.8, headR * 0.65, 0, Math.PI, Math.PI * 2);
+                ctx.fill();
+                // Sideburns
+                ctx.fillRect(cx - headR - 0.5, headY - 2.5, 2, 6);
+                ctx.fillRect(cx + headR - 1.5, headY - 2.5, 2, 6);
+                // Hair highlight
+                ctx.fillStyle = rgba(p.hair, 0.12, 20);
+                ctx.beginPath();
+                ctx.ellipse(cx - 1, headY - 2.5, headR * 0.5, headR * 0.3, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
-        // Eyebrows (thicker)
-        ctx.strokeStyle = rgb(p.hair);
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(cx - 3.5 * sc, headY - 2.5);
-        ctx.lineTo(cx - 0.5 * sc, headY - 2.8);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx + 0.5 * sc, headY - 2.8);
-        ctx.lineTo(cx + 3.5 * sc, headY - 2.5);
-        ctx.stroke();
+            // Stubble/5 o'clock shadow
+            if (type === 'player' || type === 'raider' || type === 'guard') {
+                ctx.fillStyle = 'rgba(0,0,0,0.06)';
+                ctx.beginPath();
+                ctx.ellipse(cx, headY + 2.5, headR * 0.65, headR * 0.45, 0, 0, Math.PI);
+                ctx.fill();
+            }
 
-        // Nose
-        ctx.fillStyle = rgba(p.skin, 0.5, -15);
-        ctx.beginPath();
-        ctx.moveTo(cx, headY - 0.5);
-        ctx.lineTo(cx - 1, headY + 1.5);
-        ctx.lineTo(cx + 1, headY + 1.5);
-        ctx.closePath();
-        ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#CCC';
+            ctx.beginPath();
+            ctx.ellipse(cx - 2.5 * sc, headY - 0.5, 1.6, 1.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + 2.5 * sc, headY - 0.5, 1.6, 1.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Irises
+            const eyeColor = isMutant ? '#8AA800' : '#332818';
+            ctx.fillStyle = eyeColor;
+            ctx.beginPath();
+            ctx.arc(cx - 2.2 * sc, headY - 0.3, 0.85, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 2.8 * sc, headY - 0.3, 0.85, 0, Math.PI * 2);
+            ctx.fill();
+            // Pupils
+            ctx.fillStyle = '#0A0A0A';
+            ctx.beginPath();
+            ctx.arc(cx - 2.2 * sc, headY - 0.3, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 2.8 * sc, headY - 0.3, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            // Eye highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.beginPath();
+            ctx.arc(cx - 2.5 * sc, headY - 0.7, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 2.5 * sc, headY - 0.7, 0.3, 0, Math.PI * 2);
+            ctx.fill();
 
-        // Mouth
-        ctx.strokeStyle = rgba(p.skin, 0.8, -35);
-        ctx.lineWidth = 0.7;
-        ctx.beginPath();
-        ctx.moveTo(cx - 1.8 * sc, headY + 3);
-        ctx.lineTo(cx + 1.8 * sc, headY + 3);
-        ctx.stroke();
+            // Eyebrows
+            ctx.strokeStyle = rgb(p.hair);
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(cx - 3.5 * sc, headY - 2.5);
+            ctx.lineTo(cx - 0.5 * sc, headY - 2.8);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + 0.5 * sc, headY - 2.8);
+            ctx.lineTo(cx + 3.5 * sc, headY - 2.5);
+            ctx.stroke();
 
-        // Scars
-        if (type === 'raider') {
-            ctx.strokeStyle = 'rgba(100,35,30,0.5)';
+            // Nose
+            ctx.fillStyle = rgba(p.skin, 0.5, -15);
+            ctx.beginPath();
+            ctx.moveTo(cx, headY - 0.5);
+            ctx.lineTo(cx - 1, headY + 1.5);
+            ctx.lineTo(cx + 1, headY + 1.5);
+            ctx.closePath();
+            ctx.fill();
+
+            // Mouth
+            ctx.strokeStyle = rgba(p.skin, 0.8, -35);
             ctx.lineWidth = 0.7;
             ctx.beginPath();
-            ctx.moveTo(cx + 1, headY - 2.5);
-            ctx.lineTo(cx + 3.5, headY + 2.5);
+            ctx.moveTo(cx - 1.8 * sc, headY + 3);
+            ctx.lineTo(cx + 1.8 * sc, headY + 3);
             ctx.stroke();
-            // Second scar
-            ctx.beginPath();
-            ctx.moveTo(cx - 3, headY + 1);
-            ctx.lineTo(cx - 1, headY + 4);
-            ctx.stroke();
-        }
-        if (isMutant) {
-            ctx.strokeStyle = 'rgba(30,60,0,0.4)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(cx - 2.5, headY - 1);
-            ctx.lineTo(cx - 5, headY + 4);
-            ctx.stroke();
-            // Warts/growths
-            ctx.fillStyle = 'rgba(60,80,20,0.35)';
-            ctx.beginPath();
-            ctx.arc(cx + 4, headY + 1, 1.5, 0, Math.PI * 2);
-            ctx.fill();
+
+            // Scars
+            if (type === 'raider') {
+                ctx.strokeStyle = 'rgba(100,35,30,0.5)';
+                ctx.lineWidth = 0.7;
+                ctx.beginPath();
+                ctx.moveTo(cx + 1, headY - 2.5);
+                ctx.lineTo(cx + 3.5, headY + 2.5);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx - 3, headY + 1);
+                ctx.lineTo(cx - 1, headY + 4);
+                ctx.stroke();
+            }
+            if (isMutant) {
+                ctx.strokeStyle = 'rgba(30,60,0,0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(cx - 2.5, headY - 1);
+                ctx.lineTo(cx - 5, headY + 4);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(60,80,20,0.35)';
+                ctx.beginPath();
+                ctx.arc(cx + 4, headY + 1, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         // Head outline (subtle)
@@ -1966,27 +2022,37 @@ class IsometricRenderer {
             }
         }
 
-        // Humanoid sprites (4 animation frames each)
+        // Humanoid sprites: 4 animation frames x 4 directions
+        // south = front, north = back, east = mirrored front, west = front
         const humanoidTypes = ['player', 'villager', 'merchant', 'elder', 'guard', 'raider', 'mutant'];
         this._humanoidSprites = {};
         for (const type of humanoidTypes) {
-            this._humanoidSprites[type] = [];
+            this._humanoidSprites[type] = {
+                south: [], north: [], east: [], west: []
+            };
             for (let f = 0; f < 4; f++) {
-                this._humanoidSprites[type].push(
-                    SpriteGenerator.generateHumanoidSprite(type, f)
-                );
+                const south = SpriteGenerator.generateHumanoidSprite(type, f, 'south');
+                const north = SpriteGenerator.generateHumanoidSprite(type, f, 'north');
+                const east = SpriteGenerator.mirrorSprite(south);
+                this._humanoidSprites[type].south.push(south);
+                this._humanoidSprites[type].north.push(north);
+                this._humanoidSprites[type].east.push(east);
+                this._humanoidSprites[type].west.push(south); // west uses front sprite
             }
         }
 
-        // Creature sprites (4 animation frames)
+        // Creature sprites: 4 animation frames x 2 directions (east = mirrored)
         const creatureTypes = ['rat', 'scorpion', 'cave_spider'];
         this._creatureSprites = {};
         for (const type of creatureTypes) {
-            this._creatureSprites[type] = [];
+            this._creatureSprites[type] = { south: [], north: [], east: [], west: [] };
             for (let f = 0; f < 4; f++) {
-                this._creatureSprites[type].push(
-                    SpriteGenerator.generateCreatureSprite(type, f)
-                );
+                const sprite = SpriteGenerator.generateCreatureSprite(type, f);
+                const mirrored = SpriteGenerator.mirrorSprite(sprite);
+                this._creatureSprites[type].south.push(sprite);
+                this._creatureSprites[type].north.push(sprite);
+                this._creatureSprites[type].east.push(mirrored);
+                this._creatureSprites[type].west.push(sprite);
             }
         }
 
@@ -2975,9 +3041,10 @@ class IsometricRenderer {
         }
 
         if (['rat', 'scorpion', 'cave_spider'].includes(entityType)) {
-            // Use pre-rendered creature sprite
-            const sprites = this._creatureSprites[entityType];
-            if (sprites && sprites.length > 0) {
+            // Use pre-rendered creature sprite (directional)
+            const spriteSet = this._creatureSprites[entityType];
+            if (spriteSet && spriteSet[facing]) {
+                const sprites = spriteSet[facing];
                 const sprite = sprites[this.animationFrame % sprites.length];
                 const sw = sprite.width * z;
                 const sh = sprite.height * z;
@@ -2986,9 +3053,10 @@ class IsometricRenderer {
                 this.drawCreature(ctx, screen, z, entityType);
             }
         } else {
-            // Use pre-rendered humanoid sprite
-            const sprites = this._humanoidSprites[entityType];
-            if (sprites && sprites.length > 0) {
+            // Use pre-rendered humanoid sprite (directional)
+            const spriteSet = this._humanoidSprites[entityType];
+            if (spriteSet && spriteSet[facing]) {
+                const sprites = spriteSet[facing];
                 const sprite = sprites[this.animationFrame % sprites.length];
                 const sw = sprite.width * z;
                 const sh = sprite.height * z;
