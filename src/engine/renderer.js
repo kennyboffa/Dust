@@ -18,6 +18,68 @@ class SpriteGenerator {
         return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
     }
 
+    // ---- POST-PROCESS: add noise, edge darkening, wear for pre-rendered look ----
+    static weatherSprite(canvas, intensity = 1.0) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+        const rng = this.seededRandom(w * h + 42);
+
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] === 0) continue; // skip transparent pixels
+
+            const px = (i / 4) % w;
+            const py = Math.floor((i / 4) / w);
+
+            // Film grain noise
+            const noise = (rng() - 0.5) * 12 * intensity;
+            data[i] = Math.max(0, Math.min(255, data[i] + noise));
+            data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
+            data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
+
+            // Desaturate slightly for gritty look
+            const gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+            const desat = 0.15 * intensity;
+            data[i] = data[i] + (gray - data[i]) * desat;
+            data[i+1] = data[i+1] + (gray - data[i+1]) * desat;
+            data[i+2] = data[i+2] + (gray - data[i+2]) * desat;
+
+            // Warm tint (Fallout 2 sepia)
+            data[i] = Math.min(255, data[i] + 3 * intensity);
+            data[i+2] = Math.max(0, data[i+2] - 2 * intensity);
+
+            // Edge darkening: darken pixels near transparent edges
+            let nearEdge = false;
+            for (let dx = -1; dx <= 1 && !nearEdge; dx++) {
+                for (let dy = -1; dy <= 1 && !nearEdge; dy++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = px + dx, ny = py + dy;
+                    if (nx < 0 || nx >= w || ny < 0 || ny >= h) { nearEdge = true; break; }
+                    const ni = (ny * w + nx) * 4;
+                    if (data[ni + 3] < 128) nearEdge = true;
+                }
+            }
+            if (nearEdge) {
+                const darken = 0.7;
+                data[i] *= darken;
+                data[i+1] *= darken;
+                data[i+2] *= darken;
+            }
+
+            // Occasional dirt speckle
+            if (rng() > 0.97) {
+                const dirtAmt = rng() * 20 * intensity;
+                data[i] = Math.max(0, data[i] - dirtAmt);
+                data[i+1] = Math.max(0, data[i+1] - dirtAmt);
+                data[i+2] = Math.max(0, data[i+2] - dirtAmt);
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        return canvas;
+    }
+
     // ---- TILE SPRITE GENERATION ----
     static generateTileSprite(type, tw, th, seed) {
         const w = tw + 4, h = th + 20; // extra padding for height/debris
@@ -684,7 +746,7 @@ class SpriteGenerator {
             ctx.fillRect(cx - headR - 1.5, headY, headR * 2 + 3, 1);
         }
 
-        return c;
+        return this.weatherSprite(c, 0.8);
     }
 
     // ---- CREATURE SPRITE GENERATION ----
@@ -997,7 +1059,7 @@ class SpriteGenerator {
             ctx.stroke();
         }
 
-        return c;
+        return this.weatherSprite(c, 0.9);
     }
 
     // ---- CONTAINER SPRITES ----
@@ -1078,7 +1140,7 @@ class SpriteGenerator {
             ctx.fillStyle = 'rgba(50,38,12,0.15)';
             ctx.fillRect(cx + bw/2 - 3, ty + 3, 2, 5);
         }
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     // ---- BONES SPRITE ----
@@ -1147,7 +1209,7 @@ class SpriteGenerator {
         for (let i = 0; i < 4; i++) {
             ctx.fillRect(cx - 0.5 + i * 1.2, cy - 2.5, 0.8, 1);
         }
-        return c;
+        return this.weatherSprite(c, 0.6);
     }
 
     // ---- ENVIRONMENTAL OBJECT SPRITES ----
@@ -1247,7 +1309,7 @@ class SpriteGenerator {
         ctx.quadraticCurveTo(cx + 7, by + 2, cx + 9, by);
         ctx.stroke();
 
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     static generateRuins(variant) {
@@ -1360,7 +1422,7 @@ class SpriteGenerator {
                 ctx.fill();
             }
         }
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     static generateWreckage(variant) {
@@ -1507,7 +1569,7 @@ class SpriteGenerator {
                 ctx.stroke();
             }
         }
-        return c;
+        return this.weatherSprite(c, 0.8);
     }
 
     static generateBuilding(variant) {
@@ -1639,7 +1701,7 @@ class SpriteGenerator {
                 ctx.stroke();
             }
         }
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     static generateCactus(variant) {
@@ -1692,7 +1754,7 @@ class SpriteGenerator {
             ctx.lineTo(cx + 5, sy - 1);
             ctx.stroke();
         }
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     static generateRockFormation(variant) {
@@ -1735,7 +1797,7 @@ class SpriteGenerator {
             ctx.ellipse(rx, ry, rw, rh, rng() * 0.5, 0, Math.PI * 2);
             ctx.stroke();
         }
-        return c;
+        return this.weatherSprite(c, 0.6);
     }
 
     static generateCampfire() {
@@ -1775,7 +1837,7 @@ class SpriteGenerator {
         ctx.beginPath();
         ctx.arc(cx + 2, by - 2.5, 0.8, 0, Math.PI * 2);
         ctx.fill();
-        return c;
+        return this.weatherSprite(c, 0.6);
     }
 
     static generateSignpost() {
@@ -1815,7 +1877,7 @@ class SpriteGenerator {
         // Nail
         ctx.fillStyle = '#505050';
         ctx.fillRect(cx - 0.5, by - 34, 1, 1);
-        return c;
+        return this.weatherSprite(c, 0.6);
     }
 }
 
@@ -3883,21 +3945,24 @@ class IsometricRenderer {
             }
         }
 
-        if (gameState.highlights) {
-            for (const h of gameState.highlights) {
-                if (h.type === 'move') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.1)', 'rgba(50, 110, 50, 0.2)');
-                } else if (h.type === 'attack') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(140, 30, 20, 0.1)', 'rgba(140, 30, 20, 0.25)');
-                } else if (h.type === 'path') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.2)', 'rgba(50, 110, 50, 0.35)');
+        // Only show grid highlights during combat
+        if (gameState.inCombat) {
+            if (gameState.highlights) {
+                for (const h of gameState.highlights) {
+                    if (h.type === 'move') {
+                        this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.1)', 'rgba(50, 110, 50, 0.2)');
+                    } else if (h.type === 'attack') {
+                        this.drawTileHighlight(h.x, h.y, 'rgba(140, 30, 20, 0.1)', 'rgba(140, 30, 20, 0.25)');
+                    } else if (h.type === 'path') {
+                        this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.2)', 'rgba(50, 110, 50, 0.35)');
+                    }
                 }
             }
-        }
 
-        if (gameState.hoverTile) {
-            this.drawTileHighlight(gameState.hoverTile.x, gameState.hoverTile.y,
-                'rgba(120, 90, 35, 0.1)', 'rgba(120, 90, 35, 0.3)');
+            if (gameState.hoverTile) {
+                this.drawTileHighlight(gameState.hoverTile.x, gameState.hoverTile.y,
+                    'rgba(120, 90, 35, 0.1)', 'rgba(120, 90, 35, 0.3)');
+            }
         }
 
         // Particles (dust and ash)

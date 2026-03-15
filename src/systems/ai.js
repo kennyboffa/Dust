@@ -116,13 +116,13 @@ class AISystem {
     moveTowards(entity, targetX, targetY) {
         const path = Utils.findPath(
             entity.x, entity.y, targetX, targetY,
-            (x, y) => this.game.isWalkable(x, y) || (x === targetX && y === targetY),
+            (x, y) => this.game.isWalkableFor(x, y, entity) || (x === targetX && y === targetY),
             30
         );
 
         if (path && path.length > 0) {
             const next = path[0];
-            if (this.game.isWalkable(next.x, next.y)) {
+            if (this.game.isWalkableFor(next.x, next.y, entity)) {
                 CharacterSystem.useAP(entity, 1);
                 entity.x = next.x;
                 entity.y = next.y;
@@ -140,20 +140,41 @@ class AISystem {
         const newX = entity.x + ndx;
         const newY = entity.y + ndy;
 
-        if (this.game.isWalkable(newX, newY)) {
+        if (this.game.isWalkableFor(newX, newY, entity)) {
             CharacterSystem.useAP(entity, 1);
             entity.x = newX;
             entity.y = newY;
         }
     }
 
-    // Check if any enemies can see the player (for triggering combat)
-    checkAggro(entities, player, aggroRange = 6) {
-        const hostiles = entities.filter(e =>
-            e.isHostile &&
-            e.stats.hp > 0 &&
-            Utils.gridDistance(e.x, e.y, player.x, player.y) <= aggroRange
-        );
+    // Check if any enemies can detect the player (perception vs sneak)
+    checkAggro(entities, player, baseRange = 6) {
+        const playerSneak = (player.skills && player.skills.sneak) || 0;
+        const isSneaking = player.sneaking || false;
+
+        const hostiles = entities.filter(e => {
+            if (!e.isHostile || e.stats.hp <= 0) return false;
+            const dist = Utils.gridDistance(e.x, e.y, player.x, player.y);
+            // Each enemy has perception-based detection range
+            const perception = (e.stats && e.stats.perception) || 5;
+            const detectRange = Math.max(2, baseRange + Math.floor((perception - 5) / 2));
+
+            if (dist > detectRange) return false;
+
+            // If player is sneaking, roll detection vs sneak
+            if (isSneaking && dist > 1) {
+                // Detection chance: base 50% + 5% per perception - 1% per sneak skill
+                // Closer enemies detect more easily
+                const distBonus = Math.max(0, (detectRange - dist) * 8);
+                const detectChance = Utils.clamp(
+                    50 + perception * 5 - playerSneak + distBonus, 5, 95
+                );
+                const roll = Utils.randInt(1, 100);
+                return roll <= detectChance;
+            }
+
+            return true;
+        });
         return hostiles;
     }
 }

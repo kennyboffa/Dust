@@ -283,6 +283,14 @@ class CombatSystem {
 
     // Move entity during combat (costs AP)
     combatMove(entity, targetX, targetY) {
+        // Check tile is not occupied
+        if (!this.game.isWalkableFor(targetX, targetY, entity)) {
+            if (entity.type === 'player') {
+                this.game.addMessage('That tile is blocked!', 'combat');
+            }
+            return false;
+        }
+
         const dist = Utils.gridDistance(entity.x, entity.y, targetX, targetY);
         const apCost = dist; // 1 AP per tile
 

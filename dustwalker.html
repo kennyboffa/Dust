@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dustwalker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
     <style>
 * {
     margin: 0;
@@ -11,15 +12,10 @@
     box-sizing: border-box;
 }
 
-@font-face {
-    font-family: 'Dustwalker';
-    src: local('Courier New');
-}
-
 body {
     background: #000;
     overflow: hidden;
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     color: #e0d5c0;
     user-select: none;
 }
@@ -97,7 +93,7 @@ body {
 }
 
 .menu-btn {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 18px;
     padding: 12px 40px;
     background: #2a1f0e;
@@ -163,7 +159,7 @@ body {
 }
 
 .creation-left input {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 16px;
     padding: 6px 10px;
     background: #0a0600;
@@ -192,7 +188,7 @@ body {
 }
 
 .stat-row button {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     width: 24px;
     height: 24px;
     background: #2a1f0e;
@@ -341,7 +337,7 @@ body {
 }
 
 .action-btn {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 12px;
     padding: 6px 12px;
     background: #2a1f0e;
@@ -395,7 +391,7 @@ body {
 }
 
 .hud-btn {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 11px;
     padding: 6px 10px;
     background: #2a1f0e;
@@ -469,7 +465,7 @@ body {
 }
 
 .close-btn {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 12px;
     padding: 6px 20px;
     background: #2a1f0e;
@@ -574,7 +570,7 @@ body {
 }
 
 .detail-actions button {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 11px;
     padding: 4px 8px;
     background: #2a1f0e;
@@ -656,7 +652,7 @@ body {
 
 .dialogue-option {
     padding: 6px 10px;
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 13px;
     color: #8a9a6a;
     cursor: pointer;
@@ -716,7 +712,7 @@ body {
 }
 
 .levelup-skill-row button {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     width: 20px;
     height: 20px;
     background: #2a1f0e;
@@ -760,7 +756,7 @@ body {
 }
 
 .loot-item button {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 11px;
     padding: 2px 8px;
     background: #2a1f0e;
@@ -802,7 +798,7 @@ body {
 }
 
 #combat-status {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 16px;
     font-weight: bold;
     color: #ff6644;
@@ -811,14 +807,14 @@ body {
 }
 
 #combat-ap-display {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 14px;
     color: #ffcc44;
     letter-spacing: 1px;
 }
 
 #combat-end-turn-btn {
-    font-family: 'Courier New', monospace;
+    font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 14px;
     font-weight: bold;
     padding: 8px 24px;
@@ -1382,6 +1378,11 @@ canvas {
 // ============================================
 // Dustwalker - Utility Functions
 // ============================================
+<script>
+// ==== src/engine/utils.js ====
+// ============================================
+// Dustwalker - Utility Functions
+// ============================================
 
 const Utils = {
     // Isometric coordinate conversion
@@ -1538,6 +1539,68 @@ class SpriteGenerator {
     static seededRandom(seed) {
         let s = seed;
         return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
+    }
+
+    // ---- POST-PROCESS: add noise, edge darkening, wear for pre-rendered look ----
+    static weatherSprite(canvas, intensity = 1.0) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+        const rng = this.seededRandom(w * h + 42);
+
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] === 0) continue; // skip transparent pixels
+
+            const px = (i / 4) % w;
+            const py = Math.floor((i / 4) / w);
+
+            // Film grain noise
+            const noise = (rng() - 0.5) * 12 * intensity;
+            data[i] = Math.max(0, Math.min(255, data[i] + noise));
+            data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
+            data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
+
+            // Desaturate slightly for gritty look
+            const gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+            const desat = 0.15 * intensity;
+            data[i] = data[i] + (gray - data[i]) * desat;
+            data[i+1] = data[i+1] + (gray - data[i+1]) * desat;
+            data[i+2] = data[i+2] + (gray - data[i+2]) * desat;
+
+            // Warm tint (Fallout 2 sepia)
+            data[i] = Math.min(255, data[i] + 3 * intensity);
+            data[i+2] = Math.max(0, data[i+2] - 2 * intensity);
+
+            // Edge darkening: darken pixels near transparent edges
+            let nearEdge = false;
+            for (let dx = -1; dx <= 1 && !nearEdge; dx++) {
+                for (let dy = -1; dy <= 1 && !nearEdge; dy++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = px + dx, ny = py + dy;
+                    if (nx < 0 || nx >= w || ny < 0 || ny >= h) { nearEdge = true; break; }
+                    const ni = (ny * w + nx) * 4;
+                    if (data[ni + 3] < 128) nearEdge = true;
+                }
+            }
+            if (nearEdge) {
+                const darken = 0.7;
+                data[i] *= darken;
+                data[i+1] *= darken;
+                data[i+2] *= darken;
+            }
+
+            // Occasional dirt speckle
+            if (rng() > 0.97) {
+                const dirtAmt = rng() * 20 * intensity;
+                data[i] = Math.max(0, data[i] - dirtAmt);
+                data[i+1] = Math.max(0, data[i+1] - dirtAmt);
+                data[i+2] = Math.max(0, data[i+2] - dirtAmt);
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        return canvas;
     }
 
     // ---- TILE SPRITE GENERATION ----
@@ -2206,7 +2269,7 @@ class SpriteGenerator {
             ctx.fillRect(cx - headR - 1.5, headY, headR * 2 + 3, 1);
         }
 
-        return c;
+        return this.weatherSprite(c, 0.8);
     }
 
     // ---- CREATURE SPRITE GENERATION ----
@@ -2519,7 +2582,7 @@ class SpriteGenerator {
             ctx.stroke();
         }
 
-        return c;
+        return this.weatherSprite(c, 0.9);
     }
 
     // ---- CONTAINER SPRITES ----
@@ -2600,7 +2663,7 @@ class SpriteGenerator {
             ctx.fillStyle = 'rgba(50,38,12,0.15)';
             ctx.fillRect(cx + bw/2 - 3, ty + 3, 2, 5);
         }
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     // ---- BONES SPRITE ----
@@ -2669,7 +2732,7 @@ class SpriteGenerator {
         for (let i = 0; i < 4; i++) {
             ctx.fillRect(cx - 0.5 + i * 1.2, cy - 2.5, 0.8, 1);
         }
-        return c;
+        return this.weatherSprite(c, 0.6);
     }
 
     // ---- ENVIRONMENTAL OBJECT SPRITES ----
@@ -2769,7 +2832,7 @@ class SpriteGenerator {
         ctx.quadraticCurveTo(cx + 7, by + 2, cx + 9, by);
         ctx.stroke();
 
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     static generateRuins(variant) {
@@ -2882,7 +2945,7 @@ class SpriteGenerator {
                 ctx.fill();
             }
         }
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     static generateWreckage(variant) {
@@ -3029,7 +3092,7 @@ class SpriteGenerator {
                 ctx.stroke();
             }
         }
-        return c;
+        return this.weatherSprite(c, 0.8);
     }
 
     static generateBuilding(variant) {
@@ -3161,7 +3224,7 @@ class SpriteGenerator {
                 ctx.stroke();
             }
         }
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     static generateCactus(variant) {
@@ -3214,7 +3277,7 @@ class SpriteGenerator {
             ctx.lineTo(cx + 5, sy - 1);
             ctx.stroke();
         }
-        return c;
+        return this.weatherSprite(c, 0.7);
     }
 
     static generateRockFormation(variant) {
@@ -3257,7 +3320,7 @@ class SpriteGenerator {
             ctx.ellipse(rx, ry, rw, rh, rng() * 0.5, 0, Math.PI * 2);
             ctx.stroke();
         }
-        return c;
+        return this.weatherSprite(c, 0.6);
     }
 
     static generateCampfire() {
@@ -3297,7 +3360,7 @@ class SpriteGenerator {
         ctx.beginPath();
         ctx.arc(cx + 2, by - 2.5, 0.8, 0, Math.PI * 2);
         ctx.fill();
-        return c;
+        return this.weatherSprite(c, 0.6);
     }
 
     static generateSignpost() {
@@ -3337,7 +3400,7 @@ class SpriteGenerator {
         // Nail
         ctx.fillStyle = '#505050';
         ctx.fillRect(cx - 0.5, by - 34, 1, 1);
-        return c;
+        return this.weatherSprite(c, 0.6);
     }
 }
 
@@ -5405,21 +5468,24 @@ class IsometricRenderer {
             }
         }
 
-        if (gameState.highlights) {
-            for (const h of gameState.highlights) {
-                if (h.type === 'move') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.1)', 'rgba(50, 110, 50, 0.2)');
-                } else if (h.type === 'attack') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(140, 30, 20, 0.1)', 'rgba(140, 30, 20, 0.25)');
-                } else if (h.type === 'path') {
-                    this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.2)', 'rgba(50, 110, 50, 0.35)');
+        // Only show grid highlights during combat
+        if (gameState.inCombat) {
+            if (gameState.highlights) {
+                for (const h of gameState.highlights) {
+                    if (h.type === 'move') {
+                        this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.1)', 'rgba(50, 110, 50, 0.2)');
+                    } else if (h.type === 'attack') {
+                        this.drawTileHighlight(h.x, h.y, 'rgba(140, 30, 20, 0.1)', 'rgba(140, 30, 20, 0.25)');
+                    } else if (h.type === 'path') {
+                        this.drawTileHighlight(h.x, h.y, 'rgba(50, 110, 50, 0.2)', 'rgba(50, 110, 50, 0.35)');
+                    }
                 }
             }
-        }
 
-        if (gameState.hoverTile) {
-            this.drawTileHighlight(gameState.hoverTile.x, gameState.hoverTile.y,
-                'rgba(120, 90, 35, 0.1)', 'rgba(120, 90, 35, 0.3)');
+            if (gameState.hoverTile) {
+                this.drawTileHighlight(gameState.hoverTile.x, gameState.hoverTile.y,
+                    'rgba(120, 90, 35, 0.1)', 'rgba(120, 90, 35, 0.3)');
+            }
         }
 
         // Particles (dust and ash)
@@ -6468,6 +6534,14 @@ class CombatSystem {
 
     // Move entity during combat (costs AP)
     combatMove(entity, targetX, targetY) {
+        // Check tile is not occupied
+        if (!this.game.isWalkableFor(targetX, targetY, entity)) {
+            if (entity.type === 'player') {
+                this.game.addMessage('That tile is blocked!', 'combat');
+            }
+            return false;
+        }
+
         const dist = Utils.gridDistance(entity.x, entity.y, targetX, targetY);
         const apCost = dist; // 1 AP per tile
 
@@ -6912,13 +6986,13 @@ class AISystem {
     moveTowards(entity, targetX, targetY) {
         const path = Utils.findPath(
             entity.x, entity.y, targetX, targetY,
-            (x, y) => this.game.isWalkable(x, y) || (x === targetX && y === targetY),
+            (x, y) => this.game.isWalkableFor(x, y, entity) || (x === targetX && y === targetY),
             30
         );
 
         if (path && path.length > 0) {
             const next = path[0];
-            if (this.game.isWalkable(next.x, next.y)) {
+            if (this.game.isWalkableFor(next.x, next.y, entity)) {
                 CharacterSystem.useAP(entity, 1);
                 entity.x = next.x;
                 entity.y = next.y;
@@ -6936,20 +7010,41 @@ class AISystem {
         const newX = entity.x + ndx;
         const newY = entity.y + ndy;
 
-        if (this.game.isWalkable(newX, newY)) {
+        if (this.game.isWalkableFor(newX, newY, entity)) {
             CharacterSystem.useAP(entity, 1);
             entity.x = newX;
             entity.y = newY;
         }
     }
 
-    // Check if any enemies can see the player (for triggering combat)
-    checkAggro(entities, player, aggroRange = 6) {
-        const hostiles = entities.filter(e =>
-            e.isHostile &&
-            e.stats.hp > 0 &&
-            Utils.gridDistance(e.x, e.y, player.x, player.y) <= aggroRange
-        );
+    // Check if any enemies can detect the player (perception vs sneak)
+    checkAggro(entities, player, baseRange = 6) {
+        const playerSneak = (player.skills && player.skills.sneak) || 0;
+        const isSneaking = player.sneaking || false;
+
+        const hostiles = entities.filter(e => {
+            if (!e.isHostile || e.stats.hp <= 0) return false;
+            const dist = Utils.gridDistance(e.x, e.y, player.x, player.y);
+            // Each enemy has perception-based detection range
+            const perception = (e.stats && e.stats.perception) || 5;
+            const detectRange = Math.max(2, baseRange + Math.floor((perception - 5) / 2));
+
+            if (dist > detectRange) return false;
+
+            // If player is sneaking, roll detection vs sneak
+            if (isSneaking && dist > 1) {
+                // Detection chance: base 50% + 5% per perception - 1% per sneak skill
+                // Closer enemies detect more easily
+                const distBonus = Math.max(0, (detectRange - dist) * 8);
+                const detectChance = Utils.clamp(
+                    50 + perception * 5 - playerSneak + distBonus, 5, 95
+                );
+                const roll = Utils.randInt(1, 100);
+                return roll <= detectChance;
+            }
+
+            return true;
+        });
         return hostiles;
     }
 }
@@ -9247,6 +9342,7 @@ class Game {
             case 'u': this.setAction('use'); break;
             case 't': this.setAction('talk'); break;
             case 'l': this.setAction('look'); break;
+            case 's': this.toggleSneak(); break;
             case ' ':
                 if (this.combat.active) {
                     this.combat.endTurn();
@@ -9373,14 +9469,14 @@ class Game {
                 return;
             }
 
-            // Check aggro mid-path
-            const hostiles = this.ai.checkAggro(this.entities, this.player, 5);
+            // Check aggro mid-path (only nearby enemies)
+            const hostiles = this.ai.checkAggro(this.entities, this.player, 3);
             if (hostiles.length > 0) {
                 this.startCombatWith(hostiles);
                 return;
             }
 
-            setTimeout(animate, 100);
+            setTimeout(animate, 180);
         };
         animate();
     }
@@ -9425,7 +9521,7 @@ class Game {
             this.renderer.centerOn(this.player.x, this.player.y);
             this.audio.playSfx('step');
             step++;
-            setTimeout(animate, 100);
+            setTimeout(animate, 180);
         };
         animate();
     }
@@ -9646,6 +9742,23 @@ class Game {
         const ent = this.getEntityAt(x, y);
         if (ent && (ent.type === 'enemy' || ent.type === 'npc')) return false;
         if (ent && ent.type === 'environment' && ent.blocking) return false;
+        // Block player tile for AI pathfinding
+        if (this.player && x === this.player.x && y === this.player.y) return false;
+        return true;
+    }
+
+    // Walkable check excluding a specific entity (for that entity's own movement)
+    isWalkableFor(x, y, entity) {
+        const tile = this.getTileAt(x, y);
+        if (!tile) return false;
+        if (this.currentArea.blocked.has(tile)) return false;
+        for (const e of this.entities) {
+            if (e === entity) continue;
+            if (e.x === x && e.y === y) {
+                if (e.type === 'enemy' || e.type === 'npc' || e.type === 'player') return false;
+                if (e.type === 'environment' && e.blocking) return false;
+            }
+        }
         return true;
     }
 
@@ -9667,9 +9780,52 @@ class Game {
         }
     }
 
+    toggleSneak() {
+        if (!this.player) return;
+        this.player.sneaking = !this.player.sneaking;
+        if (this.player.sneaking) {
+            this.addMessage('You begin sneaking.', 'skill');
+        } else {
+            this.addMessage('You stop sneaking.', 'info');
+        }
+        this.hud.update();
+    }
+
     startCombatWith(enemies) {
         const participants = [this.player, ...enemies];
+        this.showCombatBanner();
         this.combat.startCombat(participants);
+    }
+
+    showCombatBanner() {
+        // Create a cinematic "Combat Starts" banner
+        let banner = document.getElementById('combat-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'combat-banner';
+            document.getElementById('game-container').appendChild(banner);
+        }
+        banner.textContent = 'COMBAT';
+        banner.style.cssText = `
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scaleX(0);
+            font-family: 'Trebuchet MS', 'Arial Black', sans-serif; font-size: 64px; font-weight: bold;
+            color: #c44a3a; letter-spacing: 18px; text-shadow: 0 0 30px rgba(200,60,40,0.6), 0 2px 4px #000;
+            pointer-events: none; z-index: 100; white-space: nowrap; opacity: 0;
+            border-top: 3px solid #c44a3a; border-bottom: 3px solid #c44a3a;
+            padding: 10px 40px; background: rgba(0,0,0,0.7);
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        `;
+        // Trigger animation
+        requestAnimationFrame(() => {
+            banner.style.opacity = '1';
+            banner.style.transform = 'translate(-50%, -50%) scaleX(1)';
+        });
+        // Fade out after 1.5s
+        setTimeout(() => {
+            banner.style.opacity = '0';
+            banner.style.transform = 'translate(-50%, -50%) scaleX(1.1)';
+            setTimeout(() => banner.remove(), 400);
+        }, 1500);
     }
 
     // ---- Inventory Actions (called from UI) ----
@@ -9961,6 +10117,7 @@ class Game {
                 highlights: this.highlights,
                 hoverTile: this.hoverTile,
                 floatingTexts: this.floatingTexts,
+                inCombat: this.combat.active,
             };
 
             this.renderer.renderArea(

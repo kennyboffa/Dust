@@ -173,6 +173,7 @@ class Game {
             case 'u': this.setAction('use'); break;
             case 't': this.setAction('talk'); break;
             case 'l': this.setAction('look'); break;
+            case 's': this.toggleSneak(); break;
             case ' ':
                 if (this.combat.active) {
                     this.combat.endTurn();
@@ -299,14 +300,14 @@ class Game {
                 return;
             }
 
-            // Check aggro mid-path
-            const hostiles = this.ai.checkAggro(this.entities, this.player, 5);
+            // Check aggro mid-path (only nearby enemies)
+            const hostiles = this.ai.checkAggro(this.entities, this.player, 3);
             if (hostiles.length > 0) {
                 this.startCombatWith(hostiles);
                 return;
             }
 
-            setTimeout(animate, 100);
+            setTimeout(animate, 180);
         };
         animate();
     }
@@ -351,7 +352,7 @@ class Game {
             this.renderer.centerOn(this.player.x, this.player.y);
             this.audio.playSfx('step');
             step++;
-            setTimeout(animate, 100);
+            setTimeout(animate, 180);
         };
         animate();
     }
@@ -572,6 +573,23 @@ class Game {
         const ent = this.getEntityAt(x, y);
         if (ent && (ent.type === 'enemy' || ent.type === 'npc')) return false;
         if (ent && ent.type === 'environment' && ent.blocking) return false;
+        // Block player tile for AI pathfinding
+        if (this.player && x === this.player.x && y === this.player.y) return false;
+        return true;
+    }
+
+    // Walkable check excluding a specific entity (for that entity's own movement)
+    isWalkableFor(x, y, entity) {
+        const tile = this.getTileAt(x, y);
+        if (!tile) return false;
+        if (this.currentArea.blocked.has(tile)) return false;
+        for (const e of this.entities) {
+            if (e === entity) continue;
+            if (e.x === x && e.y === y) {
+                if (e.type === 'enemy' || e.type === 'npc' || e.type === 'player') return false;
+                if (e.type === 'environment' && e.blocking) return false;
+            }
+        }
         return true;
     }
 
@@ -593,9 +611,52 @@ class Game {
         }
     }
 
+    toggleSneak() {
+        if (!this.player) return;
+        this.player.sneaking = !this.player.sneaking;
+        if (this.player.sneaking) {
+            this.addMessage('You begin sneaking.', 'skill');
+        } else {
+            this.addMessage('You stop sneaking.', 'info');
+        }
+        this.hud.update();
+    }
+
     startCombatWith(enemies) {
         const participants = [this.player, ...enemies];
+        this.showCombatBanner();
         this.combat.startCombat(participants);
+    }
+
+    showCombatBanner() {
+        // Create a cinematic "Combat Starts" banner
+        let banner = document.getElementById('combat-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'combat-banner';
+            document.getElementById('game-container').appendChild(banner);
+        }
+        banner.textContent = 'COMBAT';
+        banner.style.cssText = `
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scaleX(0);
+            font-family: 'Trebuchet MS', 'Arial Black', sans-serif; font-size: 64px; font-weight: bold;
+            color: #c44a3a; letter-spacing: 18px; text-shadow: 0 0 30px rgba(200,60,40,0.6), 0 2px 4px #000;
+            pointer-events: none; z-index: 100; white-space: nowrap; opacity: 0;
+            border-top: 3px solid #c44a3a; border-bottom: 3px solid #c44a3a;
+            padding: 10px 40px; background: rgba(0,0,0,0.7);
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        `;
+        // Trigger animation
+        requestAnimationFrame(() => {
+            banner.style.opacity = '1';
+            banner.style.transform = 'translate(-50%, -50%) scaleX(1)';
+        });
+        // Fade out after 1.5s
+        setTimeout(() => {
+            banner.style.opacity = '0';
+            banner.style.transform = 'translate(-50%, -50%) scaleX(1.1)';
+            setTimeout(() => banner.remove(), 400);
+        }, 1500);
     }
 
     // ---- Inventory Actions (called from UI) ----
@@ -887,6 +948,7 @@ class Game {
                 highlights: this.highlights,
                 hoverTile: this.hoverTile,
                 floatingTexts: this.floatingTexts,
+                inCombat: this.combat.active,
             };
 
             this.renderer.renderArea(
