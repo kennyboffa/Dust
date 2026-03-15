@@ -164,5 +164,6 @@ function createCaveArea() {
         transitions,
         playerStart: { x: 7, y: 18 },
         ambientColor: '#00000066',
+        sameEntryExit: true,
     };
 }

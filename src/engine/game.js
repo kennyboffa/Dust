@@ -606,7 +606,12 @@ class Game {
         let entryX = transition.targetX;
         let entryY = transition.targetY;
 
-        if (atTop) {
+        // For areas with same entry/exit (like caves), use the hardcoded target position
+        if (targetArea.sameEntryExit) {
+            // Use transition's targetX/targetY directly (or playerStart)
+            entryX = transition.targetX !== undefined ? transition.targetX : (targetArea.playerStart?.x || 1);
+            entryY = transition.targetY !== undefined ? transition.targetY : (targetArea.playerStart?.y || 1);
+        } else if (atTop) {
             // Exited north, enter from south
             entryY = tgtH - 2;
             entryX = Utils.clamp(Math.floor(tgtW / 2), 1, tgtW - 2);

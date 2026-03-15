@@ -363,7 +363,7 @@ class SpriteGenerator {
         const rgb = (arr, adj) => `rgb(${Math.max(0,Math.min(255,arr[0]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[1]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[2]+(adj||0)))|0})`;
         const rgba = (arr, a, adj) => `rgba(${Math.max(0,Math.min(255,arr[0]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[1]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[2]+(adj||0)))|0},${a})`;
 
-        const bob = (frame % 2 === 0) ? 0 : -0.5;
+        const bob = 0;
 
         // ---- LEGS ----
         const legW = 4 * sc, legH = 10 * sc;
@@ -812,7 +812,7 @@ class SpriteGenerator {
         const ctx = c.getContext('2d');
         const cx = w / 2, cy = h - 10;
         const rng = this.seededRandom(type.length * 500 + frame * 50);
-        const bob = (frame % 2 === 0) ? 0 : -0.5;
+        const bob = 0;
 
         if (type === 'rat') {
             // Giant mutant rat - detailed pre-rendered style
@@ -3272,7 +3272,7 @@ class IsometricRenderer {
 
         if (type === 'rat') {
             // Giant mutant rat - Fallout 2 style (larger, mangy, diseased)
-            const bob = Math.sin(t * 0.1) * 0.5 * z;
+            const bob = 0;
             // Body (darker, more mangy)
             ctx.fillStyle = '#423424';
             ctx.beginPath();
@@ -3336,7 +3336,7 @@ class IsometricRenderer {
 
         if (type === 'scorpion') {
             // Radscorpion - Fallout 2 style (armored, menacing)
-            const bob = Math.sin(t * 0.07) * 0.4 * z;
+            const bob = 0;
             // Body (darker carapace)
             ctx.fillStyle = '#4A2808';
             ctx.beginPath();
@@ -3467,7 +3467,7 @@ class IsometricRenderer {
 
         if (type === 'cave_spider') {
             // Giant cave spider - darker, more menacing
-            const bob = Math.sin(t * 0.12) * 0.4 * z;
+            const bob = 0;
             // Abdomen (darker)
             ctx.fillStyle = '#181418';
             ctx.beginPath();
@@ -3555,7 +3555,7 @@ class IsometricRenderer {
         const x = screen.x;
         const y = screen.y;
         const t = this.time;
-        const bob = Math.sin(t * 0.07) * 0.3 * z;
+        const bob = 0;
         const isMutant = type === 'mutant';
         const sc = isMutant ? 1.4 : 1;
 
