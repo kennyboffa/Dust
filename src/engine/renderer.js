@@ -2901,44 +2901,113 @@ class IsometricRenderer {
                 ctx.arc(cx + 3 * z, cy - z, 1.5 * z, 0, Math.PI * 2);
                 ctx.fill();
             }
+            // Nail heads
+            if (n2 > 0.5) {
+                ctx.fillStyle = 'rgba(60, 55, 45, 0.15)';
+                ctx.beginPath();
+                ctx.arc(cx - 4 * z, cy - 2 * z, 0.5 * z, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(cx + 5 * z, cy + z, 0.5 * z, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Worn/scuffed area
+            if (n3 > 0.65) {
+                ctx.fillStyle = `rgba(45, 32, 12, 0.08)`;
+                ctx.beginPath();
+                ctx.ellipse(cx + (n - 0.5) * 6, cy, 4 * z, 2 * z, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Dust and dirt in corners
+            if (n > 0.7) {
+                ctx.fillStyle = 'rgba(50, 40, 22, 0.1)';
+                ctx.beginPath();
+                ctx.arc(cx - tw * 0.3, cy - th * 0.3, 2 * z, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         if (type === 'door') {
-            // Heavy reinforced door - Fallout 2 style with metal bands
-            ctx.strokeStyle = 'rgba(20, 10, 0, 0.25)';
-            ctx.lineWidth = 0.7 * z;
-            // Vertical planks
-            for (let i = -1; i <= 1; i++) {
-                const dx = cx + i * 3.5 * z;
+            // Check if door is open (player is nearby)
+            const doorOpen = this._doorStates && this._doorStates[gx + ',' + gy];
+
+            if (doorOpen) {
+                // Open door: door swung to the side, just show frame/threshold
+                ctx.strokeStyle = 'rgba(55, 42, 20, 0.3)';
+                ctx.lineWidth = 1.2 * z;
+                // Door frame sides
                 ctx.beginPath();
-                ctx.moveTo(dx, cy - th * 0.7);
-                ctx.lineTo(dx, cy + th * 0.7);
+                ctx.moveTo(cx - tw * 0.35, cy - th * 0.5);
+                ctx.lineTo(cx - tw * 0.35, cy + th * 0.5);
                 ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx + tw * 0.35, cy - th * 0.5);
+                ctx.lineTo(cx + tw * 0.35, cy + th * 0.5);
+                ctx.stroke();
+                // Threshold worn mark
+                ctx.fillStyle = 'rgba(50, 38, 18, 0.12)';
+                ctx.fillRect(cx - tw * 0.3, cy - z, tw * 0.6, 2 * z);
+                // Swung door panel (thin, shown at angle against wall)
+                ctx.fillStyle = 'rgba(70, 48, 14, 0.25)';
+                ctx.fillRect(cx + tw * 0.3, cy - th * 0.5, 2 * z, th);
+            } else {
+                // Closed door: heavy reinforced door - Fallout 2 style
+                // Door frame
+                ctx.strokeStyle = 'rgba(40, 30, 12, 0.35)';
+                ctx.lineWidth = 1.5 * z;
+                ctx.beginPath();
+                ctx.moveTo(cx - tw * 0.35, cy - th * 0.7);
+                ctx.lineTo(cx - tw * 0.35, cy + th * 0.7);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx + tw * 0.35, cy - th * 0.7);
+                ctx.lineTo(cx + tw * 0.35, cy + th * 0.7);
+                ctx.stroke();
+                // Lintel (top frame)
+                ctx.beginPath();
+                ctx.moveTo(cx - tw * 0.4, cy - th * 0.7);
+                ctx.lineTo(cx + tw * 0.4, cy - th * 0.7);
+                ctx.stroke();
+
+                // Door panel
+                ctx.fillStyle = 'rgba(70, 48, 14, 0.4)';
+                ctx.fillRect(cx - tw * 0.3, cy - th * 0.65, tw * 0.6, th * 1.3);
+
+                // Vertical planks
+                ctx.strokeStyle = 'rgba(20, 10, 0, 0.25)';
+                ctx.lineWidth = 0.7 * z;
+                for (let i = -1; i <= 1; i++) {
+                    const dx = cx + i * 3.5 * z;
+                    ctx.beginPath();
+                    ctx.moveTo(dx, cy - th * 0.6);
+                    ctx.lineTo(dx, cy + th * 0.6);
+                    ctx.stroke();
+                }
+                // Horizontal metal bands
+                ctx.strokeStyle = 'rgba(60,55,45,0.3)';
+                ctx.lineWidth = 1.2 * z;
+                ctx.beginPath();
+                ctx.moveTo(cx - tw * 0.3, cy - 2 * z);
+                ctx.lineTo(cx + tw * 0.3, cy - 2 * z);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx - tw * 0.3, cy + 2 * z);
+                ctx.lineTo(cx + tw * 0.3, cy + 2 * z);
+                ctx.stroke();
+                // Handle/knob
+                ctx.fillStyle = '#554433';
+                ctx.beginPath();
+                ctx.arc(cx + 4 * z, cy, 1.4 * z, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#332211';
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+                // Rust on handle
+                ctx.fillStyle = 'rgba(100,50,20,0.15)';
+                ctx.beginPath();
+                ctx.arc(cx + 4 * z, cy + 0.5 * z, z, 0, Math.PI * 2);
+                ctx.fill();
             }
-            // Horizontal metal bands
-            ctx.strokeStyle = `rgba(60,55,45,0.3)`;
-            ctx.lineWidth = 1.2 * z;
-            ctx.beginPath();
-            ctx.moveTo(cx - tw * 0.3, cy - 2 * z);
-            ctx.lineTo(cx + tw * 0.3, cy - 2 * z);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx - tw * 0.3, cy + 2 * z);
-            ctx.lineTo(cx + tw * 0.3, cy + 2 * z);
-            ctx.stroke();
-            // Handle/knob
-            ctx.fillStyle = '#554433';
-            ctx.beginPath();
-            ctx.arc(cx + 4 * z, cy, 1.4 * z, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#332211';
-            ctx.lineWidth = 0.6;
-            ctx.stroke();
-            // Rust on handle
-            ctx.fillStyle = `rgba(100,50,20,0.15)`;
-            ctx.beginPath();
-            ctx.arc(cx + 4 * z, cy + 0.5 * z, z, 0, Math.PI * 2);
-            ctx.fill();
         }
 
         if (type === 'cave_floor') {
@@ -4188,6 +4257,22 @@ class IsometricRenderer {
 
         const map = area.map;
         const heights = area.heights;
+
+        // Update door states: doors auto-open when player is adjacent
+        this._doorStates = {};
+        if (playerPos) {
+            for (let y = 0; y < map.length; y++) {
+                for (let x = 0; x < map[0].length; x++) {
+                    if (map[y][x] === 'door') {
+                        const dist = Math.abs(x - playerPos.x) + Math.abs(y - playerPos.y);
+                        if (dist <= 1) {
+                            this._doorStates[x + ',' + y] = true;
+                        }
+                    }
+                }
+            }
+        }
+
         const renderList = [];
 
         for (let y = 0; y < map.length; y++) {

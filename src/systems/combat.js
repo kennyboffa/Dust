@@ -181,7 +181,15 @@ class CombatSystem {
             'combat'
         );
 
-        this.game.audio.playSfx('hit');
+        // Play appropriate attack sound
+        const isRanged = weapon && weapon.type === 'ranged';
+        if (isCrit) {
+            this.game.audio.playSfx('critical');
+        } else if (isRanged) {
+            this.game.audio.playSfx('gunshot');
+        } else {
+            this.game.audio.playSfx('hit');
+        }
         this.game.addFloatingText(
             defender.x, defender.y,
             `${isCrit ? 'CRIT! ' : ''}-${result.damage}`,

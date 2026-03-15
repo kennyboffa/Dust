@@ -95,7 +95,7 @@ class InventorySystem {
                     }
                     CharacterSystem.heal(char, healAmt);
                     game.addMessage(`Used ${item.name}. Healed ${healAmt} HP.`, 'info');
-                    game.audio.playSfx('pickup');
+                    game.audio.playSfx('heal');
                     used = true;
                 } else {
                     game.addMessage('Already at full health.', 'info');

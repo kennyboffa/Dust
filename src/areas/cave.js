@@ -102,7 +102,7 @@ function createCaveArea() {
         'crate'
     ));
 
-    entities.push(CharacterSystem.createContainer(
+    const bossChest = CharacterSystem.createContainer(
         'cave_boss_chest', 'Ancient Strongbox', 9, 17,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
@@ -111,9 +111,13 @@ function createCaveArea() {
             { ...ItemDatabase.metal_armor, quantity: 1 },
             { ...ItemDatabase.bottle_caps, quantity: 150 },
             { ...ItemDatabase.old_map, quantity: 1 },
+            { ...ItemDatabase.electronic_lockpick, quantity: 1 },
         ],
         'chest'
-    ));
+    );
+    bossChest.locked = true;
+    bossChest.lockDifficulty = 55;
+    entities.push(bossChest);
 
     // Environmental objects - cave decorations
     const env = (id, sprite, x, y, name, blocking = true) => ({

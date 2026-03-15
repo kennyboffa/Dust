@@ -111,15 +111,32 @@ function createVillageArea() {
         'crate'
     ));
 
-    entities.push(CharacterSystem.createContainer(
+    const villageChest = CharacterSystem.createContainer(
         'village_chest', 'Old Chest', 20, 5,
         [
             { ...ItemDatabase.knife, quantity: 1 },
             { ...ItemDatabase.ragged_clothes, quantity: 1 },
             { ...ItemDatabase.nuka_cola, quantity: 2 },
+            { ...ItemDatabase.lockpick, quantity: 2 },
         ],
         'chest'
-    ));
+    );
+    entities.push(villageChest);
+
+    // Locked storage in merchant's building
+    const lockedSupply = CharacterSystem.createContainer(
+        'village_locked_chest', 'Merchant\'s Lockbox', 21, 16,
+        [
+            { ...ItemDatabase.stimpak, quantity: 2 },
+            { ...ItemDatabase.bottle_caps, quantity: 100 },
+            { ...ItemDatabase.lockpick, quantity: 3 },
+            { ...ItemDatabase.ammo_9mm, quantity: 10 },
+        ],
+        'chest'
+    );
+    lockedSupply.locked = true;
+    lockedSupply.lockDifficulty = 40;
+    entities.push(lockedSupply);
 
     // Environmental objects - trees, signposts, etc.
     const env = (id, sprite, x, y, name, blocking = true) => ({

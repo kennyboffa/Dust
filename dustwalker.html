@@ -4419,44 +4419,113 @@ class IsometricRenderer {
                 ctx.arc(cx + 3 * z, cy - z, 1.5 * z, 0, Math.PI * 2);
                 ctx.fill();
             }
+            // Nail heads
+            if (n2 > 0.5) {
+                ctx.fillStyle = 'rgba(60, 55, 45, 0.15)';
+                ctx.beginPath();
+                ctx.arc(cx - 4 * z, cy - 2 * z, 0.5 * z, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(cx + 5 * z, cy + z, 0.5 * z, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Worn/scuffed area
+            if (n3 > 0.65) {
+                ctx.fillStyle = `rgba(45, 32, 12, 0.08)`;
+                ctx.beginPath();
+                ctx.ellipse(cx + (n - 0.5) * 6, cy, 4 * z, 2 * z, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Dust and dirt in corners
+            if (n > 0.7) {
+                ctx.fillStyle = 'rgba(50, 40, 22, 0.1)';
+                ctx.beginPath();
+                ctx.arc(cx - tw * 0.3, cy - th * 0.3, 2 * z, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         if (type === 'door') {
-            // Heavy reinforced door - Fallout 2 style with metal bands
-            ctx.strokeStyle = 'rgba(20, 10, 0, 0.25)';
-            ctx.lineWidth = 0.7 * z;
-            // Vertical planks
-            for (let i = -1; i <= 1; i++) {
-                const dx = cx + i * 3.5 * z;
+            // Check if door is open (player is nearby)
+            const doorOpen = this._doorStates && this._doorStates[gx + ',' + gy];
+
+            if (doorOpen) {
+                // Open door: door swung to the side, just show frame/threshold
+                ctx.strokeStyle = 'rgba(55, 42, 20, 0.3)';
+                ctx.lineWidth = 1.2 * z;
+                // Door frame sides
                 ctx.beginPath();
-                ctx.moveTo(dx, cy - th * 0.7);
-                ctx.lineTo(dx, cy + th * 0.7);
+                ctx.moveTo(cx - tw * 0.35, cy - th * 0.5);
+                ctx.lineTo(cx - tw * 0.35, cy + th * 0.5);
                 ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx + tw * 0.35, cy - th * 0.5);
+                ctx.lineTo(cx + tw * 0.35, cy + th * 0.5);
+                ctx.stroke();
+                // Threshold worn mark
+                ctx.fillStyle = 'rgba(50, 38, 18, 0.12)';
+                ctx.fillRect(cx - tw * 0.3, cy - z, tw * 0.6, 2 * z);
+                // Swung door panel (thin, shown at angle against wall)
+                ctx.fillStyle = 'rgba(70, 48, 14, 0.25)';
+                ctx.fillRect(cx + tw * 0.3, cy - th * 0.5, 2 * z, th);
+            } else {
+                // Closed door: heavy reinforced door - Fallout 2 style
+                // Door frame
+                ctx.strokeStyle = 'rgba(40, 30, 12, 0.35)';
+                ctx.lineWidth = 1.5 * z;
+                ctx.beginPath();
+                ctx.moveTo(cx - tw * 0.35, cy - th * 0.7);
+                ctx.lineTo(cx - tw * 0.35, cy + th * 0.7);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx + tw * 0.35, cy - th * 0.7);
+                ctx.lineTo(cx + tw * 0.35, cy + th * 0.7);
+                ctx.stroke();
+                // Lintel (top frame)
+                ctx.beginPath();
+                ctx.moveTo(cx - tw * 0.4, cy - th * 0.7);
+                ctx.lineTo(cx + tw * 0.4, cy - th * 0.7);
+                ctx.stroke();
+
+                // Door panel
+                ctx.fillStyle = 'rgba(70, 48, 14, 0.4)';
+                ctx.fillRect(cx - tw * 0.3, cy - th * 0.65, tw * 0.6, th * 1.3);
+
+                // Vertical planks
+                ctx.strokeStyle = 'rgba(20, 10, 0, 0.25)';
+                ctx.lineWidth = 0.7 * z;
+                for (let i = -1; i <= 1; i++) {
+                    const dx = cx + i * 3.5 * z;
+                    ctx.beginPath();
+                    ctx.moveTo(dx, cy - th * 0.6);
+                    ctx.lineTo(dx, cy + th * 0.6);
+                    ctx.stroke();
+                }
+                // Horizontal metal bands
+                ctx.strokeStyle = 'rgba(60,55,45,0.3)';
+                ctx.lineWidth = 1.2 * z;
+                ctx.beginPath();
+                ctx.moveTo(cx - tw * 0.3, cy - 2 * z);
+                ctx.lineTo(cx + tw * 0.3, cy - 2 * z);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx - tw * 0.3, cy + 2 * z);
+                ctx.lineTo(cx + tw * 0.3, cy + 2 * z);
+                ctx.stroke();
+                // Handle/knob
+                ctx.fillStyle = '#554433';
+                ctx.beginPath();
+                ctx.arc(cx + 4 * z, cy, 1.4 * z, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#332211';
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+                // Rust on handle
+                ctx.fillStyle = 'rgba(100,50,20,0.15)';
+                ctx.beginPath();
+                ctx.arc(cx + 4 * z, cy + 0.5 * z, z, 0, Math.PI * 2);
+                ctx.fill();
             }
-            // Horizontal metal bands
-            ctx.strokeStyle = `rgba(60,55,45,0.3)`;
-            ctx.lineWidth = 1.2 * z;
-            ctx.beginPath();
-            ctx.moveTo(cx - tw * 0.3, cy - 2 * z);
-            ctx.lineTo(cx + tw * 0.3, cy - 2 * z);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx - tw * 0.3, cy + 2 * z);
-            ctx.lineTo(cx + tw * 0.3, cy + 2 * z);
-            ctx.stroke();
-            // Handle/knob
-            ctx.fillStyle = '#554433';
-            ctx.beginPath();
-            ctx.arc(cx + 4 * z, cy, 1.4 * z, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#332211';
-            ctx.lineWidth = 0.6;
-            ctx.stroke();
-            // Rust on handle
-            ctx.fillStyle = `rgba(100,50,20,0.15)`;
-            ctx.beginPath();
-            ctx.arc(cx + 4 * z, cy + 0.5 * z, z, 0, Math.PI * 2);
-            ctx.fill();
         }
 
         if (type === 'cave_floor') {
@@ -5706,6 +5775,22 @@ class IsometricRenderer {
 
         const map = area.map;
         const heights = area.heights;
+
+        // Update door states: doors auto-open when player is adjacent
+        this._doorStates = {};
+        if (playerPos) {
+            for (let y = 0; y < map.length; y++) {
+                for (let x = 0; x < map[0].length; x++) {
+                    if (map[y][x] === 'door') {
+                        const dist = Math.abs(x - playerPos.x) + Math.abs(y - playerPos.y);
+                        if (dist <= 1) {
+                            this._doorStates[x + ',' + y] = true;
+                        }
+                    }
+                }
+            }
+        }
+
         const renderList = [];
 
         for (let y = 0; y < map.length; y++) {
@@ -6194,106 +6279,401 @@ class InputHandler {
 // ==== src/engine/audio.js ====
 // ============================================
 // Dustwalker - Audio Manager (Web Audio API)
+// Moody ambient music + improved sound effects
 // ============================================
 
 class AudioManager {
     constructor() {
         this.ctx = null;
         this.enabled = true;
-        this.musicVolume = 0.3;
+        this.musicVolume = 0.25;
         this.sfxVolume = 0.5;
         this.currentMusic = null;
+        this.musicNodes = [];
+        this.ambientArea = null;
+        this._windNode = null;
+        this._windGain = null;
     }
 
     init() {
         try {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            // Master compressor to prevent clipping
+            this.compressor = this.ctx.createDynamicsCompressor();
+            this.compressor.threshold.value = -20;
+            this.compressor.knee.value = 10;
+            this.compressor.ratio.value = 4;
+            this.compressor.connect(this.ctx.destination);
+
+            // Music bus
+            this.musicBus = this.ctx.createGain();
+            this.musicBus.gain.value = this.musicVolume;
+            this.musicBus.connect(this.compressor);
+
+            // SFX bus
+            this.sfxBus = this.ctx.createGain();
+            this.sfxBus.gain.value = this.sfxVolume;
+            this.sfxBus.connect(this.compressor);
+
+            // Reverb for atmospheric depth
+            this.reverb = this._createReverb(2.0, 0.3);
+            this.reverbBus = this.ctx.createGain();
+            this.reverbBus.gain.value = 0.15;
+            this.reverbBus.connect(this.reverb);
+            this.reverb.connect(this.compressor);
         } catch (e) {
             this.enabled = false;
         }
     }
 
-    // Generate a simple tone-based sound effect
-    playSfx(type) {
+    _createReverb(duration, decay) {
+        const rate = this.ctx.sampleRate;
+        const length = rate * duration;
+        const impulse = this.ctx.createBuffer(2, length, rate);
+        for (let ch = 0; ch < 2; ch++) {
+            const data = impulse.getChannelData(ch);
+            for (let i = 0; i < length; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay * 10);
+            }
+        }
+        const conv = this.ctx.createConvolver();
+        conv.buffer = impulse;
+        return conv;
+    }
+
+    // ---- NOISE GENERATOR (for wind, ambience) ----
+    _createNoise(duration) {
+        const rate = this.ctx.sampleRate;
+        const length = rate * duration;
+        const buf = this.ctx.createBuffer(1, length, rate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < length; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        return buf;
+    }
+
+    // ---- AMBIENT MUSIC ----
+    // Dark, droning ambient music that shifts based on area
+
+    startMusic(areaId) {
         if (!this.enabled || !this.ctx) return;
+        // Resume AudioContext if suspended (browser autoplay policy)
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        if (this.ambientArea === areaId) return;
+        this.stopMusic();
+        this.ambientArea = areaId;
 
         const now = this.ctx.currentTime;
+
+        // Base drone frequencies per area mood
+        const moods = {
+            'village': { baseFreq: 55, chordFreqs: [55, 82.4, 110], tempo: 0.02, brightness: 0.3, windVol: 0.04 },
+            'wasteland': { baseFreq: 41.2, chordFreqs: [41.2, 61.7, 82.4], tempo: 0.015, brightness: 0.15, windVol: 0.08 },
+            'cave': { baseFreq: 36.7, chordFreqs: [36.7, 55, 73.4], tempo: 0.01, brightness: 0.1, windVol: 0.02 },
+            'encounter': { baseFreq: 41.2, chordFreqs: [41.2, 55, 73.4], tempo: 0.018, brightness: 0.2, windVol: 0.06 },
+        };
+        const mood = moods[areaId] || moods['wasteland'];
+
+        // Layer 1: Deep bass drone (sine + sub-sine)
+        const drone1 = this.ctx.createOscillator();
+        drone1.type = 'sine';
+        drone1.frequency.value = mood.baseFreq;
+        const drone1Gain = this.ctx.createGain();
+        drone1Gain.gain.value = 0;
+        drone1Gain.gain.linearRampToValueAtTime(0.25, now + 4);
+        drone1.connect(drone1Gain);
+        drone1Gain.connect(this.musicBus);
+        drone1.start(now);
+
+        // Sub-bass
+        const subDrone = this.ctx.createOscillator();
+        subDrone.type = 'sine';
+        subDrone.frequency.value = mood.baseFreq / 2;
+        const subGain = this.ctx.createGain();
+        subGain.gain.value = 0;
+        subGain.gain.linearRampToValueAtTime(0.12, now + 3);
+        subDrone.connect(subGain);
+        subGain.connect(this.musicBus);
+        subDrone.start(now);
+
+        // Layer 2: Slow-modulated pad chord (triangle waves for warmth)
+        const padNodes = [];
+        for (let i = 0; i < mood.chordFreqs.length; i++) {
+            const osc = this.ctx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.value = mood.chordFreqs[i] * 2;
+            // Slow vibrato
+            const lfo = this.ctx.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.1 + i * 0.05;
+            const lfoGain = this.ctx.createGain();
+            lfoGain.gain.value = mood.chordFreqs[i] * 0.01;
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+            lfo.start(now);
+
+            const padGain = this.ctx.createGain();
+            padGain.gain.value = 0;
+            padGain.gain.linearRampToValueAtTime(0.06 * mood.brightness, now + 5 + i);
+            osc.connect(padGain);
+            padGain.connect(this.musicBus);
+            padGain.connect(this.reverbBus);
+            osc.start(now);
+            padNodes.push({ osc, lfo, gain: padGain });
+        }
+
+        // Layer 3: Filtered noise (wind/atmosphere)
+        const noiseBuf = this._createNoise(4);
+        const windSrc = this.ctx.createBufferSource();
+        windSrc.buffer = noiseBuf;
+        windSrc.loop = true;
+        const windFilter = this.ctx.createBiquadFilter();
+        windFilter.type = 'lowpass';
+        windFilter.frequency.value = 400;
+        windFilter.Q.value = 1;
+        // Modulate wind filter slowly
+        const windLfo = this.ctx.createOscillator();
+        windLfo.type = 'sine';
+        windLfo.frequency.value = 0.08;
+        const windLfoGain = this.ctx.createGain();
+        windLfoGain.gain.value = 200;
+        windLfo.connect(windLfoGain);
+        windLfoGain.connect(windFilter.frequency);
+        windLfo.start(now);
+
+        this._windGain = this.ctx.createGain();
+        this._windGain.gain.value = 0;
+        this._windGain.gain.linearRampToValueAtTime(mood.windVol, now + 3);
+        windSrc.connect(windFilter);
+        windFilter.connect(this._windGain);
+        this._windGain.connect(this.musicBus);
+        this._windGain.connect(this.reverbBus);
+        windSrc.start(now);
+        this._windNode = windSrc;
+
+        // Layer 4: Occasional distant metallic pings (interval-based)
+        this._pingInterval = setInterval(() => {
+            if (!this.enabled || !this.ctx) return;
+            if (Math.random() > 0.3) return; // Only 30% chance each tick
+            const t = this.ctx.currentTime;
+            const pingOsc = this.ctx.createOscillator();
+            pingOsc.type = 'sine';
+            const pingFreq = 800 + Math.random() * 1200;
+            pingOsc.frequency.setValueAtTime(pingFreq, t);
+            pingOsc.frequency.exponentialRampToValueAtTime(pingFreq * 0.7, t + 1.5);
+            const pingGain = this.ctx.createGain();
+            pingGain.gain.setValueAtTime(0.015 * mood.brightness, t);
+            pingGain.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+            pingOsc.connect(pingGain);
+            pingGain.connect(this.musicBus);
+            pingGain.connect(this.reverbBus);
+            pingOsc.start(t);
+            pingOsc.stop(t + 1.5);
+        }, 4000 + Math.random() * 6000);
+
+        this.musicNodes = [
+            { osc: drone1, gain: drone1Gain },
+            { osc: subDrone, gain: subGain },
+            ...padNodes.map(p => ({ osc: p.osc, gain: p.gain, lfo: p.lfo })),
+            { src: windSrc, gain: this._windGain, lfo: windLfo }
+        ];
+    }
+
+    stopMusic() {
+        if (this._pingInterval) {
+            clearInterval(this._pingInterval);
+            this._pingInterval = null;
+        }
+        const now = this.ctx ? this.ctx.currentTime : 0;
+        for (const node of this.musicNodes) {
+            try {
+                if (node.gain) node.gain.gain.linearRampToValueAtTime(0.001, now + 1);
+                if (node.osc) { node.osc.stop(now + 1.2); }
+                if (node.lfo) { node.lfo.stop(now + 1.2); }
+                if (node.src) { node.src.stop(now + 1.2); }
+            } catch (e) { /* already stopped */ }
+        }
+        this.musicNodes = [];
+        this.ambientArea = null;
+        this._windNode = null;
+        this._windGain = null;
+    }
+
+    // ---- SOUND EFFECTS ----
+
+    _playTone(options) {
+        const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
+        osc.type = options.type || 'sine';
         const gain = this.ctx.createGain();
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
+        if (options.reverb) gain.connect(this.reverbBus);
+
+        if (options.freq) osc.frequency.setValueAtTime(options.freq, now);
+        if (options.freqEnd) osc.frequency.exponentialRampToValueAtTime(options.freqEnd, now + options.duration);
+        if (options.freqSteps) {
+            for (const [t, f] of options.freqSteps) {
+                osc.frequency.setValueAtTime(f, now + t);
+            }
+        }
+        gain.gain.setValueAtTime(options.vol || 0.3, now);
+        if (options.attack) {
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(options.vol || 0.3, now + options.attack);
+        }
+        gain.gain.exponentialRampToValueAtTime(0.001, now + options.duration);
+        osc.start(now);
+        osc.stop(now + options.duration + 0.01);
+        return osc;
+    }
+
+    _playNoise(options) {
+        const now = this.ctx.currentTime;
+        const buf = this._createNoise(options.duration);
+        const src = this.ctx.createBufferSource();
+        src.buffer = buf;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = options.filterType || 'lowpass';
+        filter.frequency.value = options.filterFreq || 2000;
+        const gain = this.ctx.createGain();
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxBus);
+        if (options.reverb) gain.connect(this.reverbBus);
+        gain.gain.setValueAtTime(options.vol || 0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + options.duration);
+        src.start(now);
+        src.stop(now + options.duration + 0.01);
+    }
+
+    playSfx(type) {
+        if (!this.enabled || !this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
 
         switch (type) {
             case 'click':
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-                gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
+                this._playTone({ freq: 1200, freqEnd: 600, duration: 0.06, vol: 0.15, type: 'sine' });
                 break;
-            case 'hit':
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(200, now);
-                osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
-                gain.gain.setValueAtTime(this.sfxVolume * 0.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
+
+            case 'hit': {
+                // Meaty impact: low thud + crunch noise
+                this._playTone({ freq: 120, freqEnd: 40, duration: 0.15, vol: 0.35, type: 'sawtooth' });
+                this._playNoise({ duration: 0.1, filterFreq: 800, vol: 0.15 });
                 break;
-            case 'miss':
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
-                gain.gain.setValueAtTime(this.sfxVolume * 0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-                osc.start(now);
-                osc.stop(now + 0.2);
+            }
+
+            case 'miss': {
+                // Whoosh: filtered noise sweep
+                this._playNoise({ duration: 0.25, filterType: 'bandpass', filterFreq: 1500, vol: 0.12 });
+                this._playTone({ freq: 250, freqEnd: 80, duration: 0.2, vol: 0.08, type: 'sine' });
                 break;
-            case 'death':
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.5);
-                gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                osc.start(now);
-                osc.stop(now + 0.5);
+            }
+
+            case 'death': {
+                // Dramatic death: descending tone + noise burst
+                this._playTone({ freq: 300, freqEnd: 25, duration: 0.6, vol: 0.3, type: 'sawtooth', reverb: true });
+                this._playTone({ freq: 200, freqEnd: 20, duration: 0.8, vol: 0.15, type: 'sine', reverb: true });
+                this._playNoise({ duration: 0.3, filterFreq: 600, vol: 0.12 });
                 break;
-            case 'levelup':
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.setValueAtTime(500, now + 0.1);
-                osc.frequency.setValueAtTime(600, now + 0.2);
-                osc.frequency.setValueAtTime(800, now + 0.3);
-                gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                osc.start(now);
-                osc.stop(now + 0.5);
+            }
+
+            case 'levelup': {
+                // Triumphant ascending tones
+                this._playTone({ freqSteps: [[0, 400], [0.12, 500], [0.24, 600], [0.36, 800]], duration: 0.6, vol: 0.2, type: 'sine', reverb: true });
+                this._playTone({ freqSteps: [[0.05, 200], [0.17, 250], [0.29, 300], [0.41, 400]], duration: 0.65, vol: 0.1, type: 'triangle', reverb: true });
                 break;
-            case 'pickup':
-                osc.frequency.setValueAtTime(600, now);
-                osc.frequency.exponentialRampToValueAtTime(900, now + 0.08);
-                gain.gain.setValueAtTime(this.sfxVolume * 0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
+            }
+
+            case 'pickup': {
+                // Quick upward blip
+                this._playTone({ freq: 700, freqEnd: 1100, duration: 0.08, vol: 0.15, type: 'sine' });
+                this._playTone({ freq: 350, freqEnd: 550, duration: 0.06, vol: 0.08, type: 'triangle' });
                 break;
-            case 'door':
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.setValueAtTime(200, now + 0.1);
-                gain.gain.setValueAtTime(this.sfxVolume * 0.15, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-                osc.start(now);
-                osc.stop(now + 0.2);
+            }
+
+            case 'door': {
+                // Heavy door creak + thud (area transition)
+                this._playTone({ freq: 80, freqEnd: 60, duration: 0.3, vol: 0.2, type: 'square' });
+                this._playNoise({ duration: 0.15, filterFreq: 400, vol: 0.08 });
+                this._playTone({ freq: 150, freqEnd: 200, duration: 0.2, vol: 0.1, type: 'sawtooth', reverb: true });
                 break;
-            case 'step':
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(100 + Math.random() * 50, now);
-                gain.gain.setValueAtTime(this.sfxVolume * 0.05, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-                osc.start(now);
-                osc.stop(now + 0.05);
+            }
+
+            case 'door_open': {
+                // Creaky door opening - lighter than transition door
+                this._playTone({ freq: 200, freqEnd: 350, duration: 0.2, vol: 0.08, type: 'sawtooth' });
+                this._playNoise({ duration: 0.1, filterFreq: 1200, vol: 0.04 });
                 break;
+            }
+
+            case 'step': {
+                // Soft footstep with slight crunch
+                const f = 80 + Math.random() * 40;
+                this._playTone({ freq: f, freqEnd: f * 0.7, duration: 0.04, vol: 0.04, type: 'triangle' });
+                this._playNoise({ duration: 0.03, filterFreq: 2000, vol: 0.02 });
+                break;
+            }
+
+            case 'locked': {
+                // Rattling lock - can't open
+                this._playTone({ freq: 300, freqEnd: 250, duration: 0.08, vol: 0.15, type: 'square' });
+                setTimeout(() => {
+                    this._playTone({ freq: 280, freqEnd: 230, duration: 0.08, vol: 0.12, type: 'square' });
+                }, 100);
+                setTimeout(() => {
+                    this._playTone({ freq: 200, freqEnd: 150, duration: 0.1, vol: 0.1, type: 'square' });
+                }, 200);
+                break;
+            }
+
+            case 'unlock': {
+                // Satisfying lock click-open
+                this._playTone({ freq: 1500, freqEnd: 800, duration: 0.05, vol: 0.12, type: 'sine' });
+                setTimeout(() => {
+                    this._playTone({ freq: 2000, freqEnd: 1200, duration: 0.04, vol: 0.1, type: 'sine' });
+                }, 60);
+                this._playNoise({ duration: 0.08, filterFreq: 3000, vol: 0.06 });
+                break;
+            }
+
+            case 'combat_start': {
+                // Tense combat initiation
+                this._playTone({ freq: 100, freqEnd: 60, duration: 0.4, vol: 0.2, type: 'sawtooth', reverb: true });
+                this._playTone({ freq: 200, freqEnd: 300, duration: 0.3, vol: 0.1, type: 'triangle', reverb: true });
+                break;
+            }
+
+            case 'heal': {
+                // Soft healing sound
+                this._playTone({ freq: 500, freqEnd: 700, duration: 0.3, vol: 0.12, type: 'sine', reverb: true });
+                this._playTone({ freq: 250, freqEnd: 350, duration: 0.25, vol: 0.06, type: 'triangle', reverb: true });
+                break;
+            }
+
+            case 'critical': {
+                // Devastating critical hit
+                this._playTone({ freq: 150, freqEnd: 30, duration: 0.3, vol: 0.4, type: 'sawtooth' });
+                this._playNoise({ duration: 0.2, filterFreq: 1200, vol: 0.2 });
+                this._playTone({ freq: 60, freqEnd: 20, duration: 0.4, vol: 0.2, type: 'sine', reverb: true });
+                break;
+            }
+
+            case 'gunshot': {
+                // Sharp gunshot crack
+                this._playNoise({ duration: 0.08, filterFreq: 4000, vol: 0.3 });
+                this._playTone({ freq: 400, freqEnd: 100, duration: 0.12, vol: 0.25, type: 'sawtooth' });
+                this._playNoise({ duration: 0.3, filterFreq: 800, vol: 0.05, reverb: true });
+                break;
+            }
+
+            case 'error': {
+                // UI error buzz
+                this._playTone({ freq: 200, freqEnd: 150, duration: 0.15, vol: 0.12, type: 'square' });
+                break;
+            }
         }
     }
 }
@@ -6769,7 +7149,15 @@ class CombatSystem {
             'combat'
         );
 
-        this.game.audio.playSfx('hit');
+        // Play appropriate attack sound
+        const isRanged = weapon && weapon.type === 'ranged';
+        if (isCrit) {
+            this.game.audio.playSfx('critical');
+        } else if (isRanged) {
+            this.game.audio.playSfx('gunshot');
+        } else {
+            this.game.audio.playSfx('hit');
+        }
         this.game.addFloatingText(
             defender.x, defender.y,
             `${isCrit ? 'CRIT! ' : ''}-${result.damage}`,
@@ -7012,7 +7400,7 @@ class InventorySystem {
                     }
                     CharacterSystem.heal(char, healAmt);
                     game.addMessage(`Used ${item.name}. Healed ${healAmt} HP.`, 'info');
-                    game.audio.playSfx('pickup');
+                    game.audio.playSfx('heal');
                     used = true;
                 } else {
                     game.addMessage('Already at full health.', 'info');
@@ -7560,6 +7948,16 @@ const ItemDatabase = {
     },
 
     // ---- MISC / QUEST ----
+    lockpick: {
+        id: 'lockpick', name: 'Lockpick', type: 'misc',
+        stackable: true, weight: 0.1, value: 15,
+        desc: 'A thin metal pick for opening locks. Consumed on use.',
+    },
+    electronic_lockpick: {
+        id: 'electronic_lockpick', name: 'Electronic Lockpick', type: 'misc',
+        stackable: true, weight: 0.5, value: 80,
+        desc: 'A pre-war electronic lockpicking device. +30 to lockpick skill. Not consumed.',
+    },
     bottle_caps: {
         id: 'bottle_caps', name: 'Bottle Caps', type: 'misc',
         stackable: true, weight: 0, value: 1,
@@ -8685,15 +9083,32 @@ function createVillageArea() {
         'crate'
     ));
 
-    entities.push(CharacterSystem.createContainer(
+    const villageChest = CharacterSystem.createContainer(
         'village_chest', 'Old Chest', 20, 5,
         [
             { ...ItemDatabase.knife, quantity: 1 },
             { ...ItemDatabase.ragged_clothes, quantity: 1 },
             { ...ItemDatabase.nuka_cola, quantity: 2 },
+            { ...ItemDatabase.lockpick, quantity: 2 },
         ],
         'chest'
-    ));
+    );
+    entities.push(villageChest);
+
+    // Locked storage in merchant's building
+    const lockedSupply = CharacterSystem.createContainer(
+        'village_locked_chest', 'Merchant\'s Lockbox', 21, 16,
+        [
+            { ...ItemDatabase.stimpak, quantity: 2 },
+            { ...ItemDatabase.bottle_caps, quantity: 100 },
+            { ...ItemDatabase.lockpick, quantity: 3 },
+            { ...ItemDatabase.ammo_9mm, quantity: 10 },
+        ],
+        'chest'
+    );
+    lockedSupply.locked = true;
+    lockedSupply.lockDifficulty = 40;
+    entities.push(lockedSupply);
 
     // Environmental objects - trees, signposts, etc.
     const env = (id, sprite, x, y, name, blocking = true) => ({
@@ -8847,7 +9262,7 @@ function createCaveArea() {
         'crate'
     ));
 
-    entities.push(CharacterSystem.createContainer(
+    const bossChest = CharacterSystem.createContainer(
         'cave_boss_chest', 'Ancient Strongbox', 9, 17,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
@@ -8856,9 +9271,13 @@ function createCaveArea() {
             { ...ItemDatabase.metal_armor, quantity: 1 },
             { ...ItemDatabase.bottle_caps, quantity: 150 },
             { ...ItemDatabase.old_map, quantity: 1 },
+            { ...ItemDatabase.electronic_lockpick, quantity: 1 },
         ],
         'chest'
-    ));
+    );
+    bossChest.locked = true;
+    bossChest.lockDifficulty = 55;
+    entities.push(bossChest);
 
     // Environmental objects - cave decorations
     const env = (id, sprite, x, y, name, blocking = true) => ({
@@ -9002,7 +9421,7 @@ function createWastelandArea() {
         'crate'
     ));
 
-    entities.push(CharacterSystem.createContainer(
+    const warlordChest = CharacterSystem.createContainer(
         'raider_main_chest', 'Warlord\'s Strongbox', 13, 14,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
@@ -9013,7 +9432,25 @@ function createWastelandArea() {
             { ...ItemDatabase.lucky_charm, quantity: 1 },
         ],
         'chest'
-    ));
+    );
+    warlordChest.locked = true;
+    warlordChest.lockDifficulty = 65;
+    entities.push(warlordChest);
+
+    // Locked ammo crate in raider outpost
+    const lockedAmmo = CharacterSystem.createContainer(
+        'raider_locked_ammo', 'Locked Ammo Box', 16, 8,
+        [
+            { ...ItemDatabase.ammo_9mm, quantity: 24 },
+            { ...ItemDatabase.ammo_12ga, quantity: 12 },
+            { ...ItemDatabase.ammo_308, quantity: 8 },
+            { ...ItemDatabase.lockpick, quantity: 2 },
+        ],
+        'crate'
+    );
+    lockedAmmo.locked = true;
+    lockedAmmo.lockDifficulty = 45;
+    entities.push(lockedAmmo);
 
     // Rubble / old structure remains
     entities.push(CharacterSystem.createContainer(
@@ -9983,7 +10420,11 @@ class Game {
                 return;
             }
             if (target.type === 'container' && dist <= 2) {
-                this.hud.showLootScreen(target);
+                if (target.locked) {
+                    this.attemptLockpick(target);
+                } else {
+                    this.hud.showLootScreen(target);
+                }
                 return;
             }
             if ((target.type === 'npc' && target.dialogueId) || target.type === 'container') {
@@ -10058,7 +10499,13 @@ class Game {
             this.player.x = path[step].x;
             this.player.y = path[step].y;
             this.renderer.centerOn(this.player.x, this.player.y);
-            this.audio.playSfx('step');
+            // Play door sound if stepping onto or adjacent to a door tile
+            const currentTile = this.getTileAt(this.player.x, this.player.y);
+            if (currentTile === 'door') {
+                this.audio.playSfx('door_open');
+            } else {
+                this.audio.playSfx('step');
+            }
             step++;
 
             // Check transition mid-path
@@ -10115,7 +10562,11 @@ class Game {
                 if (target.type === 'npc' && target.dialogueId) {
                     this.dialogue.startDialogue(target);
                 } else if (target.type === 'container') {
-                    this.hud.showLootScreen(target);
+                    if (target.locked) {
+                        this.attemptLockpick(target);
+                    } else {
+                        this.hud.showLootScreen(target);
+                    }
                 }
                 return;
             }
@@ -10188,7 +10639,11 @@ class Game {
         if (target.type === 'npc' && target.dialogueId) {
             this.dialogue.startDialogue(target);
         } else if (target.type === 'container') {
-            this.hud.showLootScreen(target);
+            if (target.locked) {
+                this.attemptLockpick(target);
+            } else {
+                this.hud.showLootScreen(target);
+            }
         } else {
             this.addMessage(`${target.name} doesn't want to talk.`, 'dialogue');
         }
@@ -10205,7 +10660,11 @@ class Game {
                 info += ` (Hostile)`;
             }
             if (target.type === 'container') {
-                info += ` (Container - ${target.items.length} items)`;
+                if (target.locked) {
+                    info += ` (Locked - difficulty ${target.lockDifficulty})`;
+                } else {
+                    info += ` (Container - ${target.items.length} items)`;
+                }
             }
             this.addMessage(info, 'info');
         } else {
@@ -10221,7 +10680,11 @@ class Game {
         if (target && target.type === 'container') {
             const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
             if (dist <= 2) {
-                this.hud.showLootScreen(target);
+                if (target.locked) {
+                    this.attemptLockpick(target);
+                } else {
+                    this.hud.showLootScreen(target);
+                }
             } else {
                 this.addMessage('Too far away.', 'info');
             }
@@ -10240,6 +10703,7 @@ class Game {
         InventorySystem.addItem(this.player, ItemDatabase.healing_powder, 3);
         InventorySystem.addItem(this.player, ItemDatabase.bottle_caps, 50);
         InventorySystem.addItem(this.player, ItemDatabase.nuka_cola, 2);
+        InventorySystem.addItem(this.player, ItemDatabase.lockpick, 3);
         InventorySystem.addItem(this.player, ItemDatabase.tribal_garb, 1);
 
         // Equip starting gear
@@ -10299,6 +10763,9 @@ class Game {
 
         // Center camera
         this.renderer.centerOn(this.player.x, this.player.y);
+
+        // Start area-appropriate ambient music
+        this.audio.startMusic(areaId);
     }
 
     transitionArea(transition) {
@@ -10605,6 +11072,7 @@ class Game {
 
     startCombatWith(enemies) {
         const participants = [this.player, ...enemies];
+        this.audio.playSfx('combat_start');
         this.showCombatBanner();
         this.combat.startCombat(participants);
     }
@@ -10706,6 +11174,48 @@ class Game {
             container.items.splice(toRemove[i], 1);
         }
         if (toRemove.length > 0) this.audio.playSfx('pickup');
+    }
+
+    attemptLockpick(container) {
+        // Check for lockpicks in inventory
+        const hasElectronic = this.player.inventory.find(i => i.id === 'electronic_lockpick');
+        const hasLockpick = this.player.inventory.find(i => i.id === 'lockpick');
+
+        if (!hasLockpick && !hasElectronic) {
+            this.addMessage(`${container.name} is locked. You need lockpicks.`, 'info');
+            this.audio.playSfx('locked');
+            return;
+        }
+
+        // Calculate lockpick skill
+        let skill = CharacterSystem.getSkillValue(this.player, 'lockpick');
+        if (hasElectronic) skill += 30;
+
+        const difficulty = container.lockDifficulty;
+        const chance = Utils.clamp(skill - difficulty + 50, 5, 95);
+        const roll = Math.random() * 100;
+
+        if (roll < chance) {
+            // Success
+            container.locked = false;
+            this.addMessage(`You picked the lock on ${container.name}. (Skill: ${skill} vs ${difficulty})`, 'loot');
+            this.audio.playSfx('unlock');
+            // Consume a regular lockpick (electronic is not consumed)
+            if (!hasElectronic && hasLockpick) {
+                InventorySystem.removeItem(this.player, hasLockpick.uid || hasLockpick.id, 1);
+                this.addMessage('Lockpick consumed.', 'info');
+            }
+            this.hud.showLootScreen(container);
+        } else {
+            // Failure - always consume a regular lockpick
+            if (hasLockpick) {
+                InventorySystem.removeItem(this.player, hasLockpick.uid || hasLockpick.id, 1);
+                this.addMessage(`Failed to pick ${container.name}. Lockpick broke! (Skill: ${skill} vs ${difficulty})`, 'combat');
+            } else {
+                this.addMessage(`Failed to pick ${container.name}. (Skill: ${skill} vs ${difficulty})`, 'combat');
+            }
+            this.audio.playSfx('locked');
+        }
     }
 
     useQuickSlot(index) {

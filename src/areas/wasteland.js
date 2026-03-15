@@ -86,7 +86,7 @@ function createWastelandArea() {
         'crate'
     ));
 
-    entities.push(CharacterSystem.createContainer(
+    const warlordChest = CharacterSystem.createContainer(
         'raider_main_chest', 'Warlord\'s Strongbox', 13, 14,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
@@ -97,7 +97,25 @@ function createWastelandArea() {
             { ...ItemDatabase.lucky_charm, quantity: 1 },
         ],
         'chest'
-    ));
+    );
+    warlordChest.locked = true;
+    warlordChest.lockDifficulty = 65;
+    entities.push(warlordChest);
+
+    // Locked ammo crate in raider outpost
+    const lockedAmmo = CharacterSystem.createContainer(
+        'raider_locked_ammo', 'Locked Ammo Box', 16, 8,
+        [
+            { ...ItemDatabase.ammo_9mm, quantity: 24 },
+            { ...ItemDatabase.ammo_12ga, quantity: 12 },
+            { ...ItemDatabase.ammo_308, quantity: 8 },
+            { ...ItemDatabase.lockpick, quantity: 2 },
+        ],
+        'crate'
+    );
+    lockedAmmo.locked = true;
+    lockedAmmo.lockDifficulty = 45;
+    entities.push(lockedAmmo);
 
     // Rubble / old structure remains
     entities.push(CharacterSystem.createContainer(

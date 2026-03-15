@@ -141,6 +141,16 @@ const ItemDatabase = {
     },
 
     // ---- MISC / QUEST ----
+    lockpick: {
+        id: 'lockpick', name: 'Lockpick', type: 'misc',
+        stackable: true, weight: 0.1, value: 15,
+        desc: 'A thin metal pick for opening locks. Consumed on use.',
+    },
+    electronic_lockpick: {
+        id: 'electronic_lockpick', name: 'Electronic Lockpick', type: 'misc',
+        stackable: true, weight: 0.5, value: 80,
+        desc: 'A pre-war electronic lockpicking device. +30 to lockpick skill. Not consumed.',
+    },
     bottle_caps: {
         id: 'bottle_caps', name: 'Bottle Caps', type: 'misc',
         stackable: true, weight: 0, value: 1,

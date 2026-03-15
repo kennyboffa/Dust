@@ -232,7 +232,11 @@ class Game {
                 return;
             }
             if (target.type === 'container' && dist <= 2) {
-                this.hud.showLootScreen(target);
+                if (target.locked) {
+                    this.attemptLockpick(target);
+                } else {
+                    this.hud.showLootScreen(target);
+                }
                 return;
             }
             if ((target.type === 'npc' && target.dialogueId) || target.type === 'container') {
@@ -307,7 +311,13 @@ class Game {
             this.player.x = path[step].x;
             this.player.y = path[step].y;
             this.renderer.centerOn(this.player.x, this.player.y);
-            this.audio.playSfx('step');
+            // Play door sound if stepping onto or adjacent to a door tile
+            const currentTile = this.getTileAt(this.player.x, this.player.y);
+            if (currentTile === 'door') {
+                this.audio.playSfx('door_open');
+            } else {
+                this.audio.playSfx('step');
+            }
             step++;
 
             // Check transition mid-path
@@ -364,7 +374,11 @@ class Game {
                 if (target.type === 'npc' && target.dialogueId) {
                     this.dialogue.startDialogue(target);
                 } else if (target.type === 'container') {
-                    this.hud.showLootScreen(target);
+                    if (target.locked) {
+                        this.attemptLockpick(target);
+                    } else {
+                        this.hud.showLootScreen(target);
+                    }
                 }
                 return;
             }
@@ -437,7 +451,11 @@ class Game {
         if (target.type === 'npc' && target.dialogueId) {
             this.dialogue.startDialogue(target);
         } else if (target.type === 'container') {
-            this.hud.showLootScreen(target);
+            if (target.locked) {
+                this.attemptLockpick(target);
+            } else {
+                this.hud.showLootScreen(target);
+            }
         } else {
             this.addMessage(`${target.name} doesn't want to talk.`, 'dialogue');
         }
@@ -454,7 +472,11 @@ class Game {
                 info += ` (Hostile)`;
             }
             if (target.type === 'container') {
-                info += ` (Container - ${target.items.length} items)`;
+                if (target.locked) {
+                    info += ` (Locked - difficulty ${target.lockDifficulty})`;
+                } else {
+                    info += ` (Container - ${target.items.length} items)`;
+                }
             }
             this.addMessage(info, 'info');
         } else {
@@ -470,7 +492,11 @@ class Game {
         if (target && target.type === 'container') {
             const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
             if (dist <= 2) {
-                this.hud.showLootScreen(target);
+                if (target.locked) {
+                    this.attemptLockpick(target);
+                } else {
+                    this.hud.showLootScreen(target);
+                }
             } else {
                 this.addMessage('Too far away.', 'info');
             }
@@ -489,6 +515,7 @@ class Game {
         InventorySystem.addItem(this.player, ItemDatabase.healing_powder, 3);
         InventorySystem.addItem(this.player, ItemDatabase.bottle_caps, 50);
         InventorySystem.addItem(this.player, ItemDatabase.nuka_cola, 2);
+        InventorySystem.addItem(this.player, ItemDatabase.lockpick, 3);
         InventorySystem.addItem(this.player, ItemDatabase.tribal_garb, 1);
 
         // Equip starting gear
@@ -548,6 +575,9 @@ class Game {
 
         // Center camera
         this.renderer.centerOn(this.player.x, this.player.y);
+
+        // Start area-appropriate ambient music
+        this.audio.startMusic(areaId);
     }
 
     transitionArea(transition) {
@@ -854,6 +884,7 @@ class Game {
 
     startCombatWith(enemies) {
         const participants = [this.player, ...enemies];
+        this.audio.playSfx('combat_start');
         this.showCombatBanner();
         this.combat.startCombat(participants);
     }
@@ -955,6 +986,48 @@ class Game {
             container.items.splice(toRemove[i], 1);
         }
         if (toRemove.length > 0) this.audio.playSfx('pickup');
+    }
+
+    attemptLockpick(container) {
+        // Check for lockpicks in inventory
+        const hasElectronic = this.player.inventory.find(i => i.id === 'electronic_lockpick');
+        const hasLockpick = this.player.inventory.find(i => i.id === 'lockpick');
+
+        if (!hasLockpick && !hasElectronic) {
+            this.addMessage(`${container.name} is locked. You need lockpicks.`, 'info');
+            this.audio.playSfx('locked');
+            return;
+        }
+
+        // Calculate lockpick skill
+        let skill = CharacterSystem.getSkillValue(this.player, 'lockpick');
+        if (hasElectronic) skill += 30;
+
+        const difficulty = container.lockDifficulty;
+        const chance = Utils.clamp(skill - difficulty + 50, 5, 95);
+        const roll = Math.random() * 100;
+
+        if (roll < chance) {
+            // Success
+            container.locked = false;
+            this.addMessage(`You picked the lock on ${container.name}. (Skill: ${skill} vs ${difficulty})`, 'loot');
+            this.audio.playSfx('unlock');
+            // Consume a regular lockpick (electronic is not consumed)
+            if (!hasElectronic && hasLockpick) {
+                InventorySystem.removeItem(this.player, hasLockpick.uid || hasLockpick.id, 1);
+                this.addMessage('Lockpick consumed.', 'info');
+            }
+            this.hud.showLootScreen(container);
+        } else {
+            // Failure - always consume a regular lockpick
+            if (hasLockpick) {
+                InventorySystem.removeItem(this.player, hasLockpick.uid || hasLockpick.id, 1);
+                this.addMessage(`Failed to pick ${container.name}. Lockpick broke! (Skill: ${skill} vs ${difficulty})`, 'combat');
+            } else {
+                this.addMessage(`Failed to pick ${container.name}. (Skill: ${skill} vs ${difficulty})`, 'combat');
+            }
+            this.audio.playSfx('locked');
+        }
     }
 
     useQuickSlot(index) {
