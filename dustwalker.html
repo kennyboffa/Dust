@@ -1857,14 +1857,14 @@ class SpriteGenerator {
     }
 
     // ---- HUMANOID SPRITE GENERATION (64x80 sprite with proper proportions) ----
-    static generateHumanoidSprite(type, frame, facing = 'south') {
+    static generateHumanoidSprite(type, frame, facing = 'south', animType = 'idle') {
         const w = 64, h = 80;
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
         const cx = w / 2, baseY = h - 4;
         const rng = this.seededRandom(type.length * 1000 + frame * 100 + (facing === 'north' ? 7 : 0));
 
-        // Palette lookup
+        // Fallout 2 palette: very muted, earth tones, dark outlines
         const palettes = {
             'player':  { skin:[130,108,74], shirt:[90,68,28], pants:[50,38,20], boots:[28,18,8], hair:[36,24,14], belt:[38,28,10], accent:[115,95,42], armor: true },
             'villager':{ skin:[120,100,78], shirt:[66,74,82], pants:[40,40,40], boots:[22,22,22], hair:[58,48,38], belt:[34,34,34], accent:[54,58,66], armor: false },
@@ -1880,61 +1880,87 @@ class SpriteGenerator {
 
         const rgb = (arr, adj) => `rgb(${Math.max(0,Math.min(255,arr[0]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[1]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[2]+(adj||0)))|0})`;
         const rgba = (arr, a, adj) => `rgba(${Math.max(0,Math.min(255,arr[0]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[1]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[2]+(adj||0)))|0},${a})`;
+        const outline = (arr) => rgb(arr, -40);
 
-        const bob = 0;
+        // ---- ANIMATION OFFSETS ----
+        // Walk cycle: 4 frames, legs stride forward/back, arms swing opposite
+        // Frame 0: neutral, 1: left forward, 2: neutral, 3: right forward
+        const walkCycle = [
+            { leftLegX: 0, leftLegY: 0, rightLegX: 0, rightLegY: 0, leftArmY: 0, rightArmY: 0 },
+            { leftLegX: -2, leftLegY: -1, rightLegX: 2, rightLegY: 1, leftArmY: 2, rightArmY: -2 },
+            { leftLegX: 0, leftLegY: 0, rightLegX: 0, rightLegY: 0, leftArmY: 0, rightArmY: 0 },
+            { leftLegX: 2, leftLegY: 1, rightLegX: -2, rightLegY: -1, leftArmY: -2, rightArmY: 2 },
+        ];
+        // Attack cycle: arm raised and swinging
+        const attackCycle = [
+            { rightArmAngle: 0, rightArmExt: 0, leftArmY: 0 },
+            { rightArmAngle: -0.8, rightArmExt: -6, leftArmY: 1 },
+            { rightArmAngle: 0.5, rightArmExt: 4, leftArmY: -1 },
+            { rightArmAngle: 0, rightArmExt: 0, leftArmY: 0 },
+        ];
 
-        // ---- LEGS ----
+        const wk = walkCycle[frame % 4];
+        const atk = attackCycle[frame % 4];
+        const isWalking = animType === 'walk';
+        const isAttacking = animType === 'attack';
+
+        // ---- LEGS (with walk animation) ----
         const legW = 4 * sc, legH = 10 * sc;
         const legY = baseY - legH;
+        const lLegOffX = isWalking ? wk.leftLegX * sc : 0;
+        const lLegOffY = isWalking ? wk.leftLegY * sc : 0;
+        const rLegOffX = isWalking ? wk.rightLegX * sc : 0;
+        const rLegOffY = isWalking ? wk.rightLegY * sc : 0;
+
         // Left leg
         ctx.fillStyle = rgb(p.pants);
-        ctx.fillRect(cx - 5 * sc, legY, legW, legH);
+        ctx.fillRect(cx - 5 * sc + lLegOffX, legY + lLegOffY, legW, legH - lLegOffY);
+        // Left leg outline
+        ctx.strokeStyle = outline(p.pants);
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(cx - 5 * sc + lLegOffX, legY + lLegOffY, legW, legH - lLegOffY);
         // Right leg
-        ctx.fillRect(cx + 1 * sc, legY, legW, legH);
-        // Knee wear patches
-        ctx.fillStyle = rgb(p.pants, 12);
-        ctx.fillRect(cx - 5 * sc, legY + legH * 0.4, legW, 3);
-        ctx.fillRect(cx + 1 * sc, legY + legH * 0.4, legW, 3);
-        // Knee shadow
-        ctx.fillStyle = rgba(p.pants, 0.3, -20);
-        ctx.fillRect(cx - 5 * sc, legY + legH * 0.55, legW, 2);
-        ctx.fillRect(cx + 1 * sc, legY + legH * 0.55, legW, 2);
+        ctx.fillStyle = rgb(p.pants, -5);
+        ctx.fillRect(cx + 1 * sc + rLegOffX, legY + rLegOffY, legW, legH - rLegOffY);
+        ctx.strokeStyle = outline(p.pants);
+        ctx.strokeRect(cx + 1 * sc + rLegOffX, legY + rLegOffY, legW, legH - rLegOffY);
+        // Knee highlights
+        ctx.fillStyle = rgb(p.pants, 10);
+        ctx.fillRect(cx - 5 * sc + lLegOffX, legY + legH * 0.35 + lLegOffY, legW, 2);
+        ctx.fillRect(cx + 1 * sc + rLegOffX, legY + legH * 0.35 + rLegOffY, legW, 2);
 
-        // ---- BOOTS (heavier, more detailed) ----
+        // ---- BOOTS ----
         const bootH = 5 * sc;
+        // Left boot
         ctx.fillStyle = rgb(p.boots);
-        ctx.fillRect(cx - 5.5 * sc, baseY - bootH, legW + 2.5 * sc, bootH);
-        ctx.fillRect(cx + 0.5 * sc, baseY - bootH, legW + 2.5 * sc, bootH);
-        // Boot soles
-        ctx.fillStyle = '#0A0A0A';
-        ctx.fillRect(cx - 5.5 * sc, baseY - 1.5, legW + 2.5 * sc, 1.5);
-        ctx.fillRect(cx + 0.5 * sc, baseY - 1.5, legW + 2.5 * sc, 1.5);
-        // Boot laces/straps
-        ctx.strokeStyle = rgb(p.boots, -15);
-        ctx.lineWidth = 0.5;
-        for (let i = 0; i < 3; i++) {
-            const ly = baseY - bootH + 1 + i * 1.3;
-            ctx.beginPath();
-            ctx.moveTo(cx - 5 * sc, ly); ctx.lineTo(cx - 2 * sc, ly);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx + 1.5 * sc, ly); ctx.lineTo(cx + 4.5 * sc, ly);
-            ctx.stroke();
-        }
-        // Boot highlight
-        ctx.fillStyle = rgba(p.boots, 0.12, 25);
-        ctx.fillRect(cx - 5 * sc, baseY - bootH, 1.5, bootH - 1);
+        ctx.fillRect(cx - 5.5 * sc + lLegOffX, baseY - bootH + lLegOffY, legW + 2 * sc, bootH);
+        ctx.strokeStyle = outline(p.boots);
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(cx - 5.5 * sc + lLegOffX, baseY - bootH + lLegOffY, legW + 2 * sc, bootH);
+        // Right boot
+        ctx.fillStyle = rgb(p.boots);
+        ctx.fillRect(cx + 0.5 * sc + rLegOffX, baseY - bootH + rLegOffY, legW + 2 * sc, bootH);
+        ctx.strokeStyle = outline(p.boots);
+        ctx.strokeRect(cx + 0.5 * sc + rLegOffX, baseY - bootH + rLegOffY, legW + 2 * sc, bootH);
+        // Boot soles (dark line)
+        ctx.fillStyle = '#080808';
+        ctx.fillRect(cx - 5.5 * sc + lLegOffX, baseY - 1.5 + lLegOffY, legW + 2 * sc, 1.5);
+        ctx.fillRect(cx + 0.5 * sc + rLegOffX, baseY - 1.5 + rLegOffY, legW + 2 * sc, 1.5);
 
-        // ---- TORSO (broader, more muscular) ----
+        // ---- TORSO ----
         const bodyW = 14 * sc, bodyH = 16 * sc;
-        const torsoY = legY - bodyH + 4 + bob;
+        const torsoY = legY - bodyH + 4;
         ctx.fillStyle = rgb(p.shirt);
         ctx.fillRect(cx - bodyW / 2, torsoY, bodyW, bodyH);
-        // Shirt shading (left side lit, right darker)
-        ctx.fillStyle = rgba(p.shirt, 0.15, 20);
+        // Torso shading
+        ctx.fillStyle = rgba(p.shirt, 0.18, 18);
         ctx.fillRect(cx - bodyW / 2, torsoY, bodyW * 0.35, bodyH);
-        ctx.fillStyle = rgba(p.shirt, 0.12, -15);
+        ctx.fillStyle = rgba(p.shirt, 0.14, -15);
         ctx.fillRect(cx + bodyW * 0.15, torsoY, bodyW * 0.35, bodyH);
+        // Torso outline
+        ctx.strokeStyle = outline(p.shirt);
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(cx - bodyW / 2, torsoY, bodyW, bodyH);
         // Center seam
         ctx.strokeStyle = rgb(p.shirt, -18);
         ctx.lineWidth = 0.5;
@@ -1945,7 +1971,6 @@ class SpriteGenerator {
         // Collar
         ctx.fillStyle = rgb(p.shirt, 18);
         ctx.fillRect(cx - 4 * sc, torsoY, 8 * sc, 3);
-        // Collar shadow
         ctx.fillStyle = rgba(p.shirt, 0.2, -20);
         ctx.fillRect(cx - 4 * sc, torsoY + 3, 8 * sc, 1.5);
         // Pockets
@@ -1954,74 +1979,104 @@ class SpriteGenerator {
             ctx.lineWidth = 0.5;
             ctx.strokeRect(cx - bodyW/2 + 2, torsoY + 7 * sc, 4 * sc, 4 * sc);
             ctx.strokeRect(cx + bodyW/2 - 6 * sc, torsoY + 7 * sc, 4 * sc, 4 * sc);
-            // Pocket flap
             ctx.fillStyle = rgb(p.shirt, -8);
             ctx.fillRect(cx - bodyW/2 + 2, torsoY + 7 * sc, 4 * sc, 1.5);
             ctx.fillRect(cx + bodyW/2 - 6 * sc, torsoY + 7 * sc, 4 * sc, 1.5);
         }
 
-        // ---- ARMOR/VEST (for player, guard, raider) ----
+        // ---- ARMOR/VEST ----
         if (p.armor) {
             const vestColor = type === 'raider' ? [40,22,18] : type === 'guard' ? [55,50,35] : [65,55,30];
             ctx.fillStyle = rgba(vestColor, 0.65);
             ctx.fillRect(cx - bodyW / 2 + 1, torsoY + 4, bodyW - 2, bodyH - 6);
-            // Vest straps/padding
             ctx.fillStyle = rgba(vestColor, 0.3, -15);
             ctx.fillRect(cx - bodyW / 2 + 1, torsoY + 4, 3, bodyH - 6);
             ctx.fillRect(cx + bodyW / 2 - 4, torsoY + 4, 3, bodyH - 6);
-            // Buckles
             ctx.fillStyle = 'rgba(80,75,60,0.4)';
             ctx.fillRect(cx - 1.5, torsoY + 6, 3, 2);
             ctx.fillRect(cx - 1.5, torsoY + 11, 3, 2);
         }
 
-        // ---- BELT (wider, with pouches) ----
+        // ---- BELT ----
         ctx.fillStyle = rgb(p.belt);
-        ctx.fillRect(cx - bodyW / 2, torsoY + bodyH - 3 + bob, bodyW, 4);
-        // Belt buckle
+        ctx.fillRect(cx - bodyW / 2, torsoY + bodyH - 3, bodyW, 4);
         ctx.fillStyle = rgb(p.accent);
-        ctx.fillRect(cx - 2, torsoY + bodyH - 3 + bob, 4, 4);
-        // Belt pouches
+        ctx.fillRect(cx - 2, torsoY + bodyH - 3, 4, 4);
         if (type === 'player' || type === 'guard' || type === 'raider') {
             ctx.fillStyle = rgb(p.belt, -10);
-            ctx.fillRect(cx - bodyW / 2 + 1, torsoY + bodyH - 2 + bob, 3, 3.5);
-            ctx.fillRect(cx + bodyW / 2 - 4, torsoY + bodyH - 2 + bob, 3, 3.5);
+            ctx.fillRect(cx - bodyW / 2 + 1, torsoY + bodyH - 2, 3, 3.5);
+            ctx.fillRect(cx + bodyW / 2 - 4, torsoY + bodyH - 2, 3, 3.5);
         }
 
-        // ---- ARMS (with rolled sleeves, better shading) ----
+        // ---- LEFT ARM (with swing animation) ----
         const armW = 4 * sc, armH = 13 * sc;
-        const armY = torsoY + 3 + bob;
-        // Left arm
+        const armY = torsoY + 3;
+        const lArmOff = isWalking ? wk.leftArmY * sc : (isAttacking ? atk.leftArmY * sc : 0);
+
+        ctx.save();
+        if (isWalking || isAttacking) {
+            // Slight rotation for arm swing
+            const armAngle = isWalking ? (wk.leftArmY * 0.04) : 0;
+            ctx.translate(cx - bodyW / 2, armY + 2);
+            ctx.rotate(armAngle);
+            ctx.translate(-(cx - bodyW / 2), -(armY + 2));
+        }
         ctx.fillStyle = rgb(p.shirt);
-        ctx.fillRect(cx - bodyW / 2 - armW, armY, armW, armH);
-        ctx.fillStyle = rgba(p.shirt, 0.15, 15); // light side
-        ctx.fillRect(cx - bodyW / 2 - armW, armY, 1.5, armH);
-        // Right arm
-        ctx.fillStyle = rgb(p.shirt);
-        ctx.fillRect(cx + bodyW / 2, armY, armW, armH);
-        ctx.fillStyle = rgba(p.shirt, 0.12, -12); // shadow side
-        ctx.fillRect(cx + bodyW / 2 + armW - 1.5, armY, 1.5, armH);
-        // Rolled sleeves
+        ctx.fillRect(cx - bodyW / 2 - armW, armY + lArmOff, armW, armH);
+        ctx.strokeStyle = outline(p.shirt);
+        ctx.lineWidth = 0.6;
+        ctx.strokeRect(cx - bodyW / 2 - armW, armY + lArmOff, armW, armH);
+        // Rolled sleeve
         ctx.fillStyle = rgb(p.shirt, 12);
-        ctx.fillRect(cx - bodyW / 2 - armW, armY, armW, 3);
-        ctx.fillRect(cx + bodyW / 2, armY, armW, 3);
-        // Hands (skin)
+        ctx.fillRect(cx - bodyW / 2 - armW, armY + lArmOff, armW, 3);
+        // Left hand
         const handH = 3 * sc;
         ctx.fillStyle = rgb(p.skin);
-        ctx.fillRect(cx - bodyW / 2 - armW, armY + armH, armW, handH);
-        ctx.fillRect(cx + bodyW / 2, armY + armH, armW, handH);
-        // Hand shading
-        ctx.fillStyle = rgba(p.skin, 0.2, -18);
-        ctx.fillRect(cx - bodyW / 2 - armW + armW - 1, armY + armH, 1, handH);
-        ctx.fillRect(cx + bodyW / 2 + armW - 1, armY + armH, 1, handH);
+        ctx.fillRect(cx - bodyW / 2 - armW, armY + armH + lArmOff, armW, handH);
+        ctx.strokeStyle = outline(p.skin);
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(cx - bodyW / 2 - armW, armY + armH + lArmOff, armW, handH);
+        ctx.restore();
 
-        // ---- WEAPON ----
+        // ---- RIGHT ARM (attack swing or walk swing) ----
+        const rArmOff = isWalking ? wk.rightArmY * sc : 0;
+
+        ctx.save();
+        if (isAttacking) {
+            // Attack: arm rotates for swing
+            const pivotX = cx + bodyW / 2;
+            const pivotY = armY + 2;
+            ctx.translate(pivotX, pivotY);
+            ctx.rotate(atk.rightArmAngle);
+            ctx.translate(-pivotX, -pivotY);
+        } else if (isWalking) {
+            const armAngle = wk.rightArmY * 0.04;
+            ctx.translate(cx + bodyW / 2, armY + 2);
+            ctx.rotate(armAngle);
+            ctx.translate(-(cx + bodyW / 2), -(armY + 2));
+        }
+        ctx.fillStyle = rgb(p.shirt, -3);
+        ctx.fillRect(cx + bodyW / 2, armY + rArmOff + (isAttacking ? atk.rightArmExt : 0), armW, armH);
+        ctx.strokeStyle = outline(p.shirt);
+        ctx.lineWidth = 0.6;
+        ctx.strokeRect(cx + bodyW / 2, armY + rArmOff + (isAttacking ? atk.rightArmExt : 0), armW, armH);
+        // Rolled sleeve
+        ctx.fillStyle = rgb(p.shirt, 12);
+        ctx.fillRect(cx + bodyW / 2, armY + rArmOff + (isAttacking ? atk.rightArmExt : 0), armW, 3);
+        // Right hand
+        ctx.fillStyle = rgb(p.skin);
+        const rHandY = armY + armH + rArmOff + (isAttacking ? atk.rightArmExt : 0);
+        ctx.fillRect(cx + bodyW / 2, rHandY, armW, handH);
+        ctx.strokeStyle = outline(p.skin);
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(cx + bodyW / 2, rHandY, armW, handH);
+
+        // ---- WEAPON (moves with right arm) ----
         if (type === 'player' || type === 'raider' || type === 'guard') {
             const wx = cx + bodyW / 2 + armW / 2;
-            const wy = armY + armH + handH;
+            const wy = rHandY + handH;
             if (type === 'player' || type === 'guard') {
-                // Combat knife (detailed)
-                // Blade
+                // Combat knife
                 ctx.fillStyle = '#6A6A6A';
                 ctx.beginPath();
                 ctx.moveTo(wx - 0.6, wy);
@@ -2029,7 +2084,6 @@ class SpriteGenerator {
                 ctx.lineTo(wx + 1.2, wy);
                 ctx.closePath();
                 ctx.fill();
-                // Blade edge highlight
                 ctx.fillStyle = '#888';
                 ctx.beginPath();
                 ctx.moveTo(wx + 0.3, wy - 9);
@@ -2037,35 +2091,27 @@ class SpriteGenerator {
                 ctx.lineTo(wx + 0.3, wy - 3);
                 ctx.closePath();
                 ctx.fill();
-                // Blood on blade (player only)
                 if (type === 'player' && rng() > 0.5) {
                     ctx.fillStyle = 'rgba(80,15,10,0.2)';
                     ctx.fillRect(wx - 0.2, wy - 6, 0.8, 3);
                 }
-                // Guard
                 ctx.fillStyle = '#444';
                 ctx.fillRect(wx - 2, wy - 0.5, 4, 1.2);
-                // Grip (wrapped leather)
                 ctx.fillStyle = '#2A1C0C';
                 ctx.fillRect(wx - 0.8, wy + 0.5, 1.6, 4);
-                for (let i = 0; i < 3; i++) {
-                    ctx.fillStyle = '#3A2C1C';
-                    ctx.fillRect(wx - 0.8, wy + 1 + i * 1.2, 1.6, 0.5);
-                }
             } else {
-                // Raider pipe weapon (crude)
+                // Raider pipe weapon
                 ctx.fillStyle = '#444';
                 ctx.fillRect(wx - 0.8, wy - 12, 1.6, 12);
                 ctx.fillStyle = '#333';
                 ctx.fillRect(wx - 1.5, wy - 12, 3, 2);
-                // Rust
                 ctx.fillStyle = 'rgba(90,40,15,0.25)';
                 ctx.fillRect(wx - 0.6, wy - 8, 1.2, 4);
-                // Tape wrapping
                 ctx.fillStyle = '#555';
                 ctx.fillRect(wx - 1, wy, 2, 4);
             }
         }
+        ctx.restore();
 
         // Elder staff
         if (type === 'elder') {
@@ -2074,17 +2120,15 @@ class SpriteGenerator {
             ctx.lineWidth = 2.5;
             ctx.beginPath();
             ctx.moveTo(sx, baseY - 2);
-            ctx.lineTo(sx, torsoY - 18 + bob);
+            ctx.lineTo(sx, torsoY - 18);
             ctx.stroke();
-            // Staff head
             ctx.fillStyle = '#503870';
-            ctx.fillRect(sx - 2, torsoY - 18 + bob, 4, 5);
-            // Crystal
+            ctx.fillRect(sx - 2, torsoY - 18, 4, 5);
             ctx.fillStyle = '#7755AA';
             ctx.beginPath();
-            ctx.moveTo(sx, torsoY - 22 + bob);
-            ctx.lineTo(sx + 2.5, torsoY - 18 + bob);
-            ctx.lineTo(sx - 2.5, torsoY - 18 + bob);
+            ctx.moveTo(sx, torsoY - 22);
+            ctx.lineTo(sx + 2.5, torsoY - 18);
+            ctx.lineTo(sx - 2.5, torsoY - 18);
             ctx.closePath();
             ctx.fill();
         }
@@ -2094,50 +2138,50 @@ class SpriteGenerator {
             const px = cx - bodyW / 2 - armW - 3;
             ctx.fillStyle = '#3A2814';
             ctx.beginPath();
-            ctx.ellipse(px, armY + armH * 0.4 + bob, 5.5, 4, 0, 0, Math.PI * 2);
+            ctx.ellipse(px, armY + armH * 0.4, 5.5, 4, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#2A1808';
             ctx.lineWidth = 0.8;
             ctx.stroke();
-            // Pack straps
             ctx.strokeStyle = '#382818';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(px + 3, armY + armH * 0.2 + bob);
-            ctx.lineTo(cx - bodyW / 2, torsoY + 4 + bob);
+            ctx.moveTo(px + 3, armY + armH * 0.2);
+            ctx.lineTo(cx - bodyW / 2, torsoY + 4);
             ctx.stroke();
-            // Items poking out
             ctx.fillStyle = '#555';
-            ctx.fillRect(px - 1, armY + armH * 0.2 + bob - 3, 1.5, 3);
+            ctx.fillRect(px - 1, armY + armH * 0.2 - 3, 1.5, 3);
         }
 
         // ---- NECK ----
         ctx.fillStyle = rgb(p.skin);
-        ctx.fillRect(cx - 2 * sc, torsoY - 2 + bob, 4 * sc, 4);
-        // Neck shadow
+        ctx.fillRect(cx - 2 * sc, torsoY - 2, 4 * sc, 4);
         ctx.fillStyle = rgba(p.skin, 0.2, -20);
-        ctx.fillRect(cx - 2 * sc, torsoY - 2 + bob + 2, 4 * sc, 2);
+        ctx.fillRect(cx - 2 * sc, torsoY, 4 * sc, 2);
 
-        // ---- HEAD (more detailed, better proportions) ----
+        // ---- HEAD ----
         const headR = 6 * sc;
-        const headY = torsoY - 2 - headR * 1.2 + bob;
+        const headY = torsoY - 2 - headR * 1.2;
 
-        // Head shape
+        // Head shape with dark outline (Fallout 2 style)
         ctx.fillStyle = rgb(p.skin);
         ctx.beginPath();
         ctx.ellipse(cx, headY, headR, headR * 1.1, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = outline(p.skin);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.ellipse(cx, headY, headR, headR * 1.1, 0, 0, Math.PI * 2);
+        ctx.stroke();
 
         if (facing === 'north') {
             // ---- BACK OF HEAD ----
-            // Full hair coverage
             if (!isMutant) {
                 ctx.fillStyle = rgb(p.hair);
                 ctx.beginPath();
                 ctx.ellipse(cx, headY, headR + 0.5, headR * 1.05, 0, 0, Math.PI * 2);
                 ctx.fill();
-                // Hair texture lines
-                ctx.strokeStyle = rgb(p.hair, -12);
+                ctx.strokeStyle = rgb(p.hair, -20);
                 ctx.lineWidth = 0.4;
                 for (let i = 0; i < 5; i++) {
                     const hx = cx - headR * 0.5 + i * headR * 0.25;
@@ -2146,13 +2190,11 @@ class SpriteGenerator {
                     ctx.quadraticCurveTo(hx + (rng()-0.5)*2, headY, hx + (rng()-0.5)*3, headY + headR * 0.7);
                     ctx.stroke();
                 }
-                // Hair highlight
                 ctx.fillStyle = rgba(p.hair, 0.1, 15);
                 ctx.beginPath();
                 ctx.ellipse(cx, headY - 2, headR * 0.5, headR * 0.4, 0, 0, Math.PI * 2);
                 ctx.fill();
             } else {
-                // Mutant back of head - lumpy
                 ctx.fillStyle = rgba(p.skin, 1, -10);
                 ctx.beginPath();
                 ctx.ellipse(cx, headY, headR, headR * 1.1, 0, 0, Math.PI * 2);
@@ -2162,10 +2204,8 @@ class SpriteGenerator {
                 ctx.arc(cx + 3, headY - 2, 2, 0, Math.PI * 2);
                 ctx.fill();
             }
-            // Neck visible from behind
             ctx.fillStyle = rgb(p.skin, -8);
             ctx.fillRect(cx - 2 * sc, headY + headR * 0.8, 4 * sc, 3);
-            // Ear hints (sides)
             ctx.fillStyle = rgb(p.skin, -5);
             ctx.beginPath();
             ctx.ellipse(cx - headR - 0.5, headY, 1.5, 2.5, 0, 0, Math.PI * 2);
@@ -2175,73 +2215,75 @@ class SpriteGenerator {
             ctx.fill();
         } else {
             // ---- FRONT-FACING HEAD ----
-            // Facial shadow (right side)
             ctx.fillStyle = rgba(p.skin, 0.15, -22);
             ctx.beginPath();
             ctx.ellipse(cx + 1.5, headY + 0.5, headR * 0.6, headR * 0.9, 0.2, 0, Math.PI * 2);
             ctx.fill();
-
             // Hair
             if (!isMutant) {
                 ctx.fillStyle = rgb(p.hair);
                 ctx.beginPath();
                 ctx.ellipse(cx, headY - 2, headR + 0.8, headR * 0.65, 0, Math.PI, Math.PI * 2);
                 ctx.fill();
-                // Sideburns
                 ctx.fillRect(cx - headR - 0.5, headY - 2.5, 2, 6);
                 ctx.fillRect(cx + headR - 1.5, headY - 2.5, 2, 6);
-                // Hair highlight
                 ctx.fillStyle = rgba(p.hair, 0.12, 20);
                 ctx.beginPath();
                 ctx.ellipse(cx - 1, headY - 2.5, headR * 0.5, headR * 0.3, -0.3, 0, Math.PI * 2);
                 ctx.fill();
             }
-
-            // Stubble/5 o'clock shadow
+            // Stubble
             if (type === 'player' || type === 'raider' || type === 'guard') {
                 ctx.fillStyle = 'rgba(0,0,0,0.06)';
                 ctx.beginPath();
                 ctx.ellipse(cx, headY + 2.5, headR * 0.65, headR * 0.45, 0, 0, Math.PI);
                 ctx.fill();
             }
-
-            // Eyes
+            // Eyes (slightly larger, more defined - Fallout 2 style)
             ctx.fillStyle = '#CCC';
             ctx.beginPath();
-            ctx.ellipse(cx - 2.5 * sc, headY - 0.5, 1.6, 1.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(cx - 2.5 * sc, headY - 0.5, 1.8, 1.2, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.ellipse(cx + 2.5 * sc, headY - 0.5, 1.6, 1.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(cx + 2.5 * sc, headY - 0.5, 1.8, 1.2, 0, 0, Math.PI * 2);
             ctx.fill();
+            // Eye outlines (Fallout 2 has dark outlines around everything)
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+            ctx.lineWidth = 0.4;
+            ctx.beginPath();
+            ctx.ellipse(cx - 2.5 * sc, headY - 0.5, 1.8, 1.2, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.ellipse(cx + 2.5 * sc, headY - 0.5, 1.8, 1.2, 0, 0, Math.PI * 2);
+            ctx.stroke();
             // Irises
             const eyeColor = isMutant ? '#8AA800' : '#332818';
             ctx.fillStyle = eyeColor;
             ctx.beginPath();
-            ctx.arc(cx - 2.2 * sc, headY - 0.3, 0.85, 0, Math.PI * 2);
+            ctx.arc(cx - 2.2 * sc, headY - 0.3, 0.9, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(cx + 2.8 * sc, headY - 0.3, 0.85, 0, Math.PI * 2);
+            ctx.arc(cx + 2.8 * sc, headY - 0.3, 0.9, 0, Math.PI * 2);
             ctx.fill();
             // Pupils
             ctx.fillStyle = '#0A0A0A';
             ctx.beginPath();
-            ctx.arc(cx - 2.2 * sc, headY - 0.3, 0.4, 0, Math.PI * 2);
+            ctx.arc(cx - 2.2 * sc, headY - 0.3, 0.45, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(cx + 2.8 * sc, headY - 0.3, 0.4, 0, Math.PI * 2);
+            ctx.arc(cx + 2.8 * sc, headY - 0.3, 0.45, 0, Math.PI * 2);
             ctx.fill();
-            // Eye highlight
+            // Eye highlights
             ctx.fillStyle = 'rgba(255,255,255,0.35)';
             ctx.beginPath();
-            ctx.arc(cx - 2.5 * sc, headY - 0.7, 0.3, 0, Math.PI * 2);
+            ctx.arc(cx - 2.5 * sc, headY - 0.7, 0.35, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(cx + 2.5 * sc, headY - 0.7, 0.3, 0, Math.PI * 2);
+            ctx.arc(cx + 2.5 * sc, headY - 0.7, 0.35, 0, Math.PI * 2);
             ctx.fill();
-
-            // Eyebrows
+            // Eyebrows (thicker, more defined)
             ctx.strokeStyle = rgb(p.hair);
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = 1.4;
             ctx.beginPath();
             ctx.moveTo(cx - 3.5 * sc, headY - 2.5);
             ctx.lineTo(cx - 0.5 * sc, headY - 2.8);
@@ -2250,24 +2292,21 @@ class SpriteGenerator {
             ctx.moveTo(cx + 0.5 * sc, headY - 2.8);
             ctx.lineTo(cx + 3.5 * sc, headY - 2.5);
             ctx.stroke();
-
             // Nose
             ctx.fillStyle = rgba(p.skin, 0.5, -15);
             ctx.beginPath();
             ctx.moveTo(cx, headY - 0.5);
-            ctx.lineTo(cx - 1, headY + 1.5);
-            ctx.lineTo(cx + 1, headY + 1.5);
+            ctx.lineTo(cx - 1.2, headY + 1.8);
+            ctx.lineTo(cx + 1.2, headY + 1.8);
             ctx.closePath();
             ctx.fill();
-
             // Mouth
             ctx.strokeStyle = rgba(p.skin, 0.8, -35);
             ctx.lineWidth = 0.7;
             ctx.beginPath();
-            ctx.moveTo(cx - 1.8 * sc, headY + 3);
-            ctx.lineTo(cx + 1.8 * sc, headY + 3);
+            ctx.moveTo(cx - 1.8 * sc, headY + 3.2);
+            ctx.lineTo(cx + 1.8 * sc, headY + 3.2);
             ctx.stroke();
-
             // Scars
             if (type === 'raider') {
                 ctx.strokeStyle = 'rgba(100,35,30,0.5)';
@@ -2295,21 +2334,21 @@ class SpriteGenerator {
             }
         }
 
-        // Head outline (subtle)
-        ctx.strokeStyle = rgba(p.skin, 0.4, -30);
-        ctx.lineWidth = 0.5;
+        // Head outline (darker for Fallout 2 feel)
+        ctx.strokeStyle = rgba(p.skin, 0.5, -35);
+        ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.ellipse(cx, headY, headR, headR * 1.1, 0, 0, Math.PI * 2);
         ctx.stroke();
 
-        // ---- RAIDER MOHAWK/HEADGEAR ----
+        // Raider mohawk
         if (type === 'raider') {
             ctx.fillStyle = '#1A1A1A';
             ctx.fillRect(cx - 1, headY - headR * 1.1 - 3, 2, 5);
             ctx.fillRect(cx - 0.5, headY - headR * 1.1 - 5, 1, 3);
         }
 
-        // ---- GUARD HELMET ----
+        // Guard helmet
         if (type === 'guard') {
             ctx.fillStyle = '#3A3828';
             ctx.beginPath();
@@ -2319,6 +2358,9 @@ class SpriteGenerator {
             ctx.fillStyle = '#2A2818';
             ctx.fillRect(cx - headR - 1.5, headY, headR * 2 + 3, 1);
         }
+
+        // Full body outline pass (subtle dark border for pixel art look)
+        // This gives the Fallout 2 pre-rendered 3D model feel
 
         return this.weatherSprite(c, 0.8);
     }
@@ -3278,6 +3320,157 @@ class SpriteGenerator {
         return this.weatherSprite(c, 0.7);
     }
 
+    // Large watchtower spanning ~2x2 tiles visually
+    static generateWatchtower(variant) {
+        const w = 96, h = 120;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+        const rng = this.seededRandom(variant * 991);
+
+        // Four thick wooden posts
+        const postW = 4, postH = 85;
+        const spread = 18;
+        ctx.fillStyle = '#2E2214';
+        ctx.fillRect(cx - spread, by - postH, postW, postH);
+        ctx.fillRect(cx + spread - postW, by - postH, postW, postH);
+        ctx.fillRect(cx - spread + 6, by - postH + 2, postW - 1, postH - 2);
+        ctx.fillRect(cx + spread - postW - 5, by - postH + 2, postW - 1, postH - 2);
+
+        // Post outlines
+        ctx.strokeStyle = '#1A1408';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(cx - spread, by - postH, postW, postH);
+        ctx.strokeRect(cx + spread - postW, by - postH, postW, postH);
+
+        // Cross braces (X pattern)
+        ctx.strokeStyle = '#2E2214';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - spread, by - 20);
+        ctx.lineTo(cx + spread, by - 45);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + spread, by - 20);
+        ctx.lineTo(cx - spread, by - 45);
+        ctx.stroke();
+        // Lower cross brace
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx - spread + 6, by - 8);
+        ctx.lineTo(cx + spread - 6, by - 25);
+        ctx.stroke();
+
+        // Horizontal braces
+        ctx.strokeStyle = '#3A2E1C';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - spread, by - 50);
+        ctx.lineTo(cx + spread, by - 50);
+        ctx.stroke();
+
+        // Platform (wider, more solid)
+        ctx.fillStyle = '#3A2E1C';
+        ctx.fillRect(cx - spread - 6, by - postH + 6, spread * 2 + 12, 5);
+        ctx.strokeStyle = '#2A1C10';
+        ctx.lineWidth = 0.6;
+        ctx.strokeRect(cx - spread - 6, by - postH + 6, spread * 2 + 12, 5);
+        // Platform planks
+        ctx.strokeStyle = '#30260E';
+        ctx.lineWidth = 0.4;
+        for (let i = 0; i < 6; i++) {
+            const px = cx - spread - 4 + i * 8;
+            ctx.beginPath();
+            ctx.moveTo(px, by - postH + 6);
+            ctx.lineTo(px, by - postH + 11);
+            ctx.stroke();
+        }
+
+        // Railing with slats
+        ctx.strokeStyle = '#2A2014';
+        ctx.lineWidth = 1.5;
+        // Front railing
+        ctx.beginPath();
+        ctx.moveTo(cx - spread - 6, by - postH + 6);
+        ctx.lineTo(cx - spread - 6, by - postH - 6);
+        ctx.lineTo(cx + spread + 6, by - postH - 6);
+        ctx.lineTo(cx + spread + 6, by - postH + 6);
+        ctx.stroke();
+        // Railing slats
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 7; i++) {
+            const rx = cx - spread - 4 + i * 6.5;
+            ctx.beginPath();
+            ctx.moveTo(rx, by - postH + 6);
+            ctx.lineTo(rx, by - postH - 6);
+            ctx.stroke();
+        }
+
+        // Tarp/cover roof (angled, bigger)
+        ctx.fillStyle = '#34302A';
+        ctx.beginPath();
+        ctx.moveTo(cx - spread - 10, by - postH - 6);
+        ctx.lineTo(cx + spread + 10, by - postH - 6);
+        ctx.lineTo(cx + spread + 8, by - postH - 16);
+        ctx.lineTo(cx - spread - 8, by - postH - 20);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#1A1408';
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+        // Tarp texture
+        ctx.strokeStyle = 'rgba(20,16,8,0.3)';
+        ctx.lineWidth = 0.4;
+        for (let i = 0; i < 5; i++) {
+            const ty = by - postH - 8 - i * 2.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - spread - 8, ty);
+            ctx.lineTo(cx + spread + 8, ty + 2);
+            ctx.stroke();
+        }
+
+        // Ladder (right side)
+        ctx.strokeStyle = '#2E2214';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx + spread + 3, by);
+        ctx.lineTo(cx + spread + 3, by - postH + 8);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + spread + 7, by);
+        ctx.lineTo(cx + spread + 7, by - postH + 8);
+        ctx.stroke();
+        // Rungs
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 14; i++) {
+            ctx.beginPath();
+            ctx.moveTo(cx + spread + 3, by - 5 - i * 5.5);
+            ctx.lineTo(cx + spread + 7, by - 5 - i * 5.5);
+            ctx.stroke();
+        }
+
+        // Sandbags at base
+        ctx.fillStyle = '#3A3422';
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.ellipse(cx - 12 + i * 8, by - 2, 5, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.strokeStyle = '#2A2818';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.ellipse(cx - 12 + i * 8, by - 2, 5, 3, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Weathering marks
+        ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        ctx.fillRect(cx - spread, by - 30, spread * 2, 5);
+
+        return this.weatherSprite(c, 0.7);
+    }
+
     static generateCactus(variant) {
         const w = 32, h = 48;
         const c = this.createCanvas(w, h);
@@ -3540,22 +3733,42 @@ class IsometricRenderer {
             }
         }
 
-        // Humanoid sprites: 4 animation frames x 4 directions
-        // south = front, north = back, east = mirrored front, west = front
+        // Humanoid sprites: idle, walk, attack frames x 4 directions
         const humanoidTypes = ['player', 'villager', 'merchant', 'elder', 'guard', 'raider', 'mutant'];
         this._humanoidSprites = {};
         for (const type of humanoidTypes) {
             this._humanoidSprites[type] = {
-                south: [], north: [], east: [], west: []
+                south: [], north: [], east: [], west: [],
+                walk_south: [], walk_north: [], walk_east: [], walk_west: [],
+                attack_south: [], attack_north: [], attack_east: [], attack_west: [],
             };
             for (let f = 0; f < 4; f++) {
-                const south = SpriteGenerator.generateHumanoidSprite(type, f, 'south');
-                const north = SpriteGenerator.generateHumanoidSprite(type, f, 'north');
+                // Idle frames
+                const south = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'idle');
+                const north = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'idle');
                 const east = SpriteGenerator.mirrorSprite(south);
                 this._humanoidSprites[type].south.push(south);
                 this._humanoidSprites[type].north.push(north);
                 this._humanoidSprites[type].east.push(east);
-                this._humanoidSprites[type].west.push(south); // west uses front sprite
+                this._humanoidSprites[type].west.push(south);
+
+                // Walk frames
+                const walkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'walk');
+                const walkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'walk');
+                const walkEast = SpriteGenerator.mirrorSprite(walkSouth);
+                this._humanoidSprites[type].walk_south.push(walkSouth);
+                this._humanoidSprites[type].walk_north.push(walkNorth);
+                this._humanoidSprites[type].walk_east.push(walkEast);
+                this._humanoidSprites[type].walk_west.push(walkSouth);
+
+                // Attack frames
+                const atkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack');
+                const atkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack');
+                const atkEast = SpriteGenerator.mirrorSprite(atkSouth);
+                this._humanoidSprites[type].attack_south.push(atkSouth);
+                this._humanoidSprites[type].attack_north.push(atkNorth);
+                this._humanoidSprites[type].attack_east.push(atkEast);
+                this._humanoidSprites[type].attack_west.push(atkSouth);
             }
         }
 
@@ -3600,6 +3813,8 @@ class IsometricRenderer {
         for (let v = 0; v < 2; v++) {
             this._envSprites['building'].push(SpriteGenerator.generateBuilding(v));
         }
+        // Large multi-tile sprites
+        this._envSprites['watchtower'] = [SpriteGenerator.generateWatchtower(0)];
     }
 
     resize() {
@@ -4496,7 +4711,7 @@ class IsometricRenderer {
 
     // ---- ENTITY RENDERING (Fallout 2 style) ----
 
-    drawEntity(gx, gy, entityType, facing = 'south', isSelected = false, hp = null, maxHp = null) {
+    drawEntity(gx, gy, entityType, facing = 'south', isSelected = false, hp = null, maxHp = null, animState = 'idle') {
         const screen = this.worldToScreen(gx, gy);
         const ctx = this.ctx;
         const z = this.camera.zoom;
@@ -4515,6 +4730,26 @@ class IsometricRenderer {
 
         if (isSelected) {
             this.drawTileHighlight(gx, gy, 'rgba(60, 140, 60, 0.15)', 'rgba(80, 160, 80, 0.4)');
+        }
+
+        // Multi-tile large sprites (watchtower, etc.) - render at bigger scale
+        const multiTileTypes = { 'watchtower': 1.8 };
+        if (multiTileTypes[entityType]) {
+            const scale = multiTileTypes[entityType];
+            const sprites = this._envSprites[entityType];
+            if (sprites && sprites.length > 0) {
+                const variant = ((gx * 7 + gy * 13) & 0x7FFFFFFF) % sprites.length;
+                const sprite = sprites[variant];
+                const sw = sprite.width * z * scale;
+                const sh = sprite.height * z * scale;
+                // Large shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(screen.x + 3 * z, screen.y + 2 * z, 18 * z * scale, 6 * z * scale, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh + 8 * z, sw, sh);
+            }
+            return;
         }
 
         // Environmental objects (trees, ruins, wreckage, etc.)
@@ -4571,14 +4806,25 @@ class IsometricRenderer {
                 this.drawCreature(ctx, screen, z, entityType);
             }
         } else {
-            // Use pre-rendered humanoid sprite (directional)
+            // Use pre-rendered humanoid sprite (directional with animation state)
             const spriteSet = this._humanoidSprites[entityType];
-            if (spriteSet && spriteSet[facing]) {
-                const sprites = spriteSet[facing];
-                const sprite = sprites[this.animationFrame % sprites.length];
-                const sw = sprite.width * z;
-                const sh = sprite.height * z;
-                ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh + 4 * z, sw, sh);
+            if (spriteSet) {
+                // Pick the right animation set: walk_south, attack_south, or south (idle)
+                let spriteKey = facing;
+                if (animState === 'walk' && spriteSet['walk_' + facing]) {
+                    spriteKey = 'walk_' + facing;
+                } else if (animState === 'attack' && spriteSet['attack_' + facing]) {
+                    spriteKey = 'attack_' + facing;
+                }
+                const sprites = spriteSet[spriteKey] || spriteSet[facing];
+                if (sprites && sprites.length > 0) {
+                    const sprite = sprites[this.animationFrame % sprites.length];
+                    const sw = sprite.width * z;
+                    const sh = sprite.height * z;
+                    ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh + 4 * z, sw, sh);
+                } else {
+                    this.drawHumanoid(ctx, screen, z, entityType, facing);
+                }
             } else {
                 this.drawHumanoid(ctx, screen, z, entityType, facing);
             }
@@ -5575,7 +5821,7 @@ class IsometricRenderer {
             } else {
                 const ent = item.entity;
                 this.drawEntity(ent.x, ent.y, ent.spriteType || ent.type, ent.facing || 'south',
-                    ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null);
+                    ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null, ent.animState || 'idle');
             }
         }
 
@@ -6551,6 +6797,17 @@ class CombatSystem {
     attack(attacker, defender, weapon) {
         const apCost = weapon ? (weapon.apCost || 4) : 3;
 
+        // Face the defender
+        const adx = defender.x - attacker.x;
+        const ady = defender.y - attacker.y;
+        if (adx !== 0 || ady !== 0) {
+            attacker.facing = this.game.getFacing(adx, ady);
+        }
+
+        // Play attack animation
+        attacker.animState = 'attack';
+        setTimeout(() => { attacker.animState = 'idle'; }, 500);
+
         if (!CharacterSystem.useAP(attacker, apCost)) {
             if (attacker.type === 'player') {
                 this.game.addMessage('Not enough AP!', 'combat');
@@ -6736,7 +6993,9 @@ class CombatSystem {
         if (dx !== 0 || dy !== 0) {
             entity.facing = this.game.getFacing(dx, dy);
         }
+        entity.animState = 'walk';
         entity.x = targetX;
+        setTimeout(() => { entity.animState = 'idle'; }, 300);
         entity.y = targetY;
         this.game.audio.playSfx('step');
         return true;
@@ -7182,10 +7441,12 @@ class AISystem {
                 if (mdx !== 0 || mdy !== 0) {
                     entity.facing = this.game.getFacing(mdx, mdy);
                 }
+                entity.animState = 'walk';
                 CharacterSystem.useAP(entity, 1);
                 entity.x = next.x;
                 entity.y = next.y;
                 this.game.audio.playSfx('step');
+                setTimeout(() => { entity.animState = 'idle'; }, 300);
             }
         }
     }
@@ -7203,9 +7464,11 @@ class AISystem {
             if (ndx !== 0 || ndy !== 0) {
                 entity.facing = this.game.getFacing(ndx, ndy);
             }
+            entity.animState = 'walk';
             CharacterSystem.useAP(entity, 1);
             entity.x = newX;
             entity.y = newY;
+            setTimeout(() => { entity.animState = 'idle'; }, 300);
         }
     }
 
@@ -8872,7 +9135,7 @@ function createWastelandArea() {
     entities.push(env('cactus2', 'cactus', 20, 13, 'Cactus'));
     entities.push(env('cactus3', 'cactus', 1, 16, 'Saguaro'));
     // Raider camp structures
-    entities.push(env('tower1', 'building', 10, 5, 'Lookout Tower'));
+    entities.push(env('tower1', 'watchtower', 10, 5, 'Lookout Tower'));
     entities.push(env('shack1', 'building', 17, 12, 'Raider Shack'));
     // Rocks and campfire
     entities.push(env('rocks1', 'rock_formation', 3, 9, 'Boulder'));
@@ -9866,8 +10129,10 @@ class Game {
 
     animateMovement(path) {
         let step = 0;
+        this.player.animState = 'walk';
         const animate = () => {
             if (step >= path.length) {
+                this.player.animState = 'idle';
                 // Check for aggro after moving
                 this.checkCombatTrigger();
                 return;
@@ -9887,6 +10152,7 @@ class Game {
             // Check transition mid-path
             const t = this.checkTransition(this.player.x, this.player.y);
             if (t) {
+                this.player.animState = 'idle';
                 this.transitionArea(t);
                 return;
             }
@@ -9894,6 +10160,7 @@ class Game {
             // Check aggro mid-path (only nearby enemies)
             const hostiles = this.ai.checkAggro(this.entities, this.player, 3);
             if (hostiles.length > 0) {
+                this.player.animState = 'idle';
                 this.startCombatWith(hostiles);
                 return;
             }
@@ -9928,8 +10195,10 @@ class Game {
         if (!path || path.length === 0) return;
 
         let step = 0;
+        this.player.animState = 'walk';
         const animate = () => {
             if (step >= path.length) {
+                this.player.animState = 'idle';
                 // Interact on arrival
                 if (target.type === 'npc' && target.dialogueId) {
                     this.dialogue.startDialogue(target);
@@ -10764,8 +11033,10 @@ class Game {
                 if (this.player && nx === this.player.x && ny === this.player.y) continue;
 
                 ent.facing = this.getFacing(dx, dy);
+                ent.animState = 'walk';
                 ent.x = nx;
                 ent.y = ny;
+                setTimeout(() => { ent.animState = 'idle'; }, 400);
                 break;
             }
         }

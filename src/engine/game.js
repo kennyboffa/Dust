@@ -290,8 +290,10 @@ class Game {
 
     animateMovement(path) {
         let step = 0;
+        this.player.animState = 'walk';
         const animate = () => {
             if (step >= path.length) {
+                this.player.animState = 'idle';
                 // Check for aggro after moving
                 this.checkCombatTrigger();
                 return;
@@ -311,6 +313,7 @@ class Game {
             // Check transition mid-path
             const t = this.checkTransition(this.player.x, this.player.y);
             if (t) {
+                this.player.animState = 'idle';
                 this.transitionArea(t);
                 return;
             }
@@ -318,6 +321,7 @@ class Game {
             // Check aggro mid-path (only nearby enemies)
             const hostiles = this.ai.checkAggro(this.entities, this.player, 3);
             if (hostiles.length > 0) {
+                this.player.animState = 'idle';
                 this.startCombatWith(hostiles);
                 return;
             }
@@ -352,8 +356,10 @@ class Game {
         if (!path || path.length === 0) return;
 
         let step = 0;
+        this.player.animState = 'walk';
         const animate = () => {
             if (step >= path.length) {
+                this.player.animState = 'idle';
                 // Interact on arrival
                 if (target.type === 'npc' && target.dialogueId) {
                     this.dialogue.startDialogue(target);
@@ -1188,8 +1194,10 @@ class Game {
                 if (this.player && nx === this.player.x && ny === this.player.y) continue;
 
                 ent.facing = this.getFacing(dx, dy);
+                ent.animState = 'walk';
                 ent.x = nx;
                 ent.y = ny;
+                setTimeout(() => { ent.animState = 'idle'; }, 400);
                 break;
             }
         }

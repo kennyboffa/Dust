@@ -121,6 +121,17 @@ class CombatSystem {
     attack(attacker, defender, weapon) {
         const apCost = weapon ? (weapon.apCost || 4) : 3;
 
+        // Face the defender
+        const adx = defender.x - attacker.x;
+        const ady = defender.y - attacker.y;
+        if (adx !== 0 || ady !== 0) {
+            attacker.facing = this.game.getFacing(adx, ady);
+        }
+
+        // Play attack animation
+        attacker.animState = 'attack';
+        setTimeout(() => { attacker.animState = 'idle'; }, 500);
+
         if (!CharacterSystem.useAP(attacker, apCost)) {
             if (attacker.type === 'player') {
                 this.game.addMessage('Not enough AP!', 'combat');
@@ -306,7 +317,9 @@ class CombatSystem {
         if (dx !== 0 || dy !== 0) {
             entity.facing = this.game.getFacing(dx, dy);
         }
+        entity.animState = 'walk';
         entity.x = targetX;
+        setTimeout(() => { entity.animState = 'idle'; }, 300);
         entity.y = targetY;
         this.game.audio.playSfx('step');
         return true;

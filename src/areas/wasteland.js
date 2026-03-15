@@ -131,7 +131,7 @@ function createWastelandArea() {
     entities.push(env('cactus2', 'cactus', 20, 13, 'Cactus'));
     entities.push(env('cactus3', 'cactus', 1, 16, 'Saguaro'));
     // Raider camp structures
-    entities.push(env('tower1', 'building', 10, 5, 'Lookout Tower'));
+    entities.push(env('tower1', 'watchtower', 10, 5, 'Lookout Tower'));
     entities.push(env('shack1', 'building', 17, 12, 'Raider Shack'));
     // Rocks and campfire
     entities.push(env('rocks1', 'rock_formation', 3, 9, 'Boulder'));

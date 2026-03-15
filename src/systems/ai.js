@@ -128,10 +128,12 @@ class AISystem {
                 if (mdx !== 0 || mdy !== 0) {
                     entity.facing = this.game.getFacing(mdx, mdy);
                 }
+                entity.animState = 'walk';
                 CharacterSystem.useAP(entity, 1);
                 entity.x = next.x;
                 entity.y = next.y;
                 this.game.audio.playSfx('step');
+                setTimeout(() => { entity.animState = 'idle'; }, 300);
             }
         }
     }
@@ -149,9 +151,11 @@ class AISystem {
             if (ndx !== 0 || ndy !== 0) {
                 entity.facing = this.game.getFacing(ndx, ndy);
             }
+            entity.animState = 'walk';
             CharacterSystem.useAP(entity, 1);
             entity.x = newX;
             entity.y = newY;
+            setTimeout(() => { entity.animState = 'idle'; }, 300);
         }
     }
 
