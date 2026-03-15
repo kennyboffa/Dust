@@ -1856,31 +1856,148 @@ class SpriteGenerator {
         return c;
     }
 
-    // ---- HUMANOID SPRITE GENERATION (64x80 sprite with proper proportions) ----
-    static generateHumanoidSprite(type, frame, facing = 'south', animType = 'idle') {
+    // ---- HUMANOID SPRITE GENERATION (pixel-by-pixel with Fallout 2 pre-rendered look) ----
+    // variant: { skinTone: 0-4, hairColor: 0-5, bodyScale: 0.9-1.1, gender: 'male'|'female', seed: int }
+    static generateHumanoidSprite(type, frame, facing = 'south', animType = 'idle', variant = null) {
         const w = 48, h = 64;
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
+        const imgData = ctx.createImageData(w, h);
+        const pixels = imgData.data;
         const cx = w / 2, baseY = h - 3;
-        const rng = this.seededRandom(type.length * 1000 + frame * 100 + (facing === 'north' ? 7 : 0));
 
-        // Fallout 2 palette: warm skin tones, muted clothing, tribal/wasteland feel
+        // Variation parameters
+        const v = variant || {};
+        const skinIdx = v.skinTone || 0;
+        const hairIdx = v.hairColor || 0;
+        const bodySc = v.bodyScale || 1.0;
+        const gender = v.gender || 'male';
+        const vSeed = v.seed || (type.length * 1000);
+        const rng = this.seededRandom(vSeed + frame * 100 + (facing === 'north' ? 7 : 0));
+        const isFemale = gender === 'female';
+
+        // Skin tone variations (5 tones from light to dark)
+        const skinTones = [
+            [185, 148, 110], [165, 128, 90], [145, 110, 75], [120, 85, 55], [90, 62, 40]
+        ];
+        // Hair color variations (6 colors)
+        const hairColors = [
+            [38, 26, 16], [60, 45, 30], [25, 25, 25], [150, 148, 145], [85, 42, 18], [120, 55, 25]
+        ];
+
+        const baseSkin = skinTones[skinIdx % skinTones.length];
+        const baseHair = hairColors[hairIdx % hairColors.length];
+
+        // Fallout 2 palette per type with variation support
         const palettes = {
-            'player':  { skin:[165,128,90], shirt:[100,78,42], pants:[55,42,25], boots:[30,20,10], hair:[38,26,16], belt:[42,32,14], accent:[120,100,48], armor: true, bare: false },
-            'villager':{ skin:[155,120,85], shirt:[140,110,75], pants:[85,70,50], boots:[35,28,18], hair:[60,45,30], belt:[50,40,28], accent:[90,75,55], armor: false, bare: true },
-            'merchant':{ skin:[150,118,82], shirt:[95,72,38], pants:[48,38,25], boots:[32,22,12], hair:[55,42,28], belt:[50,38,25], accent:[120,98,58], armor: false, bare: false },
-            'elder':   { skin:[145,115,82], shirt:[68,48,85], pants:[32,26,45], boots:[22,15,25], hair:[150,148,145], belt:[40,32,55], accent:[85,62,118], armor: false, bare: false },
-            'guard':   { skin:[155,120,85], shirt:[55,72,35], pants:[35,45,22], boots:[22,22,10], hair:[38,28,16], belt:[45,45,25], accent:[65,78,42], armor: true, bare: false },
-            'raider':  { skin:[150,115,80], shirt:[72,22,18], pants:[32,15,15], boots:[22,10,10], hair:[25,25,25], belt:[55,28,25], accent:[85,28,25], armor: true, bare: true },
+            'player':  { skin: baseSkin, shirt:[100,78,42], pants:[55,42,25], boots:[30,20,10], hair: baseHair, belt:[42,32,14], accent:[120,100,48], armor: true, bare: false },
+            'villager':{ skin: baseSkin, shirt:[140,110,75], pants:[85,70,50], boots:[35,28,18], hair: baseHair, belt:[50,40,28], accent:[90,75,55], armor: false, bare: true },
+            'merchant':{ skin: baseSkin, shirt:[95,72,38], pants:[48,38,25], boots:[32,22,12], hair: baseHair, belt:[50,38,25], accent:[120,98,58], armor: false, bare: false },
+            'elder':   { skin: baseSkin, shirt:[68,48,85], pants:[32,26,45], boots:[22,15,25], hair:[150,148,145], belt:[40,32,55], accent:[85,62,118], armor: false, bare: false },
+            'guard':   { skin: baseSkin, shirt:[55,72,35], pants:[35,45,22], boots:[22,22,10], hair: baseHair, belt:[45,45,25], accent:[65,78,42], armor: true, bare: false },
+            'raider':  { skin: baseSkin, shirt:[72,22,18], pants:[32,15,15], boots:[22,10,10], hair: baseHair, belt:[55,28,25], accent:[85,28,25], armor: true, bare: true },
             'mutant':  { skin:[62,105,25], shirt:[42,65,15], pants:[30,42,8], boots:[22,32,5], hair:[55,85,18], belt:[40,52,15], accent:[65,118,28], armor: false, bare: false },
         };
         const p = palettes[type] || palettes['villager'];
         const isMutant = type === 'mutant';
-        const sc = isMutant ? 1.4 : 1;
+        const sc = (isMutant ? 1.4 : 1) * bodySc;
 
-        const rgb = (arr, adj) => `rgb(${Math.max(0,Math.min(255,arr[0]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[1]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[2]+(adj||0)))|0})`;
-        const rgba = (arr, a, adj) => `rgba(${Math.max(0,Math.min(255,arr[0]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[1]+(adj||0)))|0},${Math.max(0,Math.min(255,arr[2]+(adj||0)))|0},${a})`;
-        const ol = (arr) => rgb(arr, -50); // strong dark outlines like FO2
+        // ---- Pixel placement helpers ----
+        const setPixel = (x, y, r, g, b, a) => {
+            const px = Math.round(x), py = Math.round(y);
+            if (px < 0 || px >= w || py < 0 || py >= h) return;
+            const idx = (py * w + px) * 4;
+            if (a === undefined) a = 255;
+            // Alpha blend
+            const srcA = a / 255;
+            const dstA = pixels[idx + 3] / 255;
+            const outA = srcA + dstA * (1 - srcA);
+            if (outA > 0) {
+                pixels[idx]     = ((r * srcA + pixels[idx] * dstA * (1 - srcA)) / outA) | 0;
+                pixels[idx + 1] = ((g * srcA + pixels[idx + 1] * dstA * (1 - srcA)) / outA) | 0;
+                pixels[idx + 2] = ((b * srcA + pixels[idx + 2] * dstA * (1 - srcA)) / outA) | 0;
+                pixels[idx + 3] = (outA * 255) | 0;
+            }
+        };
+
+        // Dithered color - adds FO2 pre-rendered texture by mixing 2-3 color levels
+        const ditheredPixel = (x, y, baseColor, lightAdj, shadowAdj) => {
+            const px = Math.round(x), py = Math.round(y);
+            // Ordered dithering pattern (2x2 Bayer matrix)
+            const dither = ((px % 2) + (py % 2) * 2);
+            const noise = (rng() - 0.5) * 6;
+            let adj = 0;
+            // Top-left directional lighting
+            if (lightAdj !== undefined && shadowAdj !== undefined) {
+                // Light from top-left
+                adj = lightAdj * (1 - (px - cx + 4) / 12) + shadowAdj * ((px - cx + 4) / 12);
+                // Vertical gradient (top lighter)
+                adj += (baseY - py) * 0.3;
+            }
+            // Dither: shift color slightly based on pattern for pre-rendered look
+            const ditherShift = (dither === 0 ? -4 : dither === 3 ? 4 : dither === 1 ? -2 : 2);
+            const r = Math.max(0, Math.min(255, baseColor[0] + adj + ditherShift + noise));
+            const g = Math.max(0, Math.min(255, baseColor[1] + adj + ditherShift + noise));
+            const b = Math.max(0, Math.min(255, baseColor[2] + adj + ditherShift + noise));
+            setPixel(x, y, r, g, b, 255);
+        };
+
+        // Fill ellipse with dithered pixels
+        const fillEllipse = (ecx, ecy, rx, ry, color, lightAdj, shadowAdj) => {
+            const lAdj = lightAdj !== undefined ? lightAdj : 8;
+            const sAdj = shadowAdj !== undefined ? shadowAdj : -12;
+            for (let py = Math.floor(ecy - ry); py <= Math.ceil(ecy + ry); py++) {
+                for (let px = Math.floor(ecx - rx); px <= Math.ceil(ecx + rx); px++) {
+                    const dx = (px - ecx) / rx, dy = (py - ecy) / ry;
+                    if (dx * dx + dy * dy <= 1) {
+                        ditheredPixel(px, py, color, lAdj, sAdj);
+                    }
+                }
+            }
+        };
+
+        // Outline ellipse (dark border - FO2 style)
+        const outlineEllipse = (ecx, ecy, rx, ry, color) => {
+            const dark = [Math.max(0, color[0] - 50), Math.max(0, color[1] - 50), Math.max(0, color[2] - 50)];
+            for (let py = Math.floor(ecy - ry - 1); py <= Math.ceil(ecy + ry + 1); py++) {
+                for (let px = Math.floor(ecx - rx - 1); px <= Math.ceil(ecx + rx + 1); px++) {
+                    const dx = (px - ecx) / rx, dy = (py - ecy) / ry;
+                    const dist = dx * dx + dy * dy;
+                    if (dist > 0.7 && dist <= 1.3) {
+                        // Check if on border
+                        const dx2 = (px - ecx) / (rx + 0.8), dy2 = (py - ecy) / (ry + 0.8);
+                        if (dx2 * dx2 + dy2 * dy2 <= 1 && dist > 0.85) {
+                            setPixel(px, py, dark[0], dark[1], dark[2], 255);
+                        }
+                    }
+                }
+            }
+        };
+
+        // Fill rectangle with dithered pixels
+        const fillRect = (rx, ry, rw, rh, color, lAdj, sAdj) => {
+            for (let py = Math.floor(ry); py < Math.ceil(ry + rh); py++) {
+                for (let px = Math.floor(rx); px < Math.ceil(rx + rw); px++) {
+                    ditheredPixel(px, py, color, lAdj || 5, sAdj || -8);
+                }
+            }
+        };
+
+        // Draw line with pixels
+        const drawLine = (x0, y0, x1, y1, color, thickness) => {
+            const dark = color;
+            const dist = Math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2);
+            const steps = Math.ceil(dist * 2);
+            const t = thickness || 1;
+            for (let i = 0; i <= steps; i++) {
+                const frac = i / steps;
+                const lx = x0 + (x1 - x0) * frac;
+                const ly = y0 + (y1 - y0) * frac;
+                for (let dy = -Math.floor(t / 2); dy <= Math.floor(t / 2); dy++) {
+                    setPixel(lx, ly + dy, dark[0], dark[1], dark[2], 255);
+                }
+            }
+        };
 
         // Walk cycle animation
         const walkFrames = [
@@ -1890,373 +2007,245 @@ class SpriteGenerator {
             { lx: 2, ly: 1, rx: -2, ry: -1, laOff: -2, raOff: 2 },
         ];
         const atkFrames = [
-            { angle: 0, ext: 0 },
-            { angle: -0.7, ext: -5 },
-            { angle: 0.6, ext: 4 },
-            { angle: 0, ext: 0 },
+            { ext: 0, armShift: 0 },
+            { ext: -4, armShift: -3 },
+            { ext: 3, armShift: 4 },
+            { ext: 0, armShift: 0 },
         ];
         const wk = walkFrames[frame % 4];
         const at = atkFrames[frame % 4];
         const walking = animType === 'walk';
         const attacking = animType === 'attack';
 
-        // Measurements - stockier, wider shoulders like FO2
-        const bodyW = 16 * sc, bodyH = 14 * sc;
-        const legW = 5 * sc, legH = 9 * sc;
-        const armW = 4.5 * sc, armH = 11 * sc;
-        const headR = 5.5 * sc;
+        // Measurements - FO2 stocky build with gender variation
+        const shoulderMult = isFemale ? 0.85 : 1;
+        const hipMult = isFemale ? 1.1 : 1;
+        const bodyW = 16 * sc * shoulderMult, bodyH = (isFemale ? 13 : 14) * sc;
+        const legW = (isFemale ? 4.5 : 5) * sc, legH = (isFemale ? 10 : 9) * sc;
+        const armW = (isFemale ? 3.8 : 4.5) * sc, armH = (isFemale ? 10 : 11) * sc;
+        const headR = (isFemale ? 5 : 5.5) * sc;
         const legY = baseY - legH;
         const torsoY = legY - bodyH + 3;
         const armY = torsoY + 2;
 
-        // ---- LEGS (rounded, thick - FO2 style) ----
+        // ---- LEGS ----
         const llx = walking ? wk.lx * sc : 0;
         const lly = walking ? wk.ly * sc : 0;
         const rlx = walking ? wk.rx * sc : 0;
         const rly = walking ? wk.ry * sc : 0;
 
         // Left leg
-        ctx.fillStyle = rgb(p.pants);
-        ctx.beginPath();
-        ctx.ellipse(cx - 3.5 * sc + llx, legY + legH / 2 + lly, legW / 2, legH / 2 - lly / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.pants);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        // Right leg
-        ctx.fillStyle = rgb(p.pants, -8);
-        ctx.beginPath();
-        ctx.ellipse(cx + 3.5 * sc + rlx, legY + legH / 2 + rly, legW / 2, legH / 2 - rly / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.pants);
-        ctx.stroke();
+        const legColor = p.pants;
+        const legDark = [legColor[0] - 8, legColor[1] - 8, legColor[2] - 8];
+        fillEllipse(cx - 3.5 * sc * hipMult + llx, legY + legH / 2 + lly, legW / 2, legH / 2, legColor, 6, -10);
+        outlineEllipse(cx - 3.5 * sc * hipMult + llx, legY + legH / 2 + lly, legW / 2, legH / 2, legColor);
+        // Right leg (slightly darker)
+        fillEllipse(cx + 3.5 * sc * hipMult + rlx, legY + legH / 2 + rly, legW / 2, legH / 2, legDark, 4, -12);
+        outlineEllipse(cx + 3.5 * sc * hipMult + rlx, legY + legH / 2 + rly, legW / 2, legH / 2, legDark);
 
-        // ---- BOOTS (chunky, rounded) ----
-        ctx.fillStyle = rgb(p.boots);
-        ctx.beginPath();
-        ctx.ellipse(cx - 3.5 * sc + llx, baseY - 2 + lly, legW / 2 + 1, 3 * sc, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.boots);
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.fillStyle = rgb(p.boots);
-        ctx.beginPath();
-        ctx.ellipse(cx + 3.5 * sc + rlx, baseY - 2 + rly, legW / 2 + 1, 3 * sc, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.boots);
-        ctx.stroke();
+        // ---- BOOTS ----
+        fillEllipse(cx - 3.5 * sc * hipMult + llx, baseY - 2 + lly, legW / 2 + 1, 3 * sc, p.boots, 4, -8);
+        outlineEllipse(cx - 3.5 * sc * hipMult + llx, baseY - 2 + lly, legW / 2 + 1, 3 * sc, p.boots);
+        fillEllipse(cx + 3.5 * sc * hipMult + rlx, baseY - 2 + rly, legW / 2 + 1, 3 * sc, p.boots, 4, -8);
+        outlineEllipse(cx + 3.5 * sc * hipMult + rlx, baseY - 2 + rly, legW / 2 + 1, 3 * sc, p.boots);
 
-        // ---- TORSO (wide, rounded - FO2 stocky build) ----
+        // ---- TORSO ----
         const torsoColor = p.bare ? p.skin : p.shirt;
-        ctx.fillStyle = rgb(torsoColor);
-        ctx.beginPath();
-        ctx.ellipse(cx, torsoY + bodyH / 2, bodyW / 2, bodyH / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Light side shading
-        ctx.fillStyle = rgba(torsoColor, 0.2, 20);
-        ctx.beginPath();
-        ctx.ellipse(cx - 2, torsoY + bodyH / 2 - 1, bodyW / 4, bodyH / 3, -0.2, 0, Math.PI * 2);
-        ctx.fill();
-        // Dark side
-        ctx.fillStyle = rgba(torsoColor, 0.15, -20);
-        ctx.beginPath();
-        ctx.ellipse(cx + 3, torsoY + bodyH / 2 + 1, bodyW / 4, bodyH / 3, 0.2, 0, Math.PI * 2);
-        ctx.fill();
-        // Torso outline
-        ctx.strokeStyle = ol(torsoColor);
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.ellipse(cx, torsoY + bodyH / 2, bodyW / 2, bodyH / 2, 0, 0, Math.PI * 2);
-        ctx.stroke();
+        fillEllipse(cx, torsoY + bodyH / 2, bodyW / 2, bodyH / 2, torsoColor, 12, -15);
+        outlineEllipse(cx, torsoY + bodyH / 2, bodyW / 2, bodyH / 2, torsoColor);
 
-        // Muscle definition for bare-chested types
-        if (p.bare && facing !== 'north') {
-            ctx.strokeStyle = rgba(p.skin, 0.15, -25);
-            ctx.lineWidth = 0.6;
-            // Pec line
-            ctx.beginPath();
-            ctx.moveTo(cx - 4 * sc, torsoY + bodyH * 0.3);
-            ctx.quadraticCurveTo(cx, torsoY + bodyH * 0.45, cx + 4 * sc, torsoY + bodyH * 0.3);
-            ctx.stroke();
-            // Abs hint
-            ctx.beginPath();
-            ctx.moveTo(cx, torsoY + bodyH * 0.4);
-            ctx.lineTo(cx, torsoY + bodyH * 0.75);
-            ctx.stroke();
+        // Muscle definition for bare-chested (male only)
+        if (p.bare && facing !== 'north' && !isFemale) {
+            const muscleDark = [p.skin[0] - 25, p.skin[1] - 25, p.skin[2] - 25];
+            // Pec line hint
+            drawLine(cx - 4 * sc, torsoY + bodyH * 0.35, cx, torsoY + bodyH * 0.42, muscleDark, 1);
+            drawLine(cx, torsoY + bodyH * 0.42, cx + 4 * sc, torsoY + bodyH * 0.35, muscleDark, 1);
+            // Abs center line
+            drawLine(cx, torsoY + bodyH * 0.45, cx, torsoY + bodyH * 0.72, muscleDark, 1);
+        }
+
+        // Female chest shape hint
+        if (p.bare && facing !== 'north' && isFemale) {
+            // Subtle shading - top of torso is wrapped cloth/bandage
+            const wrapColor = [p.shirt[0] + 15, p.shirt[1] + 15, p.shirt[2] + 15];
+            fillEllipse(cx, torsoY + bodyH * 0.3, bodyW / 2 - 1, bodyH * 0.2, wrapColor, 8, -10);
         }
 
         // Armor/vest overlay
         if (p.armor && !p.bare) {
             const vc = type === 'raider' ? [45,25,20] : type === 'guard' ? [58,55,38] : [70,60,35];
-            ctx.fillStyle = rgba(vc, 0.55);
-            ctx.beginPath();
-            ctx.ellipse(cx, torsoY + bodyH / 2, bodyW / 2 - 1, bodyH / 2 - 1, 0, 0, Math.PI * 2);
-            ctx.fill();
+            fillEllipse(cx, torsoY + bodyH / 2, bodyW / 2 - 1, bodyH / 2 - 1, vc, 6, -10);
         }
 
-        // Raider leather straps across bare chest
+        // Raider leather straps
         if (type === 'raider') {
-            ctx.strokeStyle = '#3A1A12';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(cx - bodyW / 2 + 2, torsoY + 3);
-            ctx.lineTo(cx + bodyW / 2 - 2, torsoY + bodyH - 3);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx + bodyW / 2 - 2, torsoY + 3);
-            ctx.lineTo(cx - bodyW / 2 + 2, torsoY + bodyH - 3);
-            ctx.stroke();
+            const strapColor = [58, 26, 18];
+            drawLine(cx - bodyW / 2 + 2, torsoY + 3, cx + bodyW / 2 - 2, torsoY + bodyH - 3, strapColor, 1);
+            drawLine(cx + bodyW / 2 - 2, torsoY + 3, cx - bodyW / 2 + 2, torsoY + bodyH - 3, strapColor, 1);
         }
 
         // Belt
-        ctx.fillStyle = rgb(p.belt);
-        ctx.fillRect(cx - bodyW / 2 + 1, torsoY + bodyH - 3, bodyW - 2, 3);
-        ctx.fillStyle = rgb(p.accent);
-        ctx.fillRect(cx - 1.5, torsoY + bodyH - 3, 3, 3);
+        fillRect(cx - bodyW / 2 + 1, torsoY + bodyH - 3, bodyW - 2, 3, p.belt, 4, -6);
+        fillRect(cx - 1.5, torsoY + bodyH - 3, 3, 3, p.accent, 6, -4);
 
-        // ---- LEFT ARM (skin visible - FO2 style) ----
-        const lArmOff = walking ? wk.laOff * sc : (attacking ? (at.ext < 0 ? 1 : 0) : 0);
-        ctx.save();
-        if (walking) {
-            ctx.translate(cx - bodyW / 2, armY + 2);
-            ctx.rotate(wk.laOff * 0.04);
-            ctx.translate(-(cx - bodyW / 2), -(armY + 2));
-        }
-        // Upper arm (skin)
-        ctx.fillStyle = rgb(p.skin);
-        ctx.beginPath();
-        ctx.ellipse(cx - bodyW / 2 - armW / 2 + 1, armY + armH * 0.35 + lArmOff, armW / 2, armH * 0.4, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.skin);
-        ctx.lineWidth = 0.9;
-        ctx.stroke();
-        // Forearm (slightly darker)
-        ctx.fillStyle = rgb(p.skin, -8);
-        ctx.beginPath();
-        ctx.ellipse(cx - bodyW / 2 - armW / 2 + 1, armY + armH * 0.75 + lArmOff, armW / 2 - 0.3, armH * 0.3, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.skin);
-        ctx.lineWidth = 0.7;
-        ctx.stroke();
-        // Hand
-        ctx.fillStyle = rgb(p.skin, -5);
-        ctx.beginPath();
-        ctx.arc(cx - bodyW / 2 - armW / 2 + 1, armY + armH + lArmOff, 2 * sc, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.skin);
-        ctx.lineWidth = 0.6;
-        ctx.stroke();
-        ctx.restore();
-
-        // ---- RIGHT ARM (weapon arm - with attack animation) ----
-        const rArmOff = walking ? wk.raOff * sc : 0;
-        ctx.save();
-        if (attacking) {
-            ctx.translate(cx + bodyW / 2, armY + 2);
-            ctx.rotate(at.angle);
-            ctx.translate(-(cx + bodyW / 2), -(armY + 2));
-        } else if (walking) {
-            ctx.translate(cx + bodyW / 2, armY + 2);
-            ctx.rotate(wk.raOff * 0.04);
-            ctx.translate(-(cx + bodyW / 2), -(armY + 2));
-        }
-        const rArmExt = attacking ? at.ext : 0;
+        // ---- LEFT ARM ----
+        const lArmOff = walking ? wk.laOff * sc : (attacking ? (at.armShift < 0 ? 1 : 0) : 0);
+        const laX = cx - bodyW / 2 - armW / 2 + 1;
         // Upper arm
-        ctx.fillStyle = rgb(p.skin);
-        ctx.beginPath();
-        ctx.ellipse(cx + bodyW / 2 + armW / 2 - 1, armY + armH * 0.35 + rArmOff + rArmExt, armW / 2, armH * 0.4, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.skin);
-        ctx.lineWidth = 0.9;
-        ctx.stroke();
+        fillEllipse(laX, armY + armH * 0.35 + lArmOff, armW / 2, armH * 0.38, p.skin, 10, -12);
+        outlineEllipse(laX, armY + armH * 0.35 + lArmOff, armW / 2, armH * 0.38, p.skin);
         // Forearm
-        ctx.fillStyle = rgb(p.skin, -8);
-        ctx.beginPath();
-        ctx.ellipse(cx + bodyW / 2 + armW / 2 - 1, armY + armH * 0.75 + rArmOff + rArmExt, armW / 2 - 0.3, armH * 0.3, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.skin);
-        ctx.lineWidth = 0.7;
-        ctx.stroke();
+        const faSkin = [p.skin[0] - 8, p.skin[1] - 8, p.skin[2] - 8];
+        fillEllipse(laX, armY + armH * 0.72 + lArmOff, armW / 2 - 0.5, armH * 0.28, faSkin, 8, -10);
+        outlineEllipse(laX, armY + armH * 0.72 + lArmOff, armW / 2 - 0.5, armH * 0.28, faSkin);
+        // Hand
+        const handSkin = [p.skin[0] - 5, p.skin[1] - 5, p.skin[2] - 5];
+        fillEllipse(laX, armY + armH + lArmOff, 2 * sc, 2 * sc, handSkin, 6, -8);
+
+        // ---- RIGHT ARM (weapon arm) ----
+        const rArmOff = walking ? wk.raOff * sc : 0;
+        const rArmExt = attacking ? at.ext : 0;
+        const raX = cx + bodyW / 2 + armW / 2 - 1;
+        // Upper arm
+        fillEllipse(raX, armY + armH * 0.35 + rArmOff + rArmExt, armW / 2, armH * 0.38, p.skin, 10, -12);
+        outlineEllipse(raX, armY + armH * 0.35 + rArmOff + rArmExt, armW / 2, armH * 0.38, p.skin);
+        // Forearm
+        fillEllipse(raX, armY + armH * 0.72 + rArmOff + rArmExt, armW / 2 - 0.5, armH * 0.28, faSkin, 8, -10);
+        outlineEllipse(raX, armY + armH * 0.72 + rArmOff + rArmExt, armW / 2 - 0.5, armH * 0.28, faSkin);
         // Hand
         const rHandY = armY + armH + rArmOff + rArmExt;
-        ctx.fillStyle = rgb(p.skin, -5);
-        ctx.beginPath();
-        ctx.arc(cx + bodyW / 2 + armW / 2 - 1, rHandY, 2 * sc, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = ol(p.skin);
-        ctx.lineWidth = 0.6;
-        ctx.stroke();
+        fillEllipse(raX, rHandY, 2 * sc, 2 * sc, handSkin, 6, -8);
 
         // Weapon
         if (type === 'player' || type === 'raider' || type === 'guard') {
-            const wx = cx + bodyW / 2 + armW / 2 - 1;
+            const wx = raX;
             const wy = rHandY + 2 * sc;
             if (type === 'player' || type === 'guard') {
-                ctx.fillStyle = '#6A6A6A';
-                ctx.beginPath();
-                ctx.moveTo(wx - 0.5, wy);
-                ctx.lineTo(wx + 0.3, wy - 8);
-                ctx.lineTo(wx + 1, wy);
-                ctx.closePath();
-                ctx.fill();
-                ctx.fillStyle = '#2A1C0C';
-                ctx.fillRect(wx - 0.7, wy, 1.4, 3);
+                // Knife/blade
+                const blade = [106, 106, 106];
+                const hilt = [42, 28, 12];
+                drawLine(wx, wy, wx, wy - 7, blade, 1);
+                fillRect(wx - 1, wy, 2, 3, hilt, 3, -4);
             } else {
-                ctx.fillStyle = '#444';
-                ctx.fillRect(wx - 0.7, wy - 10, 1.4, 10);
-                ctx.fillStyle = '#555';
-                ctx.fillRect(wx - 1, wy, 2, 3);
+                // Club/pipe
+                const metal = [68, 68, 68];
+                const grip = [85, 85, 85];
+                drawLine(wx, wy - 9, wx, wy, metal, 1);
+                fillRect(wx - 1, wy, 2, 3, grip, 3, -4);
             }
         }
-        ctx.restore();
 
-        // Elder staff (drawn outside arm transform)
+        // Elder staff
         if (type === 'elder') {
             const sx = cx - bodyW / 2 - armW;
-            ctx.strokeStyle = '#4A3A28';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(sx, baseY - 2);
-            ctx.lineTo(sx, torsoY - 14);
-            ctx.stroke();
-            ctx.fillStyle = '#7755AA';
-            ctx.beginPath();
-            ctx.arc(sx, torsoY - 16, 2.5, 0, Math.PI * 2);
-            ctx.fill();
+            drawLine(sx, baseY - 2, sx, torsoY - 14, [74, 58, 40], 2);
+            fillEllipse(sx, torsoY - 16, 2.5, 2.5, [119, 85, 170], 8, -6);
         }
 
         // Merchant pack
         if (type === 'merchant') {
-            ctx.fillStyle = '#3A2814';
-            ctx.beginPath();
-            ctx.ellipse(cx - bodyW / 2 - 3, armY + armH * 0.4, 5, 3.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#2A1808';
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
+            fillEllipse(cx - bodyW / 2 - 3, armY + armH * 0.4, 5, 3.5, [58, 40, 20], 5, -8);
+            outlineEllipse(cx - bodyW / 2 - 3, armY + armH * 0.4, 5, 3.5, [42, 24, 8]);
         }
 
-        // ---- NECK (thick, visible) ----
-        ctx.fillStyle = rgb(p.skin);
-        ctx.fillRect(cx - 2.5 * sc, torsoY - 2, 5 * sc, 4);
-        ctx.strokeStyle = ol(p.skin);
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(cx - 2.5 * sc, torsoY - 2);
-        ctx.lineTo(cx - 2.5 * sc, torsoY + 2);
-        ctx.moveTo(cx + 2.5 * sc, torsoY - 2);
-        ctx.lineTo(cx + 2.5 * sc, torsoY + 2);
-        ctx.stroke();
+        // ---- NECK ----
+        fillRect(cx - 2.5 * sc, torsoY - 2, 5 * sc, 4, p.skin, 6, -8);
+        const neckOutline = [Math.max(0, p.skin[0] - 50), Math.max(0, p.skin[1] - 50), Math.max(0, p.skin[2] - 50)];
+        setPixel(cx - 2.5 * sc, torsoY - 1, neckOutline[0], neckOutline[1], neckOutline[2]);
+        setPixel(cx + 2.5 * sc, torsoY - 1, neckOutline[0], neckOutline[1], neckOutline[2]);
 
-        // ---- HEAD (larger, rounder - FO2 proportions) ----
+        // ---- HEAD ----
         const headY = torsoY - 2 - headR * 1.15;
-
-        // Head shape
-        ctx.fillStyle = rgb(p.skin);
-        ctx.beginPath();
-        ctx.ellipse(cx, headY, headR, headR * 1.05, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Light shading on head
-        ctx.fillStyle = rgba(p.skin, 0.15, 18);
-        ctx.beginPath();
-        ctx.ellipse(cx - 1.5, headY - 1, headR * 0.5, headR * 0.6, -0.2, 0, Math.PI * 2);
-        ctx.fill();
-        // Strong head outline
-        ctx.strokeStyle = ol(p.skin);
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.ellipse(cx, headY, headR, headR * 1.05, 0, 0, Math.PI * 2);
-        ctx.stroke();
+        fillEllipse(cx, headY, headR, headR * 1.05, p.skin, 14, -12);
+        outlineEllipse(cx, headY, headR, headR * 1.05, p.skin);
 
         if (facing === 'north') {
-            // Back of head - hair
+            // Back of head - hair covers all
             if (!isMutant) {
-                ctx.fillStyle = rgb(p.hair);
-                ctx.beginPath();
-                ctx.ellipse(cx, headY, headR + 0.5, headR * 1.0, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = ol(p.hair);
-                ctx.lineWidth = 0.8;
-                ctx.stroke();
+                fillEllipse(cx, headY, headR + 0.5, headR * 1.0, p.hair, 8, -10);
+                outlineEllipse(cx, headY, headR + 0.5, headR * 1.0, p.hair);
+                // Female: longer hair at back
+                if (isFemale) {
+                    fillEllipse(cx, headY + headR * 0.6, headR * 0.8, headR * 0.8, p.hair, 6, -10);
+                }
             }
             // Ears
-            ctx.fillStyle = rgb(p.skin, -5);
-            ctx.beginPath();
-            ctx.ellipse(cx - headR, headY, 1.5, 2.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(cx + headR, headY, 1.5, 2.5, 0, 0, Math.PI * 2);
-            ctx.fill();
+            const earSkin = [p.skin[0] - 5, p.skin[1] - 5, p.skin[2] - 5];
+            fillEllipse(cx - headR, headY, 1.5, 2.5, earSkin, 4, -6);
+            fillEllipse(cx + headR, headY, 1.5, 2.5, earSkin, 4, -6);
         } else {
-            // Front face
-            // Hair
+            // Front face - Hair
             if (!isMutant) {
-                ctx.fillStyle = rgb(p.hair);
-                ctx.beginPath();
-                ctx.ellipse(cx, headY - 2, headR + 0.5, headR * 0.6, 0, Math.PI, Math.PI * 2);
-                ctx.fill();
-                ctx.fillRect(cx - headR - 0.5, headY - 2, 2, 5);
-                ctx.fillRect(cx + headR - 1.5, headY - 2, 2, 5);
+                // Hair top
+                for (let py = Math.floor(headY - headR * 0.6 - 2); py <= Math.floor(headY - 1); py++) {
+                    for (let px = Math.floor(cx - headR - 0.5); px <= Math.ceil(cx + headR + 0.5); px++) {
+                        const dx = (px - cx) / (headR + 0.5);
+                        const topLine = headY - headR * 0.6;
+                        if (py >= topLine - 2 && dx * dx < 1) {
+                            ditheredPixel(px, py, p.hair, 8, -10);
+                        }
+                    }
+                }
+                // Sideburns
+                fillRect(cx - headR - 0.5, headY - 2, 2, isFemale ? 7 : 5, p.hair, 5, -8);
+                fillRect(cx + headR - 1.5, headY - 2, 2, isFemale ? 7 : 5, p.hair, 5, -8);
+                // Female: longer hair sides
+                if (isFemale) {
+                    fillRect(cx - headR - 1, headY + 2, 2, headR + 3, p.hair, 5, -8);
+                    fillRect(cx + headR - 1, headY + 2, 2, headR + 3, p.hair, 5, -8);
+                }
             }
-            // Eyes (small, dark - FO2 style at this scale)
-            ctx.fillStyle = '#DDD';
-            ctx.beginPath();
-            ctx.ellipse(cx - 2 * sc, headY - 0.3, 1.4, 0.9, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(cx + 2 * sc, headY - 0.3, 1.4, 0.9, 0, 0, Math.PI * 2);
-            ctx.fill();
+            // Eyes (small dark dots - FO2 pixel style)
+            const eyeWhite = [220, 215, 210];
+            fillEllipse(cx - 2 * sc, headY - 0.3, 1.3, 0.8, eyeWhite, 4, -2);
+            fillEllipse(cx + 2 * sc, headY - 0.3, 1.3, 0.8, eyeWhite, 4, -2);
             // Irises
-            ctx.fillStyle = isMutant ? '#8AA800' : '#221808';
-            ctx.beginPath();
-            ctx.arc(cx - 1.8 * sc, headY - 0.2, 0.7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(cx + 2.2 * sc, headY - 0.2, 0.7, 0, Math.PI * 2);
-            ctx.fill();
+            const irisColor = isMutant ? [138, 168, 0] : [34, 24, 8];
+            setPixel(cx - 1.8 * sc, headY - 0.2, irisColor[0], irisColor[1], irisColor[2]);
+            setPixel(cx + 2.2 * sc, headY - 0.2, irisColor[0], irisColor[1], irisColor[2]);
             // Nose shadow
-            ctx.fillStyle = rgba(p.skin, 0.4, -18);
-            ctx.beginPath();
-            ctx.moveTo(cx, headY);
-            ctx.lineTo(cx - 1, headY + 2);
-            ctx.lineTo(cx + 1, headY + 2);
-            ctx.closePath();
-            ctx.fill();
+            const noseShadow = [Math.max(0, p.skin[0] - 18), Math.max(0, p.skin[1] - 18), Math.max(0, p.skin[2] - 18)];
+            setPixel(cx, headY + 1, noseShadow[0], noseShadow[1], noseShadow[2], 180);
+            setPixel(cx - 1, headY + 2, noseShadow[0], noseShadow[1], noseShadow[2], 120);
+            setPixel(cx + 1, headY + 2, noseShadow[0], noseShadow[1], noseShadow[2], 120);
             // Mouth
-            ctx.strokeStyle = rgba(p.skin, 0.6, -30);
-            ctx.lineWidth = 0.6;
-            ctx.beginPath();
-            ctx.moveTo(cx - 1.5 * sc, headY + 3);
-            ctx.lineTo(cx + 1.5 * sc, headY + 3);
-            ctx.stroke();
+            const mouthColor = [Math.max(0, p.skin[0] - 30), Math.max(0, p.skin[1] - 30), Math.max(0, p.skin[2] - 30)];
+            for (let mx = -1; mx <= 1; mx++) {
+                setPixel(cx + mx, headY + 3, mouthColor[0], mouthColor[1], mouthColor[2], 160);
+            }
             // Scars for raider
-            if (type === 'raider') {
-                ctx.strokeStyle = 'rgba(100,35,30,0.5)';
-                ctx.lineWidth = 0.7;
-                ctx.beginPath();
-                ctx.moveTo(cx + 1, headY - 2);
-                ctx.lineTo(cx + 3, headY + 2);
-                ctx.stroke();
+            if (type === 'raider' && !isFemale) {
+                const scarColor = [100, 35, 30];
+                drawLine(cx + 1, headY - 2, cx + 3, headY + 2, scarColor, 1);
             }
         }
 
-        // Raider mohawk
+        // Raider mohawk (male) or shaved-side hair (female)
         if (type === 'raider') {
-            ctx.fillStyle = '#1A1A1A';
-            for (let i = 0; i < 4; i++) {
-                ctx.fillRect(cx - 0.5 + (rng() - 0.5) * 2, headY - headR - 1 - i * 1.5, 1, 2);
+            if (isFemale) {
+                // Shaved sides with top tuft
+                for (let i = 0; i < 3; i++) {
+                    const mx = cx + (rng() - 0.5) * 3;
+                    fillRect(mx, headY - headR - 2 - i * 1.2, 2, 2, p.hair, 4, -6);
+                }
+            } else {
+                // Classic mohawk
+                for (let i = 0; i < 4; i++) {
+                    const mx = cx - 0.5 + (rng() - 0.5) * 2;
+                    fillRect(mx, headY - headR - 1 - i * 1.5, 1, 2, p.hair, 4, -6);
+                }
             }
         }
 
         // Guard helmet
         if (type === 'guard') {
-            ctx.fillStyle = '#3A3828';
-            ctx.beginPath();
-            ctx.ellipse(cx, headY - 1, headR + 1.5, headR * 0.65, 0, Math.PI, Math.PI * 2);
-            ctx.fill();
-            ctx.fillRect(cx - headR - 1.5, headY - 1, headR * 2 + 3, 2);
+            const helmetColor = [58, 56, 40];
+            fillEllipse(cx, headY - 1, headR + 1.5, headR * 0.65, helmetColor, 8, -10);
+            fillRect(cx - headR - 1.5, headY - 1, headR * 2 + 3, 2, helmetColor, 5, -6);
         }
 
+        // Put pixel data to canvas
+        ctx.putImageData(imgData, 0, 0);
         return this.weatherSprite(c, 0.7);
     }
 
@@ -3628,42 +3617,64 @@ class IsometricRenderer {
             }
         }
 
-        // Humanoid sprites: idle, walk, attack frames x 4 directions
+        // Humanoid sprites: idle, walk, attack frames x 4 directions x variants
+        // Generate N variants per type for visual diversity
         const humanoidTypes = ['player', 'villager', 'merchant', 'elder', 'guard', 'raider', 'mutant'];
+        const variantsPerType = { player: 1, villager: 4, merchant: 2, elder: 1, guard: 3, raider: 6, mutant: 2 };
         this._humanoidSprites = {};
+        this._humanoidVariantCount = {};
+
         for (const type of humanoidTypes) {
-            this._humanoidSprites[type] = {
-                south: [], north: [], east: [], west: [],
-                walk_south: [], walk_north: [], walk_east: [], walk_west: [],
-                attack_south: [], attack_north: [], attack_east: [], attack_west: [],
-            };
-            for (let f = 0; f < 4; f++) {
-                // Idle frames
-                const south = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'idle');
-                const north = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'idle');
-                const east = SpriteGenerator.mirrorSprite(south);
-                this._humanoidSprites[type].south.push(south);
-                this._humanoidSprites[type].north.push(north);
-                this._humanoidSprites[type].east.push(east);
-                this._humanoidSprites[type].west.push(south);
+            const numVariants = variantsPerType[type] || 3;
+            this._humanoidVariantCount[type] = numVariants;
+            this._humanoidSprites[type] = [];
 
-                // Walk frames
-                const walkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'walk');
-                const walkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'walk');
-                const walkEast = SpriteGenerator.mirrorSprite(walkSouth);
-                this._humanoidSprites[type].walk_south.push(walkSouth);
-                this._humanoidSprites[type].walk_north.push(walkNorth);
-                this._humanoidSprites[type].walk_east.push(walkEast);
-                this._humanoidSprites[type].walk_west.push(walkSouth);
+            for (let vi = 0; vi < numVariants; vi++) {
+                const variantSet = {
+                    south: [], north: [], east: [], west: [],
+                    walk_south: [], walk_north: [], walk_east: [], walk_west: [],
+                    attack_south: [], attack_north: [], attack_east: [], attack_west: [],
+                };
 
-                // Attack frames
-                const atkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack');
-                const atkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack');
-                const atkEast = SpriteGenerator.mirrorSprite(atkSouth);
-                this._humanoidSprites[type].attack_south.push(atkSouth);
-                this._humanoidSprites[type].attack_north.push(atkNorth);
-                this._humanoidSprites[type].attack_east.push(atkEast);
-                this._humanoidSprites[type].attack_west.push(atkSouth);
+                // Build variant params - randomized skin, hair, scale, gender
+                const vrng = SpriteGenerator.seededRandom(type.length * 7919 + vi * 3571);
+                const variant = {
+                    skinTone: type === 'mutant' ? 0 : Math.floor(vrng() * 5),
+                    hairColor: Math.floor(vrng() * 6),
+                    bodyScale: type === 'mutant' ? 1.0 : (0.92 + vrng() * 0.16),
+                    // Mix of genders for variants (first variant always male for player/elder)
+                    gender: (type === 'player' || type === 'elder' || type === 'mutant' || vi === 0) ? 'male'
+                        : (vi >= numVariants / 2 ? 'female' : 'male'),
+                    seed: type.length * 10000 + vi * 1337,
+                };
+
+                for (let f = 0; f < 4; f++) {
+                    const south = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'idle', variant);
+                    const north = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'idle', variant);
+                    const east = SpriteGenerator.mirrorSprite(south);
+                    variantSet.south.push(south);
+                    variantSet.north.push(north);
+                    variantSet.east.push(east);
+                    variantSet.west.push(south);
+
+                    const walkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'walk', variant);
+                    const walkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'walk', variant);
+                    const walkEast = SpriteGenerator.mirrorSprite(walkSouth);
+                    variantSet.walk_south.push(walkSouth);
+                    variantSet.walk_north.push(walkNorth);
+                    variantSet.walk_east.push(walkEast);
+                    variantSet.walk_west.push(walkSouth);
+
+                    const atkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack', variant);
+                    const atkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack', variant);
+                    const atkEast = SpriteGenerator.mirrorSprite(atkSouth);
+                    variantSet.attack_south.push(atkSouth);
+                    variantSet.attack_north.push(atkNorth);
+                    variantSet.attack_east.push(atkEast);
+                    variantSet.attack_west.push(atkSouth);
+                }
+
+                this._humanoidSprites[type].push(variantSet);
             }
         }
 
@@ -4606,7 +4617,7 @@ class IsometricRenderer {
 
     // ---- ENTITY RENDERING (Fallout 2 style) ----
 
-    drawEntity(gx, gy, entityType, facing = 'south', isSelected = false, hp = null, maxHp = null, animState = 'idle', inCombat = false) {
+    drawEntity(gx, gy, entityType, facing = 'south', isSelected = false, hp = null, maxHp = null, animState = 'idle', inCombat = false, variantIndex = 0) {
         const screen = this.worldToScreen(gx, gy);
         const ctx = this.ctx;
         const z = this.camera.zoom;
@@ -4701,9 +4712,11 @@ class IsometricRenderer {
                 this.drawCreature(ctx, screen, z, entityType);
             }
         } else {
-            // Use pre-rendered humanoid sprite (directional with animation state)
-            const spriteSet = this._humanoidSprites[entityType];
-            if (spriteSet) {
+            // Use pre-rendered humanoid sprite (directional with animation state + variant)
+            const spriteVariants = this._humanoidSprites[entityType];
+            if (spriteVariants && spriteVariants.length > 0) {
+                const vi = variantIndex % spriteVariants.length;
+                const spriteSet = spriteVariants[vi];
                 // Pick the right animation set: walk_south, attack_south, or south (idle)
                 let spriteKey = facing;
                 if (animState === 'walk' && spriteSet['walk_' + facing]) {
@@ -5716,7 +5729,7 @@ class IsometricRenderer {
             } else {
                 const ent = item.entity;
                 this.drawEntity(ent.x, ent.y, ent.spriteType || ent.type, ent.facing || 'south',
-                    ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null, ent.animState || 'idle', gameState.inCombat);
+                    ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null, ent.animState || 'idle', gameState.inCombat, ent.variantIndex || 0);
             }
         }
 
@@ -6468,6 +6481,8 @@ class CharacterSystem {
         return true;
     }
 
+    static _nextVariantIndex = 0;
+
     static createNPC(template) {
         const npc = {
             id: template.id || Utils.uid(),
@@ -6479,6 +6494,7 @@ class CharacterSystem {
             facing: template.facing || 'south',
             dialogueId: template.dialogueId || null,
             isHostile: false,
+            variantIndex: template.variantIndex !== undefined ? template.variantIndex : CharacterSystem._nextVariantIndex++,
             stats: {
                 hp: template.hp || 30,
                 maxHp: template.hp || 30,
@@ -6500,6 +6516,7 @@ class CharacterSystem {
             facing: 'south',
             isHostile: true,
             aiType: template.aiType || 'aggressive',
+            variantIndex: CharacterSystem._nextVariantIndex++,
 
             special: template.special || { strength: 5, perception: 5, endurance: 5, charisma: 1, intelligence: 2, agility: 5, luck: 5 },
             stats: {
@@ -10981,5 +10998,4 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
-</body>
-</html>
+</body></html>

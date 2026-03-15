@@ -180,6 +180,8 @@ class CharacterSystem {
         return true;
     }
 
+    static _nextVariantIndex = 0;
+
     static createNPC(template) {
         const npc = {
             id: template.id || Utils.uid(),
@@ -191,6 +193,7 @@ class CharacterSystem {
             facing: template.facing || 'south',
             dialogueId: template.dialogueId || null,
             isHostile: false,
+            variantIndex: template.variantIndex !== undefined ? template.variantIndex : CharacterSystem._nextVariantIndex++,
             stats: {
                 hp: template.hp || 30,
                 maxHp: template.hp || 30,
@@ -212,6 +215,7 @@ class CharacterSystem {
             facing: 'south',
             isHostile: true,
             aiType: template.aiType || 'aggressive',
+            variantIndex: CharacterSystem._nextVariantIndex++,
 
             special: template.special || { strength: 5, perception: 5, endurance: 5, charisma: 1, intelligence: 2, agility: 5, luck: 5 },
             stats: {
