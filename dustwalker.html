@@ -2097,6 +2097,33 @@ const ItemDatabase = {
         weight: 0.1, value: 0,
         desc: 'Crumpled orders from the raider warlord. Mentions a planned attack on Dusthaven and references a "bunker full of pre-war tech" to the west.',
     },
+    // ---- CREATURE DROPS ----
+    scorpion_tail: {
+        id: 'scorpion_tail', name: 'Scorpion Tail', type: 'misc',
+        stackable: true, weight: 1, value: 25,
+        desc: 'A severed radscorpion tail. The venom sac is still intact — valuable for making antidotes.',
+    },
+    rat_fur: {
+        id: 'rat_fur', name: 'Rat Fur', type: 'misc',
+        stackable: true, weight: 0.5, value: 5,
+        desc: 'A scrap of coarse rat fur. Can be used for crude repairs or traded.',
+    },
+    rat_meat: {
+        id: 'rat_meat', name: 'Rat Meat', type: 'consumable',
+        usable: true, useEffect: 'hunger', hungerRestore: 20,
+        stackable: true, weight: 1, value: 8,
+        desc: 'Stringy meat from a wasteland rat. Not appetizing but edible. Restores 20 hunger.',
+    },
+    spider_silk: {
+        id: 'spider_silk', name: 'Spider Silk', type: 'misc',
+        stackable: true, weight: 0.3, value: 15,
+        desc: 'Strong, sticky webbing from a cave spider. Useful for crafting or trade.',
+    },
+    mutant_hide: {
+        id: 'mutant_hide', name: 'Mutant Hide', type: 'misc',
+        stackable: true, weight: 3, value: 40,
+        desc: 'Thick, irradiated skin from a mutant brute. Extremely tough.',
+    },
     // ---- ACCESSORY ----
     lucky_charm: {
         id: 'lucky_charm', name: 'Lucky Charm', type: 'accessory',
@@ -2137,7 +2164,8 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 40, unarmed: 45 },
         loot: [
-            { id: 'healing_powder', chance: 20, quantity: 1 },
+            { id: 'rat_meat', chance: 60, quantity: 1 },
+            { id: 'rat_fur', chance: 40, quantity: 1 },
         ]
     },
 
@@ -2159,7 +2187,8 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 55, unarmed: 55 },
         loot: [
-            { id: 'healing_powder', chance: 30, quantity: 1 },
+            { id: 'rat_meat', chance: 80, quantity: 2 },
+            { id: 'rat_fur', chance: 50, quantity: 1 },
             { id: 'cave_mushroom', chance: 40, quantity: 1 },
         ]
     },
@@ -2182,8 +2211,8 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 65, unarmed: 65 },
         loot: [
+            { id: 'scorpion_tail', chance: 75, quantity: 1 },
             { id: 'antidote', chance: 25, quantity: 1 },
-            { id: 'scrap_metal', chance: 40, quantity: 1 },
         ]
     },
 
@@ -2205,6 +2234,7 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 50, unarmed: 55 },
         loot: [
+            { id: 'spider_silk', chance: 60, quantity: 1 },
             { id: 'antidote', chance: 30, quantity: 1 },
         ]
     },
@@ -2228,9 +2258,10 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 55, unarmed: 45, smallGuns: 40 },
         loot: [
-            { id: 'bottle_caps', chance: 80, quantity: 15 },
-            { id: 'healing_powder', chance: 40, quantity: 1 },
-            { id: 'knife', chance: 20, quantity: 1 },
+            { id: 'bottle_caps', chance: 90, quantity: 15 },
+            { id: 'knife', chance: 40, quantity: 1 },
+            { id: 'pipe_pistol', chance: 15, quantity: 1 },
+            { id: 'healing_powder', chance: 30, quantity: 1 },
             { id: 'raider_badge', chance: 60, quantity: 1 },
         ]
     },
@@ -2253,8 +2284,9 @@ const EnemyTemplates = {
         aiType: 'ranged',
         skills: { smallGuns: 55, melee: 35 },
         loot: [
-            { id: 'bottle_caps', chance: 70, quantity: 20 },
-            { id: 'ammo_9mm', chance: 60, quantity: 10 },
+            { id: 'bottle_caps', chance: 80, quantity: 20 },
+            { id: 'pipe_pistol', chance: 30, quantity: 1 },
+            { id: 'ammo_9mm', chance: 70, quantity: 10 },
             { id: 'stimpak', chance: 20, quantity: 1 },
         ]
     },
@@ -2279,6 +2311,7 @@ const EnemyTemplates = {
         skills: { melee: 65, unarmed: 70 },
         loot: [
             { id: 'bottle_caps', chance: 100, quantity: 100 },
+            { id: 'mutant_hide', chance: 80, quantity: 1 },
             { id: 'stimpak', chance: 80, quantity: 2 },
             { id: 'sledgehammer', chance: 50, quantity: 1 },
             { id: 'cave_crystal', chance: 100, quantity: 1 },
@@ -2304,7 +2337,8 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 50, unarmed: 40, smallGuns: 35 },
         loot: [
-            { id: 'bottle_caps', chance: 70, quantity: 10 },
+            { id: 'bottle_caps', chance: 80, quantity: 10 },
+            { id: 'knife', chance: 30, quantity: 1 },
             { id: 'healing_powder', chance: 30, quantity: 1 },
             { id: 'raider_badge', chance: 80, quantity: 1 },
         ]
@@ -3057,6 +3091,64 @@ const DialogueDatabase = {
             }
         }
     },
+
+    // ---- OLD EZRA (Oasis Hermit) ----
+    old_ezra: {
+        getStartNode(player) {
+            if (player.questFlags.found_bunker) return 'bunker_found';
+            return 'start';
+        },
+        nodes: {
+            start: {
+                text: "Hm? A visitor... Been a long time. I'm Ezra. Used to be a scout, back before my knees gave out. Settled here by the oasis. Quiet life, mostly.",
+                options: [
+                    { text: "What do you know about this area?", next: 'area_info' },
+                    { text: "You mentioned you were a scout?", next: 'scout_past' },
+                    { text: "Take care, old man.", end: true }
+                ]
+            },
+            area_info: {
+                text: "The oasis here is one of the few clean water sources left. Traders pass through now and then. But be wary of the wildlife — radscorpions and rats lurk near the edges. And to the south... there's an old bunker entrance. Pre-war military, sealed up tight.",
+                options: [
+                    { text: "Tell me about the bunker.", next: 'bunker_info' },
+                    { text: "Thanks for the warning.", end: true }
+                ]
+            },
+            scout_past: {
+                text: "Thirty years wandering the wastes. I've seen things that'd turn your hair white. Lost my whole squad to a rad storm near the old highway. After that, I hung up my boots. But I still remember every trail, every ruin.",
+                options: [
+                    { text: "Do you know about any ruins nearby?", next: 'bunker_info' },
+                    { text: "Sounds like a hard life.", end: true }
+                ]
+            },
+            bunker_info: {
+                text: "There's a bunker south of here, built into the rocks. Military installation from before the war. I tried to get in once — the door was jammed, but I heard machinery inside. Still running after all these years. If you can get in, there might be weapons, tech, supplies... the works.",
+                options: [
+                    { text: "How do I get in?", next: 'bunker_entrance' },
+                    { text: "I'll check it out.", end: true }
+                ]
+            },
+            bunker_entrance: {
+                text: "Look for the rocks south of the oasis. There's an entrance hidden among them. Watch yourself in there — if the security systems are still active, it won't be a warm welcome.",
+                options: [
+                    { text: "Thanks for the tip.", end: true }
+                ]
+            },
+            bunker_found: {
+                text: "I can see it in your eyes — you found the bunker, didn't you? Any luck inside?",
+                options: [
+                    { text: "It was rough, but worth it.", next: 'bunker_reaction' },
+                    { text: "Still working on clearing it.", end: true }
+                ]
+            },
+            bunker_reaction: {
+                text: "Ha! You've got more guts than I ever did. That bunker was the one place I could never crack. Glad someone finally did. If you need rest, the oasis is safe enough. Just don't drink from the south pool — trust me on that.",
+                options: [
+                    { text: "Thanks, Ezra.", end: true }
+                ]
+            }
+        }
+    },
 };
 
 // ==== src/systems/character.js ====
@@ -3255,6 +3347,7 @@ class CharacterSystem {
     static _nextVariantIndex = 0;
 
     static createNPC(template) {
+        const isGuard = template.spriteType === 'guard';
         const npc = {
             id: template.id || Utils.uid(),
             name: template.name,
@@ -3267,9 +3360,22 @@ class CharacterSystem {
             isHostile: false,
             variantIndex: template.variantIndex !== undefined ? template.variantIndex : CharacterSystem._nextVariantIndex++,
             stats: {
-                hp: template.hp || 30,
-                maxHp: template.hp || 30,
+                hp: template.hp || (isGuard ? 40 : 30),
+                maxHp: template.hp || (isGuard ? 40 : 30),
+                ap: template.ap || (isGuard ? 8 : 6),
+                maxAp: template.ap || (isGuard ? 8 : 6),
+                armorClass: isGuard ? 6 : 2,
+                damageResist: isGuard ? 10 : 0,
+                meleeDmg: isGuard ? 2 : 0,
+                sequence: isGuard ? 10 : 6,
+                critChance: isGuard ? 5 : 2,
+                dodgeChance: isGuard ? 8 : 3,
             },
+            skills: template.skills || (isGuard ? { melee: 55, unarmed: 50, smallGuns: 45 } : { melee: 30, unarmed: 25 }),
+            damage: template.damage || (isGuard ? '1d6+1' : '1d4'),
+            damageType: 'normal',
+            attackRange: template.attackRange || 1,
+            aiType: 'npc_defender',
             schedule: template.schedule || null,
             flags: template.flags || {},
         };
@@ -3665,20 +3771,32 @@ class CombatSystem {
             }
         }
 
-        // XP reward
-        if (killer.type === 'player' && victim.xpReward) {
-            const leveled = CharacterSystem.addXP(killer, victim.xpReward);
-            this.game.addMessage(`+${victim.xpReward} XP`, 'xp');
-            this.game.addFloatingText(killer.x, killer.y, `+${victim.xpReward} XP`, '#6af');
-
-            if (leveled) {
-                this.game.addMessage(`Level up! You are now level ${killer.level}!`, 'xp');
-                this.game.audio.playSfx('levelup');
-                this.game.showLevelUp();
+        // XP reward - player gets XP for own kills and half XP for NPC ally kills
+        if (victim.xpReward) {
+            const player = this.game.player;
+            if (killer.type === 'player') {
+                const leveled = CharacterSystem.addXP(player, victim.xpReward);
+                this.game.addMessage(`+${victim.xpReward} XP`, 'xp');
+                this.game.addFloatingText(killer.x, killer.y, `+${victim.xpReward} XP`, '#6af');
+                if (leveled) {
+                    this.game.addMessage(`Level up! You are now level ${player.level}!`, 'xp');
+                    this.game.audio.playSfx('levelup');
+                    this.game.showLevelUp();
+                }
+                player.killedEnemies[victim.name] = (player.killedEnemies[victim.name] || 0) + 1;
+            } else if (killer.type === 'npc' && player && player.stats.hp > 0) {
+                // NPC ally kill - player gets half XP
+                const halfXP = Math.floor(victim.xpReward / 2);
+                const leveled = CharacterSystem.addXP(player, halfXP);
+                this.game.addMessage(`${killer.name} killed ${victim.name}! +${halfXP} XP`, 'xp');
+                this.game.addFloatingText(player.x, player.y, `+${halfXP} XP`, '#6af');
+                if (leveled) {
+                    this.game.addMessage(`Level up! You are now level ${player.level}!`, 'xp');
+                    this.game.audio.playSfx('levelup');
+                    this.game.showLevelUp();
+                }
+                player.killedEnemies[victim.name] = (player.killedEnemies[victim.name] || 0) + 1;
             }
-
-            // Track kill
-            killer.killedEnemies[victim.name] = (killer.killedEnemies[victim.name] || 0) + 1;
         }
 
         // Drop loot
@@ -3880,35 +3998,54 @@ class AISystem {
             case 'ranged':
                 this.rangedAI(entity);
                 break;
+            case 'npc_defender':
+                this.npcDefenderAI(entity);
+                break;
             default:
                 this.aggressiveAI(entity);
         }
     }
 
+    // Find the closest non-hostile target for an enemy (player or friendly NPC)
+    _findClosestTarget(entity) {
+        const targets = this.game.combat.turnOrder
+            .map(t => t.entity)
+            .filter(e => !e.isHostile && e.stats.hp > 0);
+        let closest = null;
+        let closestDist = Infinity;
+        for (const t of targets) {
+            const d = Utils.gridDistance(entity.x, entity.y, t.x, t.y);
+            if (d < closestDist) {
+                closestDist = d;
+                closest = t;
+            }
+        }
+        return closest;
+    }
+
     aggressiveAI(entity) {
-        const player = this.game.player;
-        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const target = this._findClosestTarget(entity) || this.game.player;
         const attackRange = entity.attackRange || 1;
 
         let actionsRemaining = 3; // Max actions per turn to prevent infinite loops
 
         const doAction = () => {
-            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || entity.stats.hp <= 0) {
+            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || entity.stats.hp <= 0 || target.stats.hp <= 0) {
                 setTimeout(() => this.game.combat.endTurn(), 300);
                 return;
             }
             actionsRemaining--;
 
-            const currentDist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+            const currentDist = Utils.gridDistance(entity.x, entity.y, target.x, target.y);
 
             if (currentDist <= attackRange && entity.stats.ap >= 3) {
                 // Attack
                 const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
-                this.game.combat.attack(entity, player, weapon);
+                this.game.combat.attack(entity, target, weapon);
                 setTimeout(doAction, 600);
             } else if (entity.stats.ap >= 1) {
-                // Move towards player
-                this.moveTowards(entity, player.x, player.y);
+                // Move towards target
+                this.moveTowards(entity, target.x, target.y);
                 setTimeout(doAction, 400);
             } else {
                 setTimeout(() => this.game.combat.endTurn(), 300);
@@ -3919,14 +4056,14 @@ class AISystem {
     }
 
     defensiveAI(entity) {
-        const player = this.game.player;
-        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const target = this._findClosestTarget(entity) || this.game.player;
+        const dist = Utils.gridDistance(entity.x, entity.y, target.x, target.y);
         const attackRange = entity.attackRange || 1;
 
-        // Only attack if player is in range, otherwise hold position
+        // Only attack if target is in range, otherwise hold position
         if (dist <= attackRange && entity.stats.ap >= 3) {
             const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
-            this.game.combat.attack(entity, player, weapon);
+            this.game.combat.attack(entity, target, weapon);
             setTimeout(() => this.game.combat.endTurn(), 600);
         } else {
             setTimeout(() => this.game.combat.endTurn(), 300);
@@ -3934,33 +4071,83 @@ class AISystem {
     }
 
     rangedAI(entity) {
-        const player = this.game.player;
-        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const target = this._findClosestTarget(entity) || this.game.player;
         const attackRange = entity.attackRange || 5;
 
         let actionsRemaining = 2;
 
         const doAction = () => {
-            if (actionsRemaining <= 0 || entity.stats.ap <= 0) {
+            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || target.stats.hp <= 0) {
                 setTimeout(() => this.game.combat.endTurn(), 300);
                 return;
             }
             actionsRemaining--;
 
-            const currentDist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+            const currentDist = Utils.gridDistance(entity.x, entity.y, target.x, target.y);
 
             if (currentDist <= attackRange && entity.stats.ap >= 4) {
                 // Attack from range
                 const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
-                this.game.combat.attack(entity, player, weapon);
+                this.game.combat.attack(entity, target, weapon);
                 setTimeout(doAction, 600);
             } else if (currentDist < 2 && entity.stats.ap >= 1) {
                 // Too close, back away
-                this.moveAway(entity, player.x, player.y);
+                this.moveAway(entity, target.x, target.y);
                 setTimeout(doAction, 400);
             } else if (entity.stats.ap >= 1) {
                 // Move closer to get in range
-                this.moveTowards(entity, player.x, player.y);
+                this.moveTowards(entity, target.x, target.y);
+                setTimeout(doAction, 400);
+            } else {
+                setTimeout(() => this.game.combat.endTurn(), 300);
+            }
+        };
+
+        setTimeout(doAction, 300);
+    }
+
+    // NPC defender AI - attacks nearest hostile enemy
+    npcDefenderAI(entity) {
+        // Find the nearest hostile enemy
+        const enemies = this.game.combat.turnOrder
+            .map(t => t.entity)
+            .filter(e => e.isHostile && e.stats.hp > 0);
+
+        if (enemies.length === 0) {
+            setTimeout(() => this.game.combat.endTurn(), 300);
+            return;
+        }
+
+        // Find closest enemy
+        let closestEnemy = null;
+        let closestDist = Infinity;
+        for (const e of enemies) {
+            const d = Utils.gridDistance(entity.x, entity.y, e.x, e.y);
+            if (d < closestDist) {
+                closestDist = d;
+                closestEnemy = e;
+            }
+        }
+
+        const attackRange = entity.attackRange || 1;
+        let actionsRemaining = 3;
+
+        const doAction = () => {
+            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || entity.stats.hp <= 0 || !closestEnemy || closestEnemy.stats.hp <= 0) {
+                setTimeout(() => this.game.combat.endTurn(), 300);
+                return;
+            }
+            actionsRemaining--;
+
+            const currentDist = Utils.gridDistance(entity.x, entity.y, closestEnemy.x, closestEnemy.y);
+
+            if (currentDist <= attackRange && entity.stats.ap >= 3) {
+                // Attack the enemy
+                this.game.combat.attack(entity, closestEnemy, null);
+                setTimeout(doAction, 600);
+            } else if (entity.stats.ap >= 1) {
+                // Move towards enemy
+                this.moveTowards(entity, closestEnemy.x, closestEnemy.y);
                 setTimeout(doAction, 400);
             } else {
                 setTimeout(() => this.game.combat.endTurn(), 300);
@@ -4913,14 +5100,19 @@ class SpriteGenerator {
         const rng = this.seededRandom(seed);
         const cx = w / 2, cy = th / 2 + 2;
         const htw = tw / 2, hth = th / 2;
+        // Slight overscan to eliminate seams between adjacent tiles
+        const overscan = 1.5;
+        // Wall tiles are half a tile thick (narrower diamond)
+        const isWallTile = (type === 'wall' || type === 'wall_top');
+        const wallNarrow = isWallTile ? 0.5 : 1.0;
 
         // Draw iso diamond fill
         const drawDiamond = (color) => {
             ctx.beginPath();
-            ctx.moveTo(cx, cy - hth);
-            ctx.lineTo(cx + htw, cy);
-            ctx.lineTo(cx, cy + hth);
-            ctx.lineTo(cx - htw, cy);
+            ctx.moveTo(cx, cy - hth * wallNarrow - overscan);
+            ctx.lineTo(cx + htw + overscan, cy);
+            ctx.lineTo(cx, cy + hth * wallNarrow + overscan);
+            ctx.lineTo(cx - htw - overscan, cy);
             ctx.closePath();
             ctx.fillStyle = color;
             ctx.fill();
@@ -4952,13 +5144,13 @@ class SpriteGenerator {
         const baseR = pal.base[0] + bv, baseG = pal.base[1] + bv, baseB = pal.base[2] + bv;
         drawDiamond(`rgb(${baseR|0},${baseG|0},${baseB|0})`);
 
-        // Clip to diamond for texture work
+        // Clip to diamond for texture work (with overscan)
         ctx.save();
         ctx.beginPath();
-        ctx.moveTo(cx, cy - hth);
-        ctx.lineTo(cx + htw, cy);
-        ctx.lineTo(cx, cy + hth);
-        ctx.lineTo(cx - htw, cy);
+        ctx.moveTo(cx, cy - hth * wallNarrow - overscan);
+        ctx.lineTo(cx + htw + overscan, cy);
+        ctx.lineTo(cx, cy + hth * wallNarrow + overscan);
+        ctx.lineTo(cx - htw - overscan, cy);
         ctx.closePath();
         ctx.clip();
 
@@ -5148,7 +5340,7 @@ class SpriteGenerator {
     // ---- HUMANOID SPRITE GENERATION (pixel-by-pixel with Fallout 2 pre-rendered look) ----
     // variant: { skinTone: 0-4, hairColor: 0-5, bodyScale: 0.9-1.1, gender: 'male'|'female', seed: int }
     static generateHumanoidSprite(type, frame, facing = 'south', animType = 'idle', variant = null) {
-        const w = 72, h = 72;
+        const w = 72, h = 82; // taller canvas for 15% height increase
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
         const imgData = ctx.createImageData(w, h);
@@ -5348,28 +5540,29 @@ class SpriteGenerator {
         const shoulderMult = isFemale ? 0.88 : 1;
         const hipMult = isFemale ? 1.0 : 0.9;
 
-        // Isometric measurements - wide torso, short legs (foreshortened from above)
+        // Isometric measurements - wide torso, legs/arms taller for better proportions
         const headR = (isFemale ? 3.2 : 3.5) * sc;
         const torsoW = 9 * sc * shoulderMult;   // wide horizontal spread
-        const torsoH = 5.5 * sc;                 // compressed vertically (foreshortened)
+        const torsoH = 6.3 * sc;                 // 15% taller torso
         const legW = 2.2 * sc;
-        const legH = 4 * sc;                     // very short (seen from above)
+        const legH = 4.6 * sc;                   // 15% taller legs
         const armW = 2 * sc;
-        const armH = 4.5 * sc;                   // foreshortened arms
-        const bootH = 1.8 * sc;
+        const armH = 5.2 * sc;                   // 15% taller arms
+        const bootH = 2.1 * sc;                  // 15% taller boots
 
         // Facing config for isometric rotation
+        // All directions use a 3/4 angle offset - characters never face the camera straight on
         // bodyDx: horizontal offset of body relative to head (directional lean)
         // legSpread: how far apart legs are placed
         const faceCfg = {
-            'south':     { bodyDx: 0, legSpreadX: 1, legSpreadY: 0.3, showFace: true, showBack: false, headTopScale: 1.0 },
-            'north':     { bodyDx: 0, legSpreadX: 1, legSpreadY: -0.2, showFace: false, showBack: true, headTopScale: 0.4 },
-            'east':      { bodyDx: 1.5 * sc, legSpreadX: 0.4, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.7 },
-            'west':      { bodyDx: -1.5 * sc, legSpreadX: 0.4, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.7 },
-            'southeast': { bodyDx: 0.8 * sc, legSpreadX: 0.7, legSpreadY: 0.4, showFace: true, showBack: false, headTopScale: 0.85 },
-            'southwest': { bodyDx: -0.8 * sc, legSpreadX: 0.7, legSpreadY: 0.4, showFace: true, showBack: false, headTopScale: 0.85 },
-            'northeast': { bodyDx: 0.8 * sc, legSpreadX: 0.7, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
-            'northwest': { bodyDx: -0.8 * sc, legSpreadX: 0.7, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
+            'south':     { bodyDx: 0.6 * sc, legSpreadX: 0.85, legSpreadY: 0.35, showFace: true, showBack: false, headTopScale: 0.9 },
+            'north':     { bodyDx: -0.6 * sc, legSpreadX: 0.85, legSpreadY: -0.15, showFace: false, showBack: true, headTopScale: 0.45 },
+            'east':      { bodyDx: 1.5 * sc, legSpreadX: 0.35, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.65 },
+            'west':      { bodyDx: -1.5 * sc, legSpreadX: 0.35, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.65 },
+            'southeast': { bodyDx: 1.1 * sc, legSpreadX: 0.6, legSpreadY: 0.45, showFace: true, showBack: false, headTopScale: 0.8 },
+            'southwest': { bodyDx: -1.1 * sc, legSpreadX: 0.6, legSpreadY: 0.45, showFace: true, showBack: false, headTopScale: 0.8 },
+            'northeast': { bodyDx: 1.1 * sc, legSpreadX: 0.6, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
+            'northwest': { bodyDx: -1.1 * sc, legSpreadX: 0.6, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
         };
         const fc = faceCfg[facing] || faceCfg['south'];
         const bdx = fc.bodyDx;
@@ -5551,20 +5744,27 @@ class SpriteGenerator {
         }
 
         // ---- NECK (short, connecting torso to head) ----
-        fillRect(cx - 1.2 * sc, torsoTopY - 1.5, 2.4 * sc, 2, p.skin, 6, -8);
+        // Neck bridges head center to body offset for isometric angle
+        const neckX = cx + bdx * 0.3;
+        fillRect(neckX - 1.2 * sc, torsoTopY - 1.5, 2.4 * sc, 2, p.skin, 6, -8);
 
         // ---- HEAD (isometric 3/4 top-down: crown/top of head prominently visible) ----
+        // Head is offset slightly toward body direction for natural 3/4 look
+        const headOffX = bdx * 0.15;
         const headCYf = headCY;
 
         // Head shape - vertically compressed (wider than tall, seen from above)
-        fillEllipse(cx, headCYf, headR, headR * 0.75, p.skin, 14, -12);
-        outlineEllipse(cx, headCYf, headR, headR * 0.75, p.skin);
+        fillEllipse(cx + headOffX, headCYf, headR, headR * 0.75, p.skin, 14, -12);
+        outlineEllipse(cx + headOffX, headCYf, headR, headR * 0.75, p.skin);
+
+        // Head X position (offset for isometric 3/4 view)
+        const hx = cx + headOffX;
 
         // Crown of head (prominent top-down view - the key isometric indicator)
         const headTopVis = fc.headTopScale;
         if (headTopVis > 0.3) {
             const topColor = [Math.min(255, p.skin[0] + 18), Math.min(255, p.skin[1] + 15), Math.min(255, p.skin[2] + 12)];
-            fillEllipse(cx, headCYf - headR * 0.2 * headTopVis, headR * 0.75 * headTopVis, headR * 0.4 * headTopVis, topColor, 8, -4);
+            fillEllipse(hx, headCYf - headR * 0.2 * headTopVis, headR * 0.75 * headTopVis, headR * 0.4 * headTopVis, topColor, 8, -4);
         }
 
         const hairstyle = v.hairstyle !== undefined ? v.hairstyle : (type === 'raider' ? 2 : 0);
@@ -5575,37 +5775,37 @@ class SpriteGenerator {
         if (fc.showBack) {
             // Back of head - hair covers all
             if (!isMutant && !isBald) {
-                fillEllipse(cx, headCYf, headR + 0.3, headR * 0.7, p.hair, 8, -10);
-                outlineEllipse(cx, headCYf, headR + 0.3, headR * 0.7, p.hair);
+                fillEllipse(hx, headCYf, headR + 0.3, headR * 0.7, p.hair, 8, -10);
+                outlineEllipse(hx, headCYf, headR + 0.3, headR * 0.7, p.hair);
                 if (isLongHair || isFemale) {
-                    fillEllipse(cx, headCYf + headR * 0.3, headR * 0.6, headR * 0.5, p.hair, 6, -10);
+                    fillEllipse(hx, headCYf + headR * 0.3, headR * 0.6, headR * 0.5, p.hair, 6, -10);
                     // Long hair extends further down
-                    fillRect(cx - headR * 0.4, headCYf + headR * 0.5, headR * 0.8, headR * 0.6, p.hair, 5, -8);
+                    fillRect(hx - headR * 0.4, headCYf + headR * 0.5, headR * 0.8, headR * 0.6, p.hair, 5, -8);
                 }
                 if (isMohawk) {
                     // Mohawk ridge visible from back
                     for (let i = 0; i < 3; i++) {
-                        fillRect(cx - 0.3, headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
+                        fillRect(hx - 0.3, headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
                     }
                 }
             }
             // Ears visible from behind
             const earSkin = [p.skin[0] - 5, p.skin[1] - 5, p.skin[2] - 5];
-            fillEllipse(cx - headR, headCYf, 1, 1.5, earSkin, 4, -6);
-            fillEllipse(cx + headR, headCYf, 1, 1.5, earSkin, 4, -6);
+            fillEllipse(hx - headR, headCYf, 1, 1.5, earSkin, 4, -6);
+            fillEllipse(hx + headR, headCYf, 1, 1.5, earSkin, 4, -6);
         } else {
             // Front/side face
             if (!isMutant && !isBald) {
                 if (isMohawk) {
                     // Mohawk - narrow strip on top
                     for (let i = 0; i < 3; i++) {
-                        fillRect(cx - 0.5 * sc + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
+                        fillRect(hx - 0.5 * sc + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
                     }
                 } else {
                     // Hair crown (dominant feature from above - covers top dome of head)
                     for (let py = Math.floor(headCYf - headR * 0.6); py <= Math.floor(headCYf + headR * 0.1); py++) {
-                        for (let px = Math.floor(cx - headR - 0.3); px <= Math.ceil(cx + headR + 0.3); px++) {
-                            const dx = (px - cx) / (headR + 0.3);
+                        for (let px = Math.floor(hx - headR - 0.3); px <= Math.ceil(hx + headR + 0.3); px++) {
+                            const dx = (px - hx) / (headR + 0.3);
                             const dy = (py - (headCYf - headR * 0.15)) / (headR * 0.55);
                             if (dx * dx + dy * dy <= 1) {
                                 ditheredPixel(px, py, p.hair, 8, -10);
@@ -5614,27 +5814,29 @@ class SpriteGenerator {
                     }
                     // Sideburns
                     const sideLength = isLongHair ? 4.5 : (isFemale ? 3.5 : 2.5);
-                    fillRect(cx - headR - 0.3, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
-                    fillRect(cx + headR - 0.5, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
+                    fillRect(hx - headR - 0.3, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
+                    fillRect(hx + headR - 0.5, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
                     if (isLongHair || isFemale) {
-                        fillRect(cx - headR - 0.5, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
-                        fillRect(cx + headR - 0.3, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
+                        fillRect(hx - headR - 0.5, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
+                        fillRect(hx + headR - 0.3, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
                     }
                 }
             }
             // Face details (subtle at this scale - just shadow hints)
+            // Eyes offset to one side for 3/4 isometric view
             const socketShadow = [Math.max(0, p.skin[0] - 22), Math.max(0, p.skin[1] - 22), Math.max(0, p.skin[2] - 22)];
-            setPixel(cx - 1.2 * sc, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
-            setPixel(cx + 1.2 * sc, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
-            // Nose
+            const eyeShift = bdx > 0 ? 0.3 : bdx < 0 ? -0.3 : 0;
+            setPixel(hx - 1.2 * sc + eyeShift, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
+            setPixel(hx + 1.2 * sc + eyeShift, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
+            // Nose (offset toward facing direction)
             const noseShadow = [Math.max(0, p.skin[0] - 18), Math.max(0, p.skin[1] - 18), Math.max(0, p.skin[2] - 18)];
-            setPixel(cx, headCYf + 1, noseShadow[0], noseShadow[1], noseShadow[2], 150);
+            setPixel(hx + eyeShift * 0.5, headCYf + 1, noseShadow[0], noseShadow[1], noseShadow[2], 150);
             // Mouth hint
             const mouthColor = [Math.max(0, p.skin[0] - 30), Math.max(0, p.skin[1] - 30), Math.max(0, p.skin[2] - 30)];
-            setPixel(cx, headCYf + 1.8, mouthColor[0], mouthColor[1], mouthColor[2], 120);
+            setPixel(hx + eyeShift * 0.3, headCYf + 1.8, mouthColor[0], mouthColor[1], mouthColor[2], 120);
             // Raider scar
             if (type === 'raider' && !isFemale) {
-                drawLine(cx + 0.5, headCYf - 1, cx + 2, headCYf + 1, [100, 35, 30], 1);
+                drawLine(hx + 0.5, headCYf - 1, hx + 2, headCYf + 1, [100, 35, 30], 1);
             }
         }
 
@@ -5642,11 +5844,11 @@ class SpriteGenerator {
         if (type === 'raider' && !isMohawk) {
             if (isFemale) {
                 for (let i = 0; i < 2; i++) {
-                    fillRect(cx + (rng() - 0.5) * 2, headCYf - headR * 0.6 - 1 - i, 1.5, 1.5, p.hair, 4, -6);
+                    fillRect(hx + (rng() - 0.5) * 2, headCYf - headR * 0.6 - 1 - i, 1.5, 1.5, p.hair, 4, -6);
                 }
             } else {
                 for (let i = 0; i < 3; i++) {
-                    fillRect(cx - 0.3 + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2, 1, 1.5, p.hair, 4, -6);
+                    fillRect(hx - 0.3 + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2, 1, 1.5, p.hair, 4, -6);
                 }
             }
         }
@@ -5654,8 +5856,8 @@ class SpriteGenerator {
         // Guard helmet (wider, seen from above)
         if (type === 'guard') {
             const helmetColor = [58, 56, 40];
-            fillEllipse(cx, headCYf - 0.3, headR + 0.8, headR * 0.55, helmetColor, 8, -10);
-            fillRect(cx - headR - 0.5, headCYf, headR * 2 + 1, 1, helmetColor, 5, -6);
+            fillEllipse(hx, headCYf - 0.3, headR + 0.8, headR * 0.55, helmetColor, 8, -10);
+            fillRect(hx - headR - 0.5, headCYf, headR * 2 + 1, 1, helmetColor, 5, -6);
         }
 
         // Put pixel data to canvas
@@ -7732,12 +7934,15 @@ class IsometricRenderer {
     drawWallSides(ctx, screen, tw, th, hOffset, z, gx, gy, tileType, colors, height, n) {
         const isStone = tileType === 'cave_wall' || tileType === 'cave_rock';
         const brickH = 4 * z;
+        // Wall tiles use half-thickness (narrower in depth axis)
+        const isWall = (tileType === 'wall' || tileType === 'wall_top');
+        const wallTh = isWall ? th * 0.5 : th;
 
         // ---- LEFT FACE ----
         ctx.beginPath();
         ctx.moveTo(screen.x - tw, screen.y - hOffset);
-        ctx.lineTo(screen.x, screen.y + th - hOffset);
-        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
+        ctx.lineTo(screen.x, screen.y + wallTh);
         ctx.lineTo(screen.x - tw, screen.y);
         ctx.closePath();
         ctx.fillStyle = colors.left;
@@ -7747,7 +7952,7 @@ class IsometricRenderer {
         ctx.clip();
         // Brick/stone mortar
         for (let i = 0; i < height * 4; i++) {
-            const by = screen.y + th - i * brickH;
+            const by = screen.y + wallTh - i * brickH;
             const offset = (i % 2) * 6 * z;
             const mortarDark = -12 - this.noise(gx * 3 + i, gy) * 10;
             ctx.strokeStyle = this.adjustColor(colors.left, mortarDark);
@@ -7775,7 +7980,7 @@ class IsometricRenderer {
         }
         // Heavy weathering stains (water damage, rust)
         ctx.fillStyle = `rgba(0,0,0,${0.08 + n * 0.1})`;
-        ctx.fillRect(screen.x - tw, screen.y + th - 10 * z, tw, 10 * z);
+        ctx.fillRect(screen.x - tw, screen.y + wallTh - 10 * z, tw, 10 * z);
         // Rust streak
         if (this.noise(gx * 7, gy * 11) > 0.6) {
             ctx.fillStyle = `rgba(80,40,15,${0.06 + n * 0.05})`;
@@ -7800,8 +8005,8 @@ class IsometricRenderer {
         ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.moveTo(screen.x - tw, screen.y - hOffset);
-        ctx.lineTo(screen.x, screen.y + th - hOffset);
-        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
+        ctx.lineTo(screen.x, screen.y + wallTh);
         ctx.lineTo(screen.x - tw, screen.y);
         ctx.closePath();
         ctx.stroke();
@@ -7809,8 +8014,8 @@ class IsometricRenderer {
         // ---- RIGHT FACE (darker, in shadow) ----
         ctx.beginPath();
         ctx.moveTo(screen.x + tw, screen.y - hOffset);
-        ctx.lineTo(screen.x, screen.y + th - hOffset);
-        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
+        ctx.lineTo(screen.x, screen.y + wallTh);
         ctx.lineTo(screen.x + tw, screen.y);
         ctx.closePath();
         ctx.fillStyle = this.adjustColor(colors.right, -5); // slightly darker shadow side
@@ -7819,20 +8024,20 @@ class IsometricRenderer {
         ctx.save();
         ctx.clip();
         for (let i = 0; i < height * 4; i++) {
-            const by = screen.y + th - i * brickH;
+            const by2 = screen.y + wallTh - i * brickH;
             const offset = (i % 2) * 6 * z;
             ctx.strokeStyle = this.adjustColor(colors.right, -12 - this.noise(gx + i * 7, gy * 3) * 10);
             ctx.lineWidth = 0.6;
             ctx.beginPath();
-            ctx.moveTo(screen.x, by);
-            ctx.lineTo(screen.x + tw, by);
+            ctx.moveTo(screen.x, by2);
+            ctx.lineTo(screen.x + tw, by2);
             ctx.stroke();
             if (!isStone) {
                 for (let j = 0; j < 4; j++) {
                     const bx = screen.x + offset + j * 8 * z;
                     ctx.beginPath();
-                    ctx.moveTo(bx, by);
-                    ctx.lineTo(bx, by - brickH);
+                    ctx.moveTo(bx, by2);
+                    ctx.lineTo(bx, by2 - brickH);
                     ctx.stroke();
                 }
             }
@@ -7841,12 +8046,12 @@ class IsometricRenderer {
                 ctx.fillStyle = this.adjustColor(colors.right, -18);
                 const dw = (2 + this.noise(gx + i, gy * 2) * 3) * z;
                 const dx = screen.x + tw * 0.2 + this.noise(gx, gy + i * 2) * tw * 0.4;
-                ctx.fillRect(dx, by - brickH, dw, brickH);
+                ctx.fillRect(dx, by2 - brickH, dw, brickH);
             }
         }
         // Shadow side is darker
         ctx.fillStyle = `rgba(0,0,0,${0.06 + n * 0.08})`;
-        ctx.fillRect(screen.x, screen.y + th - 8 * z, tw, 8 * z);
+        ctx.fillRect(screen.x, screen.y + wallTh - 8 * z, tw, 8 * z);
         // Window frame (on taller walls)
         if (height >= 2 && this.noise(gx * 11, gy * 7) > 0.5) {
             const wy = screen.y - hOffset * 0.45;
@@ -7882,8 +8087,8 @@ class IsometricRenderer {
         ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.moveTo(screen.x + tw, screen.y - hOffset);
-        ctx.lineTo(screen.x, screen.y + th - hOffset);
-        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
+        ctx.lineTo(screen.x, screen.y + wallTh);
         ctx.lineTo(screen.x + tw, screen.y);
         ctx.closePath();
         ctx.stroke();
@@ -10825,7 +11030,7 @@ function createOasisArea() {
         name: 'Old Ezra',
         spriteType: 'elder',
         x: 18, y: 13,
-        dialogueId: 'elder_mara', // Reuse elder dialogue for now
+        dialogueId: 'old_ezra',
     }));
     entities.push(CharacterSystem.createNPC({
         id: 'oasis_settler1',
@@ -10933,35 +11138,43 @@ function createOasisArea() {
 // ============================================
 
 function createBunkerArea() {
-    // 22x22 underground military bunker - tight corridors, locked rooms, terminals
+    // 30x30 underground military bunker - expanded with more rooms, corridors, lab wing
     const tileKey = {
         'S': 'stone', 'w': 'wall', 'D': 'door', 'o': 'wood',
         'v': 'void', 'c': 'cave_floor', 'C': 'crystal',
     };
 
     const mapRaw = [
-        'vvvvvvvvvvvvvvvvvvvvvv',
-        'vvvvvwwwwDwwwwvvvvvvvv',
-        'vvvvvwooooooowvvvvvvvv',
-        'vvvvvwooooooowvvvvvvvv',
-        'vvvvvwooooooowwwwwwwvv',
-        'vvwwwwoooooooDooooowvv',
-        'vvwooDooooooowoooooD vv',
-        'vvwoowooooooowoooooD vv',
-        'vvwoowooooooowoooooD vv',
-        'vvwoowooooooowoooooD vv',
-        'vvwwwwwDwwwwwwwwDwwwvv',
-        'vvwoooooooccccoooooovv',
-        'vvwoooooooccccoooooovv',
-        'vvwoooooooocccoooooovv',
-        'vvwwwwDwwwwwwwwwDwwwvv',
-        'vvwooooowvvvwooooowvv',
-        'vvwooooowvvvwooooowvv',
-        'vvwooCoowvvvwooCo owvv',
-        'vvwwDwwwwvvvwwDwwwwvv',
-        'vvvvcccccvvvvcccccvvvv',
-        'vvvvcccccvvvvcccccvvvv',
-        'vvvvvvvvvvvvvvvvvvvvvv',
+        'vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv',
+        'vvvvvvvwwwwwDwwwwwvvvvvvvvvvvv',
+        'vvvvvvvwooooooooowvvvvvvvvvvvv',
+        'vvvvvvvwooooooooowvvvvvvvvvvvv',
+        'vvvvvvvwooooooooowwwwwwwwwwvvv',
+        'vvwwwwwwoooooooooDooooooooowvvv',
+        'vvwoooDoooooooooowoooooooooDvvv',
+        'vvwooowoooooooooowoooooooooD vvv',
+        'vvwooowoooooooooowoooooooooD vvv',
+        'vvwooowoooooooooowoooooooooD vvv',
+        'vvwwwwwwDwwwwwwwwwwwwDwwwwwvvv',
+        'vvwoooooooooccccooooooooooowvvv',
+        'vvwoooooooooccccooooooooooowvvv',
+        'vvwoooooooooocccooooooooooowvvv',
+        'vvwoooooooooccccooooooooooowvvv',
+        'vvwwwwwDwwwwwwwwwwwwDwwwwwwvvv',
+        'vvwoooooowvvvvvvwoooooooooowvvv',
+        'vvwoooooowvvvvvvwoooooooooowvvv',
+        'vvwooCoooD ccccccDooooooCooowvvv',
+        'vvwoooooowccccccwoooooooooowvvv',
+        'vvwwwDwwwwccccccwwwwwDwwwwwvvv',
+        'vvvvvcccccccccccccccccccccvvvvv',
+        'vvvvvccwwwwDwwwwwwDwwwwccvvvvv',
+        'vvvvvccwoooooooooooooowccvvvvv',
+        'vvvvvccwoooooooooooooowccvvvvv',
+        'vvvvvccwooCoooooooCoowccvvvvv',
+        'vvvvvccwoooooooooooooowccvvvvv',
+        'vvvvvccwwwwwwwwwwwwwwwwccvvvvv',
+        'vvvvvcccccccccccccccccccccvvvvv',
+        'vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv',
     ];
 
     const map = mapRaw.map(row =>
@@ -10976,17 +11189,20 @@ function createBunkerArea() {
 
     const entities = [];
 
-    // Security robots / mutant guards
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.mutant_brute, 7, 3));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider, 12, 8));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider_gunner, 4, 12));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.mutant_brute, 15, 16));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 8, 19));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_spider, 14, 19));
+    // Security robots / mutant guards - spread across the larger bunker
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.mutant_brute, 10, 3));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider, 18, 7));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider_gunner, 5, 12));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider_gunner, 20, 13));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.mutant_brute, 10, 18));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 12, 21));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 18, 24));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_spider, 8, 25));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.mutant_brute, 15, 25));
 
     // Loot containers - mostly locked
     const techCache = CharacterSystem.createContainer(
-        'bunker_tech', 'Pre-War Terminal Cache', 6, 2,
+        'bunker_tech', 'Pre-War Terminal Cache', 9, 2,
         [
             { ...ItemDatabase.electronic_lockpick, quantity: 1 },
             { ...ItemDatabase.stimpak, quantity: 4 },
@@ -10999,7 +11215,7 @@ function createBunkerArea() {
     entities.push(techCache);
 
     const armory = CharacterSystem.createContainer(
-        'bunker_armory', 'Military Armory Locker', 15, 6,
+        'bunker_armory', 'Military Armory Locker', 22, 6,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
             { ...ItemDatabase.ammo_308, quantity: 30 },
@@ -11013,7 +11229,7 @@ function createBunkerArea() {
     entities.push(armory);
 
     entities.push(CharacterSystem.createContainer(
-        'bunker_supplies', 'Emergency Supplies', 3, 6,
+        'bunker_supplies', 'Emergency Supplies', 4, 7,
         [
             { ...ItemDatabase.stimpak, quantity: 3 },
             { ...ItemDatabase.nuka_cola, quantity: 4 },
@@ -11024,7 +11240,7 @@ function createBunkerArea() {
     ));
 
     const vaultChest = CharacterSystem.createContainer(
-        'bunker_vault', 'Sealed Vault Container', 8, 17,
+        'bunker_vault', 'Sealed Vault Container', 10, 24,
         [
             { ...ItemDatabase.sledgehammer, quantity: 1 },
             { ...ItemDatabase.stimpak, quantity: 5 },
@@ -11038,7 +11254,7 @@ function createBunkerArea() {
     entities.push(vaultChest);
 
     entities.push(CharacterSystem.createContainer(
-        'bunker_lab', 'Research Samples', 14, 17,
+        'bunker_lab', 'Research Samples', 20, 24,
         [
             { ...ItemDatabase.antidote, quantity: 3 },
             { ...ItemDatabase.cave_mushroom, quantity: 5 },
@@ -11048,25 +11264,51 @@ function createBunkerArea() {
         'crate'
     ));
 
+    entities.push(CharacterSystem.createContainer(
+        'bunker_medbay', 'Medical Cabinet', 22, 17,
+        [
+            { ...ItemDatabase.stimpak, quantity: 3 },
+            { ...ItemDatabase.antidote, quantity: 2 },
+            { ...ItemDatabase.healing_powder, quantity: 4 },
+        ],
+        'chest'
+    ));
+
+    const commandChest = CharacterSystem.createContainer(
+        'bunker_command', 'Commander\'s Footlocker', 4, 17,
+        [
+            { ...ItemDatabase.bottle_caps, quantity: 200 },
+            { ...ItemDatabase.ammo_308, quantity: 20 },
+            { ...ItemDatabase.mentats, quantity: 2 },
+        ],
+        'chest'
+    );
+    commandChest.locked = true;
+    commandChest.lockDifficulty = 65;
+    entities.push(commandChest);
+
     // Environment
     const env = (id, sprite, x, y, name, blocking = true) => ({
         id, name: name || sprite, type: 'environment', spriteType: sprite,
         x, y, facing: 'south', isHostile: false, blocking,
     });
-    entities.push(env('bk_ruins1', 'ruins', 10, 12, 'Collapsed Ceiling'));
-    entities.push(env('bk_ruins2', 'ruins', 11, 12, 'Rubble'));
-    entities.push(env('bk_wreck1', 'wreckage', 5, 8, 'Broken Terminal'));
-    entities.push(env('bk_wreck2', 'wreckage', 16, 8, 'Destroyed Console'));
-    entities.push(env('bk_bones1', 'bones', 3, 16, 'Pre-War Skeleton', false));
-    entities.push(env('bk_bones2', 'bones', 16, 15, 'Skeletal Remains', false));
+    entities.push(env('bk_ruins1', 'ruins', 13, 12, 'Collapsed Ceiling'));
+    entities.push(env('bk_ruins2', 'ruins', 14, 13, 'Rubble'));
+    entities.push(env('bk_wreck1', 'wreckage', 6, 8, 'Broken Terminal'));
+    entities.push(env('bk_wreck2', 'wreckage', 23, 8, 'Destroyed Console'));
+    entities.push(env('bk_wreck3', 'wreckage', 15, 17, 'Shattered Monitor'));
+    entities.push(env('bk_bones1', 'bones', 4, 16, 'Pre-War Skeleton', false));
+    entities.push(env('bk_bones2', 'bones', 22, 16, 'Skeletal Remains', false));
+    entities.push(env('bk_bones3', 'bones', 12, 27, 'Ancient Corpse', false));
+    entities.push(env('bk_ruins3', 'ruins', 18, 21, 'Collapsed Support'));
 
     const transitions = [
         {
-            x: 7, y: 1,
+            x: 10, y: 1,
             label: 'Exit Bunker',
             targetArea: 'oasis',
             targetX: 12, targetY: 12,
-            zone: [{x:6, y:1}, {x:7, y:1}, {x:8, y:1}],
+            zone: [{x:9, y:1}, {x:10, y:1}, {x:11, y:1}],
         },
     ];
 
@@ -11078,7 +11320,7 @@ function createBunkerArea() {
         blocked,
         entities,
         transitions,
-        playerStart: { x: 7, y: 2 },
+        playerStart: { x: 10, y: 2 },
         ambientColor: '#0a0c1811',
     };
 }
@@ -12263,11 +12505,26 @@ class Game {
     }
 
     animateMovement(path) {
+        // Cancel any existing movement
+        if (this._isMoving) {
+            this._moveCancelled = true;
+        }
+
         let step = 0;
         this.player.animState = 'walk';
         this._isMoving = true;
+        this._moveCancelled = false;
+        const moveId = ++this._moveId || (this._moveId = 1);
 
         const tweenStep = () => {
+            // If this movement was cancelled by a new click, stop
+            if (this._moveCancelled && this._moveId !== moveId) {
+                this.player.renderX = this.player.x;
+                this.player.renderY = this.player.y;
+                this.player.animState = 'idle';
+                return;
+            }
+
             if (step >= path.length) {
                 this.player.animState = 'idle';
                 this._isMoving = false;
@@ -12713,10 +12970,10 @@ class Game {
         if (areaId === 'oasis') this.player.questFlags.found_oasis = true;
         if (areaId === 'bunker') this.player.questFlags.found_bunker = true;
 
-        // Store NPC home positions for wandering
+        // Store NPC and enemy home positions for wandering
         this.npcHomes = {};
         for (const ent of this.entities) {
-            if (ent.type === 'npc') {
+            if (ent.type === 'npc' || ent.type === 'enemy') {
                 this.npcHomes[ent.id] = { x: ent.x, y: ent.y };
             }
         }
@@ -13159,6 +13416,21 @@ class Game {
 
     startCombatWith(enemies) {
         const participants = [this.player, ...enemies];
+
+        // Include nearby friendly NPCs in combat
+        for (const ent of this.entities) {
+            if (ent.type !== 'npc') continue;
+            if (ent.stats.hp <= 0) continue;
+            // Check if NPC is within 5 tiles of any enemy
+            const nearEnemy = enemies.some(e =>
+                Utils.gridDistance(ent.x, ent.y, e.x, e.y) <= 5
+            );
+            if (nearEnemy) {
+                participants.push(ent);
+                this.addMessage(`${ent.name} joins the fight!`, 'combat');
+            }
+        }
+
         this.audio.playSfx('combat_start');
         this.showCombatBanner();
         this.combat.startCombat(participants);
@@ -13646,7 +13918,7 @@ class Game {
 
     // ---- Main Game Loop ----
 
-    // NPC wandering - move NPCs 1-2 tiles occasionally, staying near home
+    // NPC and enemy wandering - move NPCs/enemies 1-2 tiles occasionally, staying near home
     updateNPCWander() {
         if (this.state !== 'exploration' || this.combat.active) return;
         this.wanderTimer++;
@@ -13654,11 +13926,16 @@ class Game {
         this.wanderTimer = 0;
 
         for (const ent of this.entities) {
-            if (ent.type !== 'npc' || !this.npcHomes[ent.id]) continue;
+            // Wander both NPCs and enemies (enemies only wander outside combat)
+            if (ent.type !== 'npc' && ent.type !== 'enemy') continue;
+            if (!this.npcHomes[ent.id]) continue;
+            if (ent.stats && ent.stats.hp <= 0) continue;
             // 30% chance to move each cycle
             if (Math.random() > 0.3) continue;
 
             const home = this.npcHomes[ent.id];
+            // Enemies wander within 3 tiles, NPCs within 5
+            const wanderRange = ent.type === 'enemy' ? 3 : 5;
             const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
             // Shuffle directions
             for (let i = dirs.length - 1; i > 0; i--) {
@@ -13669,9 +13946,9 @@ class Game {
             for (const [dx, dy] of dirs) {
                 const nx = ent.x + dx;
                 const ny = ent.y + dy;
-                // Stay within 5 tiles of home
+                // Stay within wander range of home
                 const distFromHome = Utils.gridDistance(nx, ny, home.x, home.y);
-                if (distFromHome > 5) continue;
+                if (distFromHome > wanderRange) continue;
                 if (!this.isWalkableFor(nx, ny, ent)) continue;
                 // Don't walk onto player
                 if (this.player && nx === this.player.x && ny === this.player.y) continue;
@@ -13681,7 +13958,7 @@ class Game {
                 const fromX = ent.x, fromY = ent.y;
                 ent.x = nx;
                 ent.y = ny;
-                // Smooth interpolation for NPCs
+                // Smooth interpolation
                 ent.renderX = fromX;
                 ent.renderY = fromY;
                 let npcSub = 0;
