@@ -4835,10 +4835,10 @@ class SpriteGenerator {
         // Armor visual overrides based on equipped armor
         const armorId = v.armorId || null;
         const armorVisuals = {
-            'tribal_garb':    { shirt:[110,85,55], pants:[65,50,32], boots:[30,20,10], armor: false, bare: true, armorColor: null },
-            'ragged_clothes': { shirt:[130,120,100], pants:[80,75,65], boots:[35,28,18], armor: false, bare: false, armorColor: null },
-            'leather_armor':  { shirt:[85,55,28], pants:[55,38,22], boots:[28,18,8], armor: true, bare: false, armorColor: [75,48,22] },
-            'metal_armor':    { shirt:[70,72,68], pants:[45,48,45], boots:[25,25,22], armor: true, bare: false, armorColor: [95,100,95] },
+            'tribal_garb':    { shirt:[145,110,65], pants:[90,65,35], boots:[55,35,15], armor: false, bare: true, armorColor: null, tribal: true },
+            'ragged_clothes': { shirt:[140,130,110], pants:[95,88,75], boots:[50,42,30], armor: false, bare: false, armorColor: null, ragged: true },
+            'leather_armor':  { shirt:[110,65,25], pants:[70,48,22], boots:[45,28,12], armor: true, bare: false, armorColor: [95,58,22], leatherArmGuards: true },
+            'metal_armor':    { shirt:[85,90,85], pants:[55,58,55], boots:[35,38,35], armor: true, bare: false, armorColor: [120,128,120], metalFull: true },
         };
         const armorOverride = armorId ? armorVisuals[armorId] : null;
 
@@ -5010,10 +5010,17 @@ class SpriteGenerator {
         outlineEllipse(cx + 3.5 * sc * hipMult + rlx, legY + legH / 2 + rly, legW / 2, legH / 2, legDark);
 
         // ---- BOOTS ----
-        fillEllipse(cx - 3.5 * sc * hipMult + llx, baseY - 2 + lly, legW / 2 + 1, 3 * sc, p.boots, 4, -8);
-        outlineEllipse(cx - 3.5 * sc * hipMult + llx, baseY - 2 + lly, legW / 2 + 1, 3 * sc, p.boots);
-        fillEllipse(cx + 3.5 * sc * hipMult + rlx, baseY - 2 + rly, legW / 2 + 1, 3 * sc, p.boots, 4, -8);
-        outlineEllipse(cx + 3.5 * sc * hipMult + rlx, baseY - 2 + rly, legW / 2 + 1, 3 * sc, p.boots);
+        const bootScale = (armorOverride && armorOverride.metalFull) ? 1.3 : 1;
+        fillEllipse(cx - 3.5 * sc * hipMult + llx, baseY - 2 + lly, (legW / 2 + 1) * bootScale, 3 * sc * bootScale, p.boots, 4, -8);
+        outlineEllipse(cx - 3.5 * sc * hipMult + llx, baseY - 2 + lly, (legW / 2 + 1) * bootScale, 3 * sc * bootScale, p.boots);
+        fillEllipse(cx + 3.5 * sc * hipMult + rlx, baseY - 2 + rly, (legW / 2 + 1) * bootScale, 3 * sc * bootScale, p.boots, 4, -8);
+        outlineEllipse(cx + 3.5 * sc * hipMult + rlx, baseY - 2 + rly, (legW / 2 + 1) * bootScale, 3 * sc * bootScale, p.boots);
+        // Metal armor boot plates
+        if (armorOverride && armorOverride.metalFull) {
+            const bootPlate = [100,108,100];
+            fillRect(cx - 3.5 * sc * hipMult + llx - 1, baseY - 3 + lly, 3, 2, bootPlate, 6, -4);
+            fillRect(cx + 3.5 * sc * hipMult + rlx - 1, baseY - 3 + rly, 3, 2, bootPlate, 6, -4);
+        }
 
         // ---- TORSO ----
         const torsoColor = p.bare ? p.skin : p.shirt;
@@ -5041,11 +5048,75 @@ class SpriteGenerator {
         if (p.armor && !p.bare) {
             const vc = p._armorColor || (type === 'raider' ? [45,25,20] : type === 'guard' ? [58,55,38] : [70,60,35]);
             fillEllipse(cx, torsoY + bodyH / 2, bodyW / 2 - 1, bodyH / 2 - 1, vc, 6, -10);
-            // Metal armor shoulder plates
-            if (armorId === 'metal_armor') {
+
+            // Metal armor - full plating with big shoulder pads, chest plate, shin guards
+            if (armorOverride && armorOverride.metalFull) {
+                const plateColor = [140,148,140];
+                const plateDark = [90,95,88];
+                // Large shoulder pauldrons
+                fillEllipse(cx - bodyW / 2 - 2, torsoY + 3, 4 * sc, 3.5 * sc, plateColor, 12, -8);
+                outlineEllipse(cx - bodyW / 2 - 2, torsoY + 3, 4 * sc, 3.5 * sc, plateDark);
+                fillEllipse(cx + bodyW / 2 + 2, torsoY + 3, 4 * sc, 3.5 * sc, plateColor, 12, -8);
+                outlineEllipse(cx + bodyW / 2 + 2, torsoY + 3, 4 * sc, 3.5 * sc, plateDark);
+                // Chest plate highlight
+                fillEllipse(cx, torsoY + bodyH * 0.4, bodyW / 3, bodyH / 4, plateColor, 10, -6);
+                // Rivets
+                const rivetC = [170,175,168];
+                setPixel(cx - 3 * sc, torsoY + bodyH * 0.3, rivetC[0], rivetC[1], rivetC[2]);
+                setPixel(cx + 3 * sc, torsoY + bodyH * 0.3, rivetC[0], rivetC[1], rivetC[2]);
+                setPixel(cx - 2 * sc, torsoY + bodyH * 0.55, rivetC[0], rivetC[1], rivetC[2]);
+                setPixel(cx + 2 * sc, torsoY + bodyH * 0.55, rivetC[0], rivetC[1], rivetC[2]);
+                // Shin guards on legs
+                const shinColor = [110,118,110];
+                fillRect(cx - 5 * sc, legY + legH * 0.3, 3 * sc, legH * 0.45, shinColor, 6, -8);
+                fillRect(cx + 2 * sc, legY + legH * 0.3, 3 * sc, legH * 0.45, shinColor, 6, -8);
+            }
+            // Leather armor - arm guards and thicker vest with stitching
+            else if (armorOverride && armorOverride.leatherArmGuards) {
+                const guardColor = [85,50,18];
+                const stitchColor = [60,35,10];
+                // Arm guards
+                fillRect(cx - bodyW / 2 - armW / 2, armY + armH * 0.2, armW + 1, armH * 0.35, guardColor, 6, -8);
+                fillRect(cx + bodyW / 2 - armW / 2 - 1, armY + armH * 0.2, armW + 1, armH * 0.35, guardColor, 6, -8);
+                // Stitching lines on vest
+                drawLine(cx - bodyW / 4, torsoY + 3, cx - bodyW / 4, torsoY + bodyH - 4, stitchColor, 1);
+                drawLine(cx + bodyW / 4, torsoY + 3, cx + bodyW / 4, torsoY + bodyH - 4, stitchColor, 1);
+                // Collar
+                fillRect(cx - bodyW / 3, torsoY + 1, bodyW * 0.66, 2, [100,60,25], 8, -4);
+            }
+            else if (armorId === 'metal_armor') {
                 const plateColor = [110,115,108];
                 fillRect(cx - bodyW / 2 - 1, torsoY + 1, 4, 4, plateColor, 8, -6);
                 fillRect(cx + bodyW / 2 - 3, torsoY + 1, 4, 4, plateColor, 8, -6);
+            }
+        }
+
+        // Tribal garb markings - war paint and bone ornaments
+        if (armorOverride && armorOverride.tribal && type === 'player' && facing !== 'north') {
+            const paintColor = [180,50,30];
+            // War paint stripes on torso
+            drawLine(cx - 3 * sc, torsoY + bodyH * 0.3, cx + 2 * sc, torsoY + bodyH * 0.5, paintColor, 1);
+            drawLine(cx - 2 * sc, torsoY + bodyH * 0.35, cx + 3 * sc, torsoY + bodyH * 0.55, paintColor, 1);
+            // Bone necklace
+            const boneColor = [200,190,170];
+            for (let i = -2; i <= 2; i++) {
+                setPixel(cx + i * 2 * sc, torsoY + 2, boneColor[0], boneColor[1], boneColor[2]);
+                setPixel(cx + i * 2 * sc, torsoY + 3, boneColor[0] - 20, boneColor[1] - 20, boneColor[2] - 20);
+            }
+        }
+
+        // Ragged clothes patches
+        if (armorOverride && armorOverride.ragged && type === 'player' && facing !== 'north') {
+            const patchColor = [110,95,70];
+            const patchDark = [85,75,55];
+            // Visible patches
+            fillRect(cx - bodyW / 4, torsoY + bodyH * 0.3, 3, 3, patchColor, 4, -6);
+            fillRect(cx + bodyW / 5, torsoY + bodyH * 0.5, 4, 3, patchDark, 4, -6);
+            // Tattered hem
+            const hemColor = [p.shirt[0] - 20, p.shirt[1] - 20, p.shirt[2] - 20];
+            for (let i = -3; i <= 3; i++) {
+                const hy = torsoY + bodyH - 1 + (i % 2 === 0 ? 1 : 0);
+                setPixel(cx + i * sc, hy, hemColor[0], hemColor[1], hemColor[2]);
             }
         }
 
@@ -8614,33 +8685,46 @@ class IsometricRenderer {
 
     // ---- TRANSITIONS ----
 
-    drawTransition(gx, gy, label) {
+    drawTransitionZoneTile(gx, gy) {
+        const ctx = this.ctx;
+        const z = this.camera.zoom;
+        const pulse = 0.15 + Math.sin(this.time * 0.03) * 0.08;
+
+        // Draw a ground-level pathway marking
+        this.drawTileHighlight(gx, gy,
+            `rgba(80, 120, 60, ${pulse})`,
+            'rgba(80, 120, 60, 0.4)'
+        );
+
+        // Draw chevron arrows on ground pointing outward
+        const screen = this.worldToScreen(gx, gy);
+        const arrowPulse = 0.4 + Math.sin(this.time * 0.05) * 0.2;
+        ctx.strokeStyle = `rgba(140, 180, 100, ${arrowPulse})`;
+        ctx.lineWidth = 1.5 * z;
+        ctx.lineCap = 'round';
+
+        // Small chevron on tile
+        const sz = 3 * z;
+        ctx.beginPath();
+        ctx.moveTo(screen.x - sz, screen.y + sz * 0.4);
+        ctx.lineTo(screen.x, screen.y - sz * 0.4);
+        ctx.lineTo(screen.x + sz, screen.y + sz * 0.4);
+        ctx.stroke();
+    }
+
+    drawTransitionLabel(gx, gy, label) {
         const screen = this.worldToScreen(gx, gy);
         const ctx = this.ctx;
         const z = this.camera.zoom;
-        const pulse = 0.1 + Math.sin(this.time * 0.04) * 0.06;
 
-        this.drawTileHighlight(gx, gy,
-            `rgba(50, 80, 120, ${pulse})`,
-            'rgba(50, 80, 120, 0.35)'
-        );
-
-        const arrowY = screen.y - 10 * z + Math.sin(this.time * 0.06) * 2 * z;
-        ctx.fillStyle = '#3A6088';
-        ctx.beginPath();
-        ctx.moveTo(screen.x, arrowY - 4 * z);
-        ctx.lineTo(screen.x + 3 * z, arrowY);
-        ctx.lineTo(screen.x - 3 * z, arrowY);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.font = `bold ${9 * z}px 'Courier New'`;
+        const labelY = screen.y - 14 * z + Math.sin(this.time * 0.04) * 1.5 * z;
+        ctx.font = `bold ${8 * z}px 'Courier New'`;
         ctx.textAlign = 'center';
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2.5;
-        ctx.strokeText(label, screen.x, arrowY - 6 * z);
-        ctx.fillStyle = '#607890';
-        ctx.fillText(label, screen.x, arrowY - 6 * z);
+        ctx.strokeText(label, screen.x, labelY);
+        ctx.fillStyle = '#8aaa70';
+        ctx.fillText(label, screen.x, labelY);
     }
 
     // ---- PARTICLES ----
@@ -8904,7 +8988,17 @@ class IsometricRenderer {
 
         if (area.transitions) {
             for (const t of area.transitions) {
-                this.drawTransition(t.x, t.y, t.label || 'Exit');
+                if (t.zone) {
+                    for (const z of t.zone) {
+                        this.drawTransitionZoneTile(z.x, z.y);
+                    }
+                    // Draw label at center tile of zone
+                    const cx = t.zone[Math.floor(t.zone.length / 2)];
+                    this.drawTransitionLabel(cx.x, cx.y, t.label || 'Exit');
+                } else {
+                    this.drawTransitionZoneTile(t.x, t.y);
+                    this.drawTransitionLabel(t.x, t.y, t.label || 'Exit');
+                }
             }
         }
 
@@ -9513,25 +9607,28 @@ function createVillageArea() {
     entities.push(env('rocks2', 'rock_formation', 1, 12, 'Boulders', true));
     entities.push(env('campfire1', 'campfire', 10, 10, 'Campfire', false));
 
-    // Area transitions
+    // Area transitions - multi-tile zones the player must walk onto
     const transitions = [
         {
             x: 12, y: 0,
             label: 'To Caves',
             targetArea: 'cave',
             targetX: 7, targetY: 18,
+            zone: [{x:11, y:0}, {x:12, y:0}, {x:13, y:0}],
         },
         {
             x: 24, y: 12,
             label: 'To Wasteland East',
             targetArea: 'wasteland',
             targetX: 10, targetY: 20,
+            zone: [{x:24, y:11}, {x:24, y:12}, {x:24, y:13}],
         },
         {
             x: 0, y: 12,
             label: 'To Desert Oasis',
             targetArea: 'oasis',
             targetX: 12, targetY: 22,
+            zone: [{x:0, y:11}, {x:0, y:12}, {x:0, y:13}],
         },
     ];
 
@@ -9716,12 +9813,7 @@ function createWastelandArea() {
             label: 'To Village',
             targetArea: 'village',
             targetX: 22, targetY: 12,
-        },
-        {
-            x: 11, y: 21,
-            label: 'To Village',
-            targetArea: 'village',
-            targetX: 22, targetY: 12,
+            zone: [{x:9, y:21}, {x:10, y:21}, {x:11, y:21}],
         },
     ];
 
@@ -9886,16 +9978,11 @@ function createCaveArea() {
     // Area transitions
     const transitions = [
         {
-            x: 7, y: 18,
+            x: 8, y: 18,
             label: 'Exit to Village',
             targetArea: 'village',
             targetX: 12, targetY: 2,
-        },
-        {
-            x: 9, y: 18,
-            label: 'Exit to Village',
-            targetArea: 'village',
-            targetX: 12, targetY: 2,
+            zone: [{x:7, y:18}, {x:8, y:18}, {x:9, y:18}],
         },
     ];
 
@@ -10065,18 +10152,14 @@ function createOasisArea() {
             label: 'To Village Road',
             targetArea: 'village',
             targetX: 0, targetY: 12,
-        },
-        {
-            x: 12, y: 23,
-            label: 'To Village Road',
-            targetArea: 'village',
-            targetX: 0, targetY: 12,
+            zone: [{x:10, y:23}, {x:11, y:23}, {x:12, y:23}],
         },
         {
             x: 10, y: 19,
             label: 'Enter Bunker',
             targetArea: 'bunker',
             targetX: 7, targetY: 2,
+            zone: [{x:9, y:19}, {x:10, y:19}, {x:11, y:19}],
         },
     ];
 
@@ -10232,6 +10315,7 @@ function createBunkerArea() {
             label: 'Exit Bunker',
             targetArea: 'oasis',
             targetX: 12, targetY: 12,
+            zone: [{x:6, y:1}, {x:7, y:1}, {x:8, y:1}],
         },
     ];
 
@@ -10354,20 +10438,22 @@ function generateEncounterArea(fromArea, toArea, encounterType) {
         }
     }
 
-    // Transitions: continue forward or go back
-    // The exit is on the far side, entrance on the near side
+    // Transitions: continue forward or go back - multi-tile zones
+    const midY = Math.floor(height / 2);
     const transitions = [
         {
-            x: width - 1, y: Math.floor(height / 2),
+            x: width - 1, y: midY,
             label: `Continue to ${toArea === 'wasteland' ? 'Raider Camp' : toArea === 'cave' ? 'Caves' : 'destination'}`,
             targetArea: toArea,
             targetX: 1, targetY: 10,
+            zone: [{x: width-1, y: midY-1}, {x: width-1, y: midY}, {x: width-1, y: midY+1}],
         },
         {
-            x: 0, y: Math.floor(height / 2),
+            x: 0, y: midY,
             label: `Return to ${fromArea === 'village' ? 'Village' : 'previous area'}`,
             targetArea: fromArea,
             targetX: 10, targetY: 10,
+            zone: [{x: 0, y: midY-1}, {x: 0, y: midY}, {x: 0, y: midY+1}],
         },
     ];
 
@@ -11299,12 +11385,12 @@ class Game {
                     }
                     step++;
 
-                    // Check transition mid-path
+                    // Check transition mid-path - player must walk onto the zone
                     const tr = this.checkTransition(this.player.x, this.player.y);
                     if (tr) {
                         this.player.animState = 'idle';
                         this._isMoving = false;
-                        this.transitionArea(tr);
+                        this.showTransitionPrompt(tr);
                         return;
                     }
 
@@ -11818,9 +11904,52 @@ class Game {
         try { this.saveGame(); } catch (e) { /* silent fail */ }
     }
 
+    showTransitionPrompt(transition) {
+        const overlay = document.createElement('div');
+        overlay.id = 'transition-prompt';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:999;';
+
+        const panel = document.createElement('div');
+        panel.style.cssText = 'background:#1a1408;border:2px solid #4a6a30;padding:24px;text-align:center;font-family:"Special Elite","Courier New",monospace;color:#c4a44a;max-width:400px;border-radius:4px;';
+
+        const targetName = this.areas[transition.targetArea]?.name || transition.targetArea;
+        panel.innerHTML = `
+            <h3 style="color:#8aaa70;margin:0 0 12px;font-size:1.2em;">Leave Area</h3>
+            <p style="color:#a08040;margin:0 0 16px;">Travel to <strong style="color:#c4a44a;">${targetName}</strong>?</p>
+            <button id="btn-transition-go" style="margin:4px;padding:8px 20px;background:#2a3a12;border:1px solid #5a7a30;color:#c4d48a;cursor:pointer;font-family:inherit;font-size:1em;">Travel</button>
+            <button id="btn-transition-stay" style="margin:4px;padding:8px 20px;background:#2a1a08;border:1px solid #5a4a20;color:#a08040;cursor:pointer;font-family:inherit;font-size:1em;">Stay</button>
+        `;
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+
+        document.getElementById('btn-transition-go').addEventListener('click', () => {
+            overlay.remove();
+            this.transitionArea(transition);
+        });
+
+        document.getElementById('btn-transition-stay').addEventListener('click', () => {
+            overlay.remove();
+        });
+
+        // ESC to cancel
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    }
+
     checkTransition(x, y) {
         if (!this.currentArea || !this.currentArea.transitions) return null;
-        return this.currentArea.transitions.find(t => t.x === x && t.y === y);
+        return this.currentArea.transitions.find(t => {
+            if (t.zone) {
+                return t.zone.some(z => z.x === x && z.y === y);
+            }
+            return t.x === x && t.y === y;
+        });
     }
 
     // ---- Fast Travel ----

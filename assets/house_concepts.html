@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dustwalker - House Art Style Concepts</title>
+<style>
+body { background: #1a1408; color: #c4a44a; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+h1 { text-align: center; color: #d4a44a; margin-bottom: 30px; }
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; }
+.concept { text-align: center; background: #221a0a; border: 2px solid #3a2a10; padding: 20px; border-radius: 8px; }
+.concept h2 { color: #c4a44a; font-size: 1em; margin: 10px 0 5px; }
+.concept p { color: #8a7a4a; font-size: 0.8em; margin: 0; max-width: 260px; }
+canvas { image-rendering: pixelated; border: 1px solid #3a2a10; background: #0a0804; }
+</style>
+</head>
+<body>
+<h1>House / Building Art Style Concepts</h1>
+<p style="text-align:center;color:#8a7a4a;margin-bottom:20px;">5 different art styles for wasteland buildings. Each at 4x scale, isometric perspective.</p>
+<div class="grid">
+    <div class="concept">
+        <canvas id="h1" width="256" height="224"></canvas>
+        <h2>Style A: Chunky Pixel Dithered (Current)</h2>
+        <p>Low-res with ordered dithering. Rough adobe/wood construction. Fallout 2 pre-rendered feel.</p>
+    </div>
+    <div class="concept">
+        <canvas id="h2" width="256" height="224"></canvas>
+        <h2>Style B: Clean Flat Pixel</h2>
+        <p>Clean flat colors with bold outlines. GBA/SNES RPG style. Clear readable shapes, vibrant palette.</p>
+    </div>
+    <div class="concept">
+        <canvas id="h3" width="256" height="224"></canvas>
+        <h2>Style C: Dark Silhouette</h2>
+        <p>Moody dark structure with lit windows glowing warm. Limbo/Inside atmospheric style.</p>
+    </div>
+    <div class="concept">
+        <canvas id="h4" width="256" height="224"></canvas>
+        <h2>Style D: Painterly Textured</h2>
+        <p>Rough brushstroke textures, visible wood grain. Darkest Dungeon hand-crafted look with warm earthy tones.</p>
+    </div>
+    <div class="concept">
+        <canvas id="h5" width="256" height="224"></canvas>
+        <h2>Style E: Geometric / Low-Poly</h2>
+        <p>Sharp angular shapes, bold flat color panels. Triangle-based construction. Modern indie game aesthetic.</p>
+    </div>
+</div>
+
+<script>
+const SCALE = 4;
+const W = 64, H = 56;
+
+function createBuffer() {
+    const img = new ImageData(W, H);
+    return img;
+}
+
+function renderToCanvas(canvas, img) {
+    const temp = document.createElement('canvas');
+    temp.width = W; temp.height = H;
+    temp.getContext('2d').putImageData(img, 0, 0);
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(temp, 0, 0, W, H, 0, 0, canvas.width, canvas.height);
+}
+
+function set(d, x, y, r, g, b, a=255) {
+    x = Math.round(x); y = Math.round(y);
+    if (x < 0 || x >= W || y < 0 || y >= H) return;
+    const i = (y * W + x) * 4;
+    const sa = a/255, da = d[i+3]/255;
+    const oa = sa + da*(1-sa);
+    if (oa > 0) {
+        d[i] = ((r*sa + d[i]*da*(1-sa))/oa)|0;
+        d[i+1] = ((g*sa + d[i+1]*da*(1-sa))/oa)|0;
+        d[i+2] = ((b*sa + d[i+2]*da*(1-sa))/oa)|0;
+        d[i+3] = (oa*255)|0;
+    }
+}
+
+function fillRect(d, x, y, w, h, r, g, b) {
+    for (let py = Math.round(y); py < Math.round(y+h); py++)
+        for (let px = Math.round(x); px < Math.round(x+w); px++)
+            set(d, px, py, r, g, b);
+}
+
+function drawLine(d, x1, y1, x2, y2, r, g, b) {
+    const steps = Math.max(Math.abs(x2-x1), Math.abs(y2-y1));
+    for (let i = 0; i <= steps; i++) {
+        const t = steps === 0 ? 0 : i/steps;
+        set(d, x1+(x2-x1)*t, y1+(y2-y1)*t, r, g, b);
+    }
+}
+
+function fillTri(d, x1,y1,x2,y2,x3,y3,r,g,b) {
+    const minY = Math.floor(Math.min(y1,y2,y3));
+    const maxY = Math.ceil(Math.max(y1,y2,y3));
+    const minX = Math.floor(Math.min(x1,x2,x3));
+    const maxX = Math.ceil(Math.max(x1,x2,x3));
+    for (let py = minY; py <= maxY; py++)
+        for (let px = minX; px <= maxX; px++) {
+            const d1 = (px-x2)*(y1-y2)-(x1-x2)*(py-y2);
+            const d2 = (px-x3)*(y2-y3)-(x2-x3)*(py-y3);
+            const d3 = (px-x1)*(y3-y1)-(x3-x1)*(py-y1);
+            const neg = (d1<0)||(d2<0)||(d3<0);
+            const pos = (d1>0)||(d2>0)||(d3>0);
+            if (!(neg&&pos)) set(d, px, py, r, g, b);
+        }
+}
+
+// ===== STYLE A: Chunky Dithered =====
+function drawHouseA(canvas) {
+    const img = createBuffer();
+    const d = img.data;
+    let seed = 77;
+    function rng() { seed=(seed*16807)%2147483647; return seed/2147483647; }
+
+    function dithSet(x, y, r, g, b) {
+        const px = Math.round(x), py = Math.round(y);
+        const dt = ((px%2)+(py%2)*2);
+        const sh = dt===0?-6:dt===3?6:dt===1?-2:2;
+        set(d, px, py, Math.max(0,Math.min(255,r+sh)), Math.max(0,Math.min(255,g+sh)), Math.max(0,Math.min(255,b+sh)));
+    }
+
+    function dithRect(x,y,w,h,r,g,b) {
+        for (let py=Math.round(y);py<Math.round(y+h);py++)
+            for (let px=Math.round(x);px<Math.round(x+w);px++) dithSet(px,py,r,g,b);
+    }
+
+    // Ground/foundation
+    dithRect(10, 42, 44, 4, 80, 65, 40);
+
+    // Front wall
+    dithRect(12, 20, 40, 22, 150, 120, 75);
+    // Side wall (darker)
+    dithRect(8, 18, 6, 24, 120, 95, 60);
+    // Wall detail - horizontal wood planks
+    for (let py = 22; py < 42; py += 4) {
+        for (let px = 12; px < 52; px++) dithSet(px, py, 130, 105, 65);
+    }
+    // Door
+    dithRect(28, 30, 8, 12, 80, 55, 28);
+    dithRect(29, 31, 6, 10, 90, 62, 32);
+    set(d, 34, 36, 160, 140, 60); // handle
+
+    // Windows
+    dithRect(16, 26, 6, 6, 40, 50, 55);
+    dithRect(17, 27, 4, 4, 60, 80, 90);
+    dithRect(42, 26, 6, 6, 40, 50, 55);
+    dithRect(43, 27, 4, 4, 60, 80, 90);
+    // Window glow
+    set(d, 18, 28, 100, 120, 80); set(d, 19, 28, 100, 120, 80);
+    set(d, 44, 28, 100, 120, 80); set(d, 45, 28, 100, 120, 80);
+
+    // Roof - corrugated metal
+    for (let py = 8; py < 21; py++) {
+        for (let px = 6; px < 56; px++) {
+            const rust = rng() > 0.7;
+            if (rust) dithSet(px, py, 120, 60, 30);
+            else dithSet(px, py, 90, 85, 75);
+        }
+    }
+    // Roof ridges
+    for (let px = 6; px < 56; px += 3) {
+        for (let py = 8; py < 21; py++) dithSet(px, py, 75, 70, 62);
+    }
+    // Roof peak
+    drawLine(d, 6, 20, 31, 8, 60, 55, 45);
+    drawLine(d, 56, 20, 31, 8, 60, 55, 45);
+
+    // Chimney
+    dithRect(44, 6, 5, 10, 100, 80, 50);
+
+    // Debris around base
+    for (let i = 0; i < 8; i++) {
+        const bx = 5 + rng() * 52, by = 44 + rng() * 6;
+        dithSet(bx, by, 100, 80, 50);
+    }
+
+    renderToCanvas(canvas, img);
+}
+
+// ===== STYLE B: Clean Flat Pixel =====
+function drawHouseB(canvas) {
+    const img = createBuffer();
+    const d = img.data;
+
+    function outRect(x,y,w,h,r,g,b,fr,fg,fb) {
+        fillRect(d,x,y,w,h,fr,fg,fb);
+        for (let px=x;px<x+w;px++) { set(d,px,y,r,g,b); set(d,px,y+h-1,r,g,b); }
+        for (let py=y;py<y+h;py++) { set(d,x,py,r,g,b); set(d,x+w-1,py,r,g,b); }
+    }
+
+    // Foundation
+    outRect(10, 42, 44, 4, 40,30,15, 100,80,45);
+
+    // Front wall - clean
+    outRect(12, 20, 40, 22, 40,30,15, 175,145,95);
+    // Side wall
+    outRect(8, 18, 6, 24, 40,30,15, 145,115,72);
+
+    // Door - red accent
+    outRect(28, 30, 8, 12, 40,30,15, 140,50,35);
+    set(d, 34, 36, 220,200,80);
+
+    // Windows - bright
+    outRect(16, 26, 7, 7, 40,30,15, 80,140,180);
+    // Window cross
+    drawLine(d, 19, 26, 19, 32, 40,30,15);
+    drawLine(d, 16, 29, 22, 29, 40,30,15);
+    outRect(42, 26, 7, 7, 40,30,15, 80,140,180);
+    drawLine(d, 45, 26, 45, 32, 40,30,15);
+    drawLine(d, 42, 29, 48, 29, 40,30,15);
+
+    // Roof - clean triangular
+    fillTri(d, 5, 21, 57, 21, 31, 6, 180,65,40);
+    // Roof outline
+    drawLine(d, 5, 21, 31, 6, 40,30,15);
+    drawLine(d, 57, 21, 31, 6, 40,30,15);
+    drawLine(d, 5, 21, 57, 21, 40,30,15);
+    // Roof lighter panel
+    fillTri(d, 5, 21, 31, 21, 31, 6, 200,85,55);
+
+    // Chimney
+    outRect(42, 4, 5, 12, 40,30,15, 120,95,60);
+    // Smoke puffs
+    set(d, 44, 2, 150,145,135); set(d, 43, 1, 140,135,125);
+    set(d, 45, 0, 130,125,115);
+
+    // Sign next to door
+    outRect(24, 28, 3, 2, 40,30,15, 200,180,100);
+
+    // Welcome mat
+    fillRect(d, 29, 42, 6, 2, 120,60,40);
+
+    renderToCanvas(canvas, img);
+}
+
+// ===== STYLE C: Dark Silhouette =====
+function drawHouseC(canvas) {
+    const img = createBuffer();
+    const d = img.data;
+
+    const bk = [15, 12, 10];
+    const dk = [22, 18, 15];
+
+    // Main structure silhouette
+    fillRect(d, 10, 20, 44, 26, ...bk);
+    // Side wing
+    fillRect(d, 6, 22, 8, 22, ...dk);
+
+    // Roof silhouette
+    fillTri(d, 4, 22, 58, 22, 31, 5, ...bk);
+
+    // Chimney
+    fillRect(d, 44, 3, 5, 14, ...bk);
+
+    // The magic: warm glowing windows
+    fillRect(d, 17, 28, 6, 6, 200,160,60);
+    fillRect(d, 18, 29, 4, 4, 240,200,90);
+    fillRect(d, 43, 28, 6, 6, 200,160,60);
+    fillRect(d, 44, 29, 4, 4, 240,200,90);
+    // Window glow halos
+    for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+            const dist = Math.sqrt(dx*dx+dy*dy);
+            if (dist > 0 && dist < 3) {
+                const a = Math.floor(60 * (1 - dist/3));
+                set(d, 20+dx, 31+dy, 200, 160, 60, a);
+                set(d, 46+dx, 31+dy, 200, 160, 60, a);
+            }
+        }
+    }
+
+    // Door - slightly lighter
+    fillRect(d, 28, 32, 8, 14, 25, 20, 16);
+    // Warm light from door crack
+    drawLine(d, 32, 33, 32, 44, 120, 100, 40);
+    // Light spill on ground from door
+    fillTri(d, 28, 46, 36, 46, 32, 52, 80, 65, 25);
+    for (let py = 46; py < 52; py++) {
+        for (let px = 26; px < 38; px++) {
+            const i = (py * W + px) * 4;
+            if (d[i+3] > 0 && d[i] > 30) {
+                const fade = 1 - (py - 46) / 6;
+                set(d, px, py, 80*fade, 65*fade, 25*fade, Math.floor(100*fade));
+            }
+        }
+    }
+
+    // Subtle edge highlighting on right side
+    for (let py = 5; py < 46; py++) {
+        for (let px = W-1; px >= 0; px--) {
+            const i = (py * W + px) * 4;
+            if (d[i+3] > 0 && d[i] < 25) {
+                const ri = (py * W + (px+1)) * 4;
+                if (px+1 >= W || d[ri+3] === 0) {
+                    set(d, px, py, 35, 30, 24);
+                }
+                break;
+            }
+        }
+    }
+
+    // Stars in sky
+    const stars = [[5,2],[15,4],[48,1],[55,3],[38,2],[25,1],[60,5]];
+    for (const [sx,sy] of stars) set(d, sx, sy, 160, 155, 140);
+
+    renderToCanvas(canvas, img);
+}
+
+// ===== STYLE D: Painterly =====
+function drawHouseD(canvas) {
+    const img = createBuffer();
+    const d = img.data;
+    let seed = 99;
+    function rng() { seed=(seed*16807)%2147483647; return seed/2147483647; }
+
+    function brushRect(x,y,w,h,r,g,b,rough=10) {
+        for (let py = Math.round(y)-1; py < Math.round(y+h)+1; py++)
+            for (let px = Math.round(x)-1; px < Math.round(x+w)+1; px++) {
+                const inX = px >= Math.round(x) && px < Math.round(x+w);
+                const inY = py >= Math.round(y) && py < Math.round(y+h);
+                if (inX && inY) {
+                    const n = (rng()-0.5)*rough;
+                    const light = (-((px-x)/w - 0.3)*8 - ((py-y)/h - 0.3)*4);
+                    set(d, px, py,
+                        Math.max(0,Math.min(255, r+n+light)),
+                        Math.max(0,Math.min(255, g+n*0.8+light*0.9)),
+                        Math.max(0,Math.min(255, b+n*0.6+light*0.7))
+                    );
+                } else if (rng() > 0.75) {
+                    set(d, px, py, r-15, g-15, b-12, 80);
+                }
+            }
+    }
+
+    function brushTri(x1,y1,x2,y2,x3,y3,r,g,b) {
+        const minY = Math.floor(Math.min(y1,y2,y3))-1;
+        const maxY = Math.ceil(Math.max(y1,y2,y3))+1;
+        const minX = Math.floor(Math.min(x1,x2,x3))-1;
+        const maxX = Math.ceil(Math.max(x1,x2,x3))+1;
+        for (let py = minY; py <= maxY; py++)
+            for (let px = minX; px <= maxX; px++) {
+                const dd1 = (px-x2)*(y1-y2)-(x1-x2)*(py-y2);
+                const dd2 = (px-x3)*(y2-y3)-(x2-x3)*(py-y3);
+                const dd3 = (px-x1)*(y3-y1)-(x3-x1)*(py-y1);
+                const neg = (dd1<0)||(dd2<0)||(dd3<0);
+                const pos = (dd1>0)||(dd2>0)||(dd3>0);
+                if (!(neg&&pos)) {
+                    const n = (rng()-0.5)*12;
+                    set(d, px, py, Math.max(0,Math.min(255,r+n)), Math.max(0,Math.min(255,g+n*0.8)), Math.max(0,Math.min(255,b+n*0.6)));
+                } else if (rng() > 0.9) {
+                    // Scattered paint
+                    set(d, px, py, r-20, g-20, b-15, 40);
+                }
+            }
+    }
+
+    // Ground texture
+    for (let py = 44; py < H; py++)
+        for (let px = 0; px < W; px++) {
+            const n = rng()*20;
+            set(d, px, py, 80+n, 65+n*0.8, 40+n*0.5);
+        }
+
+    // Foundation stones
+    brushRect(9, 40, 46, 5, 95, 80, 55, 15);
+
+    // Main wall - visible planks
+    brushRect(11, 18, 42, 24, 155, 125, 80, 16);
+    // Plank lines
+    for (let py = 20; py < 42; py += 3) {
+        for (let px = 11; px < 53; px++) {
+            const n = (rng()-0.5)*8;
+            set(d, px, py, 130+n, 100+n*0.8, 62+n*0.6);
+        }
+    }
+    // Side wall
+    brushRect(7, 20, 6, 22, 125, 98, 62, 14);
+
+    // Door - heavy wood
+    brushRect(27, 30, 9, 12, 75, 50, 25, 18);
+    // Door wood grain
+    for (let py = 31; py < 41; py++) {
+        const n = rng()*6;
+        set(d, 30, py, 65+n, 42+n, 20+n);
+        set(d, 33, py, 65+n, 42+n, 20+n);
+    }
+    // Handle
+    set(d, 34, 36, 180, 155, 70);
+    set(d, 34, 37, 170, 145, 60);
+
+    // Windows with warm glow
+    brushRect(16, 25, 7, 7, 50, 55, 50, 8);
+    brushRect(17, 26, 5, 5, 160, 135, 70, 6);
+    brushRect(42, 25, 7, 7, 50, 55, 50, 8);
+    brushRect(43, 26, 5, 5, 155, 130, 65, 6);
+
+    // Roof - heavy timber with visible texture
+    brushTri(4, 20, 58, 20, 31, 6, 100, 65, 35);
+    brushTri(4, 20, 31, 20, 31, 6, 115, 75, 42);
+    // Roof beam lines
+    for (let i = 0; i < 8; i++) {
+        const t = i / 8;
+        const rx = 4 + (31-4)*t;
+        const ry = 20 + (6-20)*t;
+        for (let py = Math.round(ry); py <= 20; py++) {
+            const n = (rng()-0.5)*6;
+            set(d, Math.round(rx), py, 85+n, 55+n, 28+n);
+        }
+    }
+
+    // Chimney
+    brushRect(43, 4, 6, 12, 110, 85, 55, 12);
+    // Smoke wisps
+    set(d, 45, 2, 140, 135, 120); set(d, 46, 2, 135, 130, 115);
+    set(d, 44, 1, 130, 125, 110); set(d, 47, 0, 120, 115, 100);
+
+    // Cross-hatch shadow on right wall
+    for (let py = 18; py < 42; py += 2) {
+        for (let px = 38; px < 53; px++) {
+            const i = (py * W + px) * 4;
+            if (d[i+3] > 100) {
+                set(d, px, py, d[i]*0.85, d[i+1]*0.85, d[i+2]*0.85, 50);
+            }
+        }
+    }
+
+    renderToCanvas(canvas, img);
+}
+
+// ===== STYLE E: Geometric / Low-Poly =====
+function drawHouseE(canvas) {
+    const img = createBuffer();
+    const d = img.data;
+
+    const teal = [60, 150, 140];
+    const tealDk = [40, 100, 92];
+    const warm = [180, 130, 70];
+    const warmDk = [140, 100, 52];
+    const warmLt = [210, 160, 95];
+    const accent = [220, 80, 55];
+    const black = [20, 18, 15];
+    const white = [235, 230, 220];
+
+    // Ground plane
+    fillTri(d, 0, 44, 64, 44, 32, 55, 55, 48, 35);
+
+    // Foundation
+    fillRect(d, 10, 40, 44, 4, ...warmDk);
+
+    // Front wall - split into geometric panels
+    fillRect(d, 12, 20, 20, 22, ...warm);
+    fillRect(d, 32, 20, 20, 22, ...warmDk);
+    // Accent stripe
+    fillRect(d, 12, 20, 40, 2, ...teal);
+
+    // Side wall - darker triangle
+    fillTri(d, 6, 22, 12, 22, 12, 42, ...warmDk);
+    fillTri(d, 6, 22, 6, 42, 12, 42, ...tealDk);
+
+    // Door - bold red
+    fillRect(d, 28, 30, 8, 12, ...accent);
+    fillRect(d, 29, 31, 6, 10, 180, 60, 42);
+    // Handle
+    set(d, 34, 36, ...white);
+
+    // Windows - teal framed
+    fillRect(d, 16, 26, 7, 7, ...teal);
+    fillRect(d, 17, 27, 5, 5, ...white);
+    // Window diagonal
+    drawLine(d, 17, 27, 21, 31, ...tealDk);
+
+    fillRect(d, 42, 26, 7, 7, ...teal);
+    fillRect(d, 43, 27, 5, 5, ...white);
+    drawLine(d, 43, 27, 47, 31, ...tealDk);
+
+    // Roof - angular geometric
+    fillTri(d, 4, 22, 58, 22, 31, 5, ...teal);
+    // Split into lighter/darker panels
+    fillTri(d, 4, 22, 31, 22, 31, 5, 80, 180, 168);
+    // Roof edge line
+    drawLine(d, 4, 22, 31, 5, ...black);
+    drawLine(d, 58, 22, 31, 5, ...black);
+    drawLine(d, 4, 22, 58, 22, ...black);
+
+    // Antenna/aerial
+    drawLine(d, 48, 4, 48, 14, ...black);
+    drawLine(d, 46, 6, 50, 6, ...black);
+    set(d, 48, 3, ...accent);
+
+    // Chimney - geometric
+    fillRect(d, 42, 4, 5, 12, ...warmDk);
+    // Chimney cap
+    fillRect(d, 41, 3, 7, 2, ...tealDk);
+
+    // Solar panel on roof
+    fillRect(d, 14, 12, 8, 5, 30, 45, 55);
+    fillRect(d, 15, 13, 6, 3, 50, 80, 100);
+    drawLine(d, 18, 13, 18, 15, 30, 45, 55);
+
+    // Scattered geometric debris
+    fillTri(d, 3, 46, 7, 46, 5, 44, ...warmDk);
+    fillRect(d, 56, 44, 3, 3, ...tealDk);
+
+    renderToCanvas(canvas, img);
+}
+
+drawHouseA(document.getElementById('h1'));
+drawHouseB(document.getElementById('h2'));
+drawHouseC(document.getElementById('h3'));
+drawHouseD(document.getElementById('h4'));
+drawHouseE(document.getElementById('h5'));
+</script>
+</body>
+</html>

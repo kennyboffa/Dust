@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dustwalker - Character Art Style Concepts</title>
+<style>
+body { background: #1a1408; color: #c4a44a; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+h1 { text-align: center; color: #d4a44a; margin-bottom: 30px; }
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; }
+.concept { text-align: center; background: #221a0a; border: 2px solid #3a2a10; padding: 20px; border-radius: 8px; }
+.concept h2 { color: #c4a44a; font-size: 1em; margin: 10px 0 5px; }
+.concept p { color: #8a7a4a; font-size: 0.8em; margin: 0; max-width: 220px; }
+canvas { image-rendering: pixelated; border: 1px solid #3a2a10; background: #0a0804; }
+</style>
+</head>
+<body>
+<h1>Character Art Style Concepts</h1>
+<p style="text-align:center;color:#8a7a4a;margin-bottom:20px;">5 different art styles for the Dustwalker protagonist. Each shown at 4x scale.</p>
+<div class="grid">
+    <div class="concept">
+        <canvas id="c1" width="192" height="256"></canvas>
+        <h2>Style A: Chunky Pixel (Current-ish)</h2>
+        <p>Low-res pixel art with dithered shading. Fallout 2 inspired, 32x48 sprites with ordered dither patterns.</p>
+    </div>
+    <div class="concept">
+        <canvas id="c2" width="192" height="256"></canvas>
+        <h2>Style B: Clean Vector Pixel</h2>
+        <p>Higher-res clean pixel art. No dithering, smooth gradients via flat color blocks. GBA/SNES style, crisp outlines.</p>
+    </div>
+    <div class="concept">
+        <canvas id="c3" width="192" height="256"></canvas>
+        <h2>Style C: Silhouette / Limbo Style</h2>
+        <p>Dark silhouette with minimal detail. Atmospheric, moody. Only key features (eyes, weapon gleam) have color.</p>
+    </div>
+    <div class="concept">
+        <canvas id="c4" width="192" height="256"></canvas>
+        <h2>Style D: Painterly / Hand-drawn</h2>
+        <p>Rough brushstroke look with visible texture. Earthy watercolor palette. Organic, hand-crafted feel like Darkest Dungeon.</p>
+    </div>
+    <div class="concept">
+        <canvas id="c5" width="192" height="256"></canvas>
+        <h2>Style E: Geometric / Low-Poly</h2>
+        <p>Flat geometric shapes, angular construction. Bold color blocking with minimal detail. Modern indie style like Hyper Light Drifter.</p>
+    </div>
+</div>
+
+<script>
+// ===== STYLE A: Chunky Dithered Pixel (current style enhanced) =====
+function drawStyleA(canvas) {
+    const ctx = canvas.getContext('2d');
+    const s = 4; // scale
+    const w = 48, h = 64;
+
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+
+    function set(x, y, r, g, b, a=255) {
+        x = Math.round(x); y = Math.round(y);
+        if (x < 0 || x >= w || y < 0 || y >= h) return;
+        const i = (y * w + x) * 4;
+        d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=a;
+    }
+
+    function dithSet(x, y, r, g, b) {
+        const px = Math.round(x), py = Math.round(y);
+        const dither = ((px % 2) + (py % 2) * 2);
+        const shift = dither === 0 ? -8 : dither === 3 ? 8 : dither === 1 ? -3 : 3;
+        set(px, py, Math.max(0,Math.min(255,r+shift)), Math.max(0,Math.min(255,g+shift)), Math.max(0,Math.min(255,b+shift)));
+    }
+
+    function fillCirc(cx, cy, rx, ry, r, g, b) {
+        for (let py = Math.floor(cy-ry); py <= Math.ceil(cy+ry); py++)
+            for (let px = Math.floor(cx-rx); px <= Math.ceil(cx+rx); px++) {
+                const dx = (px-cx)/rx, dy = (py-cy)/ry;
+                if (dx*dx+dy*dy<=1) {
+                    const light = 1 - (dx+dy)*0.15;
+                    dithSet(px, py, r*light, g*light, b*light);
+                }
+            }
+    }
+
+    function fillRect(x, y, w2, h2, r, g, b) {
+        for (let py = y; py < y+h2; py++)
+            for (let px = x; px < x+w2; px++) dithSet(px, py, r, g, b);
+    }
+
+    // Boots
+    fillCirc(19, 56, 4, 3, 35, 25, 12);
+    fillCirc(29, 56, 4, 3, 30, 22, 10);
+    // Legs
+    fillCirc(20, 49, 3.5, 6, 60, 45, 25);
+    fillCirc(28, 49, 3.5, 6, 55, 42, 22);
+    // Torso
+    fillCirc(24, 36, 9, 8, 100, 78, 42);
+    // Armor vest
+    fillCirc(24, 36, 8, 7, 70, 55, 30);
+    // Belt
+    fillRect(16, 42, 17, 2, 45, 35, 15);
+    set(24, 42, 120, 100, 48);
+    set(24, 43, 120, 100, 48);
+    // Arms
+    fillCirc(13, 35, 3, 6, 160, 130, 95);
+    fillCirc(35, 35, 3, 6, 150, 122, 88);
+    // Head
+    fillCirc(24, 22, 6, 7, 170, 140, 100);
+    // Hair
+    fillCirc(24, 17, 6, 4, 80, 55, 25);
+    // Eyes
+    set(22, 21, 40, 30, 15); set(26, 21, 40, 30, 15);
+    // Mouth
+    set(24, 24, 120, 90, 60);
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.putImageData(img, 0, 0);
+    ctx.drawImage(canvas, 0, 0, w, h, 0, 0, w*s, h*s);
+    ctx.clearRect(0, 0, w, h);
+    const temp = document.createElement('canvas');
+    temp.width = w; temp.height = h;
+    temp.getContext('2d').putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(temp, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+}
+
+// ===== STYLE B: Clean Vector Pixel (GBA/SNES) =====
+function drawStyleB(canvas) {
+    const ctx = canvas.getContext('2d');
+    const s = 4;
+    const w = 48, h = 64;
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+
+    function set(x, y, r, g, b) {
+        x = Math.round(x); y = Math.round(y);
+        if (x < 0 || x >= w || y < 0 || y >= h) return;
+        const i = (y * w + x) * 4;
+        d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=255;
+    }
+
+    function fillCirc(cx, cy, rx, ry, r, g, b, outline=true) {
+        for (let py = Math.floor(cy-ry); py <= Math.ceil(cy+ry); py++)
+            for (let px = Math.floor(cx-rx); px <= Math.ceil(cx+rx); px++) {
+                const dx = (px-cx)/rx, dy = (py-cy)/ry;
+                const dist = dx*dx+dy*dy;
+                if (dist <= 1) {
+                    if (outline && dist > 0.75) set(px, py, 20, 15, 10);
+                    else set(px, py, r, g, b);
+                }
+            }
+    }
+
+    function fillRect(x, y, w2, h2, r, g, b, outline=true) {
+        for (let py = y; py < y+h2; py++)
+            for (let px = x; px < x+w2; px++) {
+                if (outline && (px===x||px===x+w2-1||py===y||py===y+h2-1))
+                    set(px, py, 20, 15, 10);
+                else set(px, py, r, g, b);
+            }
+    }
+
+    // Clean flat colors, bold outlines
+    // Boots
+    fillCirc(19, 56, 4, 3, 50, 35, 18);
+    fillCirc(29, 56, 4, 3, 50, 35, 18);
+    // Legs
+    fillRect(17, 44, 6, 12, 75, 60, 35);
+    fillRect(26, 44, 6, 12, 75, 60, 35);
+    // Torso - clean block
+    fillRect(14, 28, 20, 16, 130, 95, 50);
+    // Lighter chest area
+    fillRect(17, 30, 14, 8, 145, 110, 60);
+    // Belt
+    fillRect(14, 42, 20, 3, 55, 40, 20);
+    set(24, 43, 180, 150, 60);
+    // Arms
+    fillRect(10, 29, 4, 14, 180, 145, 105);
+    fillRect(34, 29, 4, 14, 180, 145, 105);
+    // Hands
+    fillCirc(12, 43, 2, 2, 180, 145, 105);
+    fillCirc(36, 43, 2, 2, 180, 145, 105);
+    // Head
+    fillCirc(24, 20, 7, 8, 190, 155, 115);
+    // Hair - flat cap
+    fillRect(17, 12, 14, 5, 90, 60, 30);
+    fillCirc(24, 14, 7, 3, 90, 60, 30, false);
+    // Eyes (big, expressive)
+    set(21, 19, 255, 255, 255); set(22, 19, 40, 30, 15);
+    set(26, 19, 255, 255, 255); set(27, 19, 40, 30, 15);
+    // Mouth
+    set(23, 23, 140, 100, 70); set(24, 23, 140, 100, 70); set(25, 23, 140, 100, 70);
+    // Scarf
+    fillRect(18, 26, 12, 3, 160, 60, 40);
+
+    const temp = document.createElement('canvas');
+    temp.width = w; temp.height = h;
+    temp.getContext('2d').putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(temp, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+}
+
+// ===== STYLE C: Silhouette / Limbo Style =====
+function drawStyleC(canvas) {
+    const ctx = canvas.getContext('2d');
+    const s = 4;
+    const w = 48, h = 64;
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+
+    function set(x, y, r, g, b, a=255) {
+        x = Math.round(x); y = Math.round(y);
+        if (x < 0 || x >= w || y < 0 || y >= h) return;
+        const i = (y * w + x) * 4;
+        d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=a;
+    }
+
+    function fillCirc(cx, cy, rx, ry, r, g, b) {
+        for (let py = Math.floor(cy-ry); py <= Math.ceil(cy+ry); py++)
+            for (let px = Math.floor(cx-rx); px <= Math.ceil(cx+rx); px++) {
+                const dx = (px-cx)/rx, dy = (py-cy)/ry;
+                if (dx*dx+dy*dy<=1) set(px, py, r, g, b);
+            }
+    }
+
+    function fillRect(x, y, w2, h2, r, g, b) {
+        for (let py = y; py < y+h2; py++)
+            for (let px = x; px < x+w2; px++) set(px, py, r, g, b);
+    }
+
+    // Dark silhouette body
+    const bk = [18, 15, 12];
+    const dk = [25, 22, 18];
+
+    // Legs - slightly spread stance
+    fillRect(18, 44, 5, 16, ...bk);
+    fillRect(26, 44, 5, 16, ...bk);
+    // Boots wider
+    fillRect(16, 57, 8, 4, ...bk);
+    fillRect(25, 57, 8, 4, ...bk);
+    // Torso
+    fillCirc(24, 36, 9, 10, ...bk);
+    // Duster coat flaps
+    fillRect(12, 38, 5, 18, ...dk);
+    fillRect(32, 38, 5, 18, ...dk);
+    // Arms
+    fillRect(11, 28, 4, 16, ...bk);
+    fillRect(33, 28, 4, 16, ...bk);
+    // Head
+    fillCirc(24, 18, 6, 7, ...bk);
+    // Hat brim
+    fillRect(15, 13, 18, 2, ...bk);
+    fillCirc(24, 12, 7, 3, ...bk);
+
+    // Glowing eyes - the key detail
+    set(21, 17, 200, 180, 80); set(22, 17, 255, 230, 100);
+    set(26, 17, 200, 180, 80); set(27, 17, 255, 230, 100);
+    // Eye glow aura
+    set(20, 17, 100, 90, 40, 80); set(23, 17, 100, 90, 40, 80);
+    set(25, 17, 100, 90, 40, 80); set(28, 17, 100, 90, 40, 80);
+    set(21, 16, 80, 70, 30, 60); set(22, 16, 80, 70, 30, 60);
+    set(26, 16, 80, 70, 30, 60); set(27, 16, 80, 70, 30, 60);
+
+    // Weapon gleam in hand
+    fillRect(9, 30, 2, 14, 60, 55, 45);
+    set(9, 30, 140, 135, 120); set(10, 30, 140, 135, 120);
+    set(9, 31, 100, 95, 80);
+
+    // Subtle edge light on right side
+    for (let py = 12; py < 58; py++) {
+        for (let px = 0; px < w; px++) {
+            const i = (py * w + px) * 4;
+            if (d[i+3] > 0 && d[i] < 30) {
+                // Check if right-edge pixel
+                const ri = (py * w + (px+1)) * 4;
+                if (px+1 >= w || d[ri+3] === 0) {
+                    set(px, py, 40, 35, 28);
+                }
+            }
+        }
+    }
+
+    const temp = document.createElement('canvas');
+    temp.width = w; temp.height = h;
+    temp.getContext('2d').putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(temp, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+}
+
+// ===== STYLE D: Painterly / Darkest Dungeon =====
+function drawStyleD(canvas) {
+    const ctx = canvas.getContext('2d');
+    const s = 4;
+    const w = 48, h = 64;
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+    let seed = 42;
+    function rng() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
+
+    function set(x, y, r, g, b, a=255) {
+        x = Math.round(x); y = Math.round(y);
+        if (x < 0 || x >= w || y < 0 || y >= h) return;
+        const i = (y * w + x) * 4;
+        // Alpha blend
+        const sa = a/255, da = d[i+3]/255;
+        const oa = sa + da*(1-sa);
+        if (oa > 0) {
+            d[i] = ((r*sa + d[i]*da*(1-sa))/oa)|0;
+            d[i+1] = ((g*sa + d[i+1]*da*(1-sa))/oa)|0;
+            d[i+2] = ((b*sa + d[i+2]*da*(1-sa))/oa)|0;
+            d[i+3] = (oa*255)|0;
+        }
+    }
+
+    // Rough brush stroke fill
+    function brushFill(cx, cy, rx, ry, r, g, b, roughness=12) {
+        for (let py = Math.floor(cy-ry-2); py <= Math.ceil(cy+ry+2); py++)
+            for (let px = Math.floor(cx-rx-2); px <= Math.ceil(cx+rx+2); px++) {
+                const dx = (px-cx)/rx, dy = (py-cy)/ry;
+                const dist = dx*dx+dy*dy;
+                // Rough edge
+                const edge = 1 + (rng()-0.5)*0.3;
+                if (dist <= edge) {
+                    const noise = (rng()-0.5) * roughness;
+                    const lightVar = (rng()-0.5) * 8;
+                    // Warm directional light from top-left
+                    const light = (-dx*0.3 - dy*0.2) * 15;
+                    set(px, py,
+                        Math.max(0,Math.min(255, r + noise + light + lightVar)),
+                        Math.max(0,Math.min(255, g + noise*0.8 + light*0.9 + lightVar)),
+                        Math.max(0,Math.min(255, b + noise*0.6 + light*0.7 + lightVar))
+                    );
+                }
+            }
+    }
+
+    function brushRect(x, y, w2, h2, r, g, b) {
+        for (let py = y-1; py < y+h2+1; py++)
+            for (let px = x-1; px < x+w2+1; px++) {
+                const inX = px >= x && px < x+w2;
+                const inY = py >= y && py < y+h2;
+                if (inX && inY) {
+                    const noise = (rng()-0.5)*15;
+                    set(px, py, r+noise, g+noise*0.8, b+noise*0.6);
+                } else if (rng() > 0.6) {
+                    set(px, py, r-20, g-20, b-15, 120);
+                }
+            }
+    }
+
+    // Legs with rough texture
+    brushFill(19, 50, 3.5, 7, 55, 42, 25, 15);
+    brushFill(29, 50, 3.5, 7, 50, 38, 22, 15);
+    // Heavy boots
+    brushFill(19, 57, 4.5, 3, 40, 28, 12, 10);
+    brushFill(29, 57, 4.5, 3, 38, 25, 10, 10);
+    // Torso - heavy coat
+    brushFill(24, 35, 10, 9, 65, 48, 28, 18);
+    // Coat lapels
+    brushRect(16, 27, 4, 14, 55, 40, 22);
+    brushRect(29, 27, 4, 14, 55, 40, 22);
+    // Shirt underneath
+    brushFill(24, 33, 5, 4, 140, 120, 85, 10);
+    // Belt with pouches
+    brushRect(15, 42, 18, 3, 50, 35, 15);
+    brushFill(19, 43, 2, 2, 60, 45, 20, 8);
+    brushFill(29, 43, 2, 2, 60, 45, 20, 8);
+    // Arms
+    brushFill(12, 34, 3.5, 7, 60, 45, 25, 14);
+    brushFill(36, 34, 3.5, 7, 58, 42, 23, 14);
+    // Hands
+    brushFill(12, 42, 2, 2.5, 170, 135, 95, 10);
+    brushFill(36, 42, 2, 2.5, 165, 130, 90, 10);
+    // Head
+    brushFill(24, 19, 6, 7.5, 185, 150, 110, 12);
+    // Stubble shadow
+    brushFill(24, 23, 4, 3, 155, 120, 85, 6);
+    // Hair - messy
+    brushFill(24, 13, 7, 4, 70, 45, 20, 20);
+    brushFill(20, 14, 3, 3, 65, 40, 18, 18);
+    brushFill(28, 14, 3, 3, 65, 40, 18, 18);
+    // Deep-set eyes
+    set(21, 19, 30, 25, 15); set(22, 19, 45, 35, 20);
+    set(26, 19, 30, 25, 15); set(27, 19, 45, 35, 20);
+    // Eye whites
+    set(21, 18, 180, 170, 155); set(26, 18, 180, 170, 155);
+    // Strong brow line
+    brushRect(19, 16, 10, 1, 100, 70, 40);
+    // Nose
+    set(24, 21, 160, 125, 88); set(24, 22, 155, 120, 85);
+    // Mouth - grim line
+    set(22, 24, 130, 90, 60); set(23, 24, 125, 85, 55);
+    set(24, 24, 125, 85, 55); set(25, 24, 130, 90, 60);
+
+    // Cross-hatch shadows on right side of body
+    for (let py = 15; py < 55; py += 2) {
+        for (let px = 28; px < 40; px++) {
+            const i = (py * w + px) * 4;
+            if (d[i+3] > 100) {
+                set(px, py, d[i]*0.8, d[i+1]*0.8, d[i+2]*0.8, 60);
+            }
+        }
+    }
+
+    const temp = document.createElement('canvas');
+    temp.width = w; temp.height = h;
+    temp.getContext('2d').putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(temp, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+}
+
+// ===== STYLE E: Geometric / Low-Poly (Hyper Light Drifter) =====
+function drawStyleE(canvas) {
+    const ctx = canvas.getContext('2d');
+    const s = 4;
+    const w = 48, h = 64;
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+
+    function set(x, y, r, g, b) {
+        x = Math.round(x); y = Math.round(y);
+        if (x < 0 || x >= w || y < 0 || y >= h) return;
+        const i = (y * w + x) * 4;
+        d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=255;
+    }
+
+    // Fill triangle
+    function fillTri(x1,y1,x2,y2,x3,y3,r,g,b) {
+        const minY = Math.floor(Math.min(y1,y2,y3));
+        const maxY = Math.ceil(Math.max(y1,y2,y3));
+        const minX = Math.floor(Math.min(x1,x2,x3));
+        const maxX = Math.ceil(Math.max(x1,x2,x3));
+        for (let py = minY; py <= maxY; py++)
+            for (let px = minX; px <= maxX; px++) {
+                const d1 = (px-x2)*(y1-y2)-(x1-x2)*(py-y2);
+                const d2 = (px-x3)*(y2-y3)-(x2-x3)*(py-y3);
+                const d3 = (px-x1)*(y3-y1)-(x3-x1)*(py-y1);
+                const neg = (d1<0)||(d2<0)||(d3<0);
+                const pos = (d1>0)||(d2>0)||(d3>0);
+                if (!(neg&&pos)) set(px, py, r, g, b);
+            }
+    }
+
+    function fillRect(x, y, w2, h2, r, g, b) {
+        for (let py = y; py < y+h2; py++)
+            for (let px = x; px < x+w2; px++) set(px, py, r, g, b);
+    }
+
+    // Bold geometric shapes, flat colors
+    const teal = [60, 160, 150];
+    const tealDk = [40, 110, 100];
+    const tealLt = [90, 200, 185];
+    const skin = [210, 175, 140];
+    const skinDk = [180, 145, 110];
+    const white = [235, 230, 220];
+    const black = [20, 18, 15];
+    const accent = [220, 80, 60]; // red accent
+
+    // Cape/cloak - large triangle
+    fillTri(12, 26, 36, 26, 24, 58, ...tealDk);
+    fillTri(12, 26, 24, 58, 14, 56, ...tealDk);
+    fillTri(36, 26, 34, 56, 24, 58, ...tealDk);
+
+    // Legs
+    fillRect(19, 46, 4, 14, ...black);
+    fillRect(26, 46, 4, 14, ...black);
+
+    // Boots - angular
+    fillTri(17, 57, 24, 57, 17, 61, ...tealDk);
+    fillTri(25, 57, 32, 57, 32, 61, ...tealDk);
+
+    // Torso block
+    fillRect(16, 28, 16, 14, ...teal);
+    // Lighter left panel
+    fillTri(16, 28, 24, 28, 16, 42, ...tealLt);
+    // Belt
+    fillRect(15, 41, 18, 3, ...black);
+    // Belt buckle
+    fillRect(22, 41, 4, 3, ...accent);
+
+    // Arms - angular
+    fillRect(12, 28, 4, 14, ...teal);
+    fillRect(32, 28, 4, 14, ...tealDk);
+    // Hands
+    fillRect(11, 40, 4, 4, ...skin);
+    fillRect(33, 40, 4, 4, ...skinDk);
+
+    // Scarf flowing
+    fillTri(18, 25, 30, 25, 24, 32, ...accent);
+
+    // Head - angular octagon
+    fillRect(18, 10, 12, 14, ...skin);
+    fillTri(18, 10, 30, 10, 24, 7, ...skin);
+    // Hair - angular block
+    fillRect(17, 7, 14, 5, ...black);
+    fillTri(17, 12, 31, 12, 24, 7, ...black);
+    // Eye visor / mask line
+    fillRect(19, 16, 10, 3, ...tealDk);
+    // Eyes - bright dots
+    set(21, 17, ...white); set(22, 17, ...white);
+    set(26, 17, ...white); set(27, 17, ...white);
+    // Mouth
+    set(23, 22, ...skinDk); set(24, 22, ...skinDk); set(25, 22, ...skinDk);
+
+    // Energy sword in hand
+    fillRect(10, 30, 2, 12, 180, 220, 215);
+    fillRect(10, 28, 2, 2, 220, 250, 245);
+    // Glow
+    set(9, 31, 100, 180, 170); set(9, 33, 100, 180, 170);
+    set(12, 32, 100, 180, 170); set(12, 34, 100, 180, 170);
+
+    const temp = document.createElement('canvas');
+    temp.width = w; temp.height = h;
+    temp.getContext('2d').putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(temp, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+}
+
+drawStyleA(document.getElementById('c1'));
+drawStyleB(document.getElementById('c2'));
+drawStyleC(document.getElementById('c3'));
+drawStyleD(document.getElementById('c4'));
+drawStyleE(document.getElementById('c5'));
+</script>
+</body>
+</html>
