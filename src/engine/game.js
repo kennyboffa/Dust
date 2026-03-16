@@ -631,8 +631,13 @@ class Game {
             bunker: createBunkerArea(),
         };
 
-        // Load starting area
+        // Load starting area and place player at spawn point
         this.loadArea('village');
+        if (this.areas.village.playerStart) {
+            this.player.x = this.areas.village.playerStart.x;
+            this.player.y = this.areas.village.playerStart.y;
+            this.renderer.centerOn(this.player.x, this.player.y);
+        }
 
         this.hideScreen('title-screen');
         this.hideScreen('char-creation');
