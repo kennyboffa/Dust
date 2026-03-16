@@ -5153,7 +5153,8 @@ class SpriteGenerator {
         const ctx = c.getContext('2d');
         const imgData = ctx.createImageData(w, h);
         const pixels = imgData.data;
-        const cx = w / 2, baseY = h - 4;
+        let cx = w / 2;
+        const baseY = h - 4;
 
         // Variation parameters
         const v = variant || {};
