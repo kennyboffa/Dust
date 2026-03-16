@@ -54,6 +54,17 @@
                     <div id="hud-time">Day 1 - 08:00</div>
                 </div>
 
+                <!-- Status panel (top right) -->
+                <div id="status-panel">
+                    <div id="status-name">Wanderer Lv.1</div>
+                    <div class="status-bar-container">
+                        <div id="status-hp-bar" class="status-bar hp"><span>HP</span></div>
+                    </div>
+                    <div class="status-bar-container">
+                        <div id="status-ap-bar" class="status-bar ap"><span>AP</span></div>
+                    </div>
+                </div>
+
                 <!-- Action bar (bottom) -->
                 <div id="hud-bottom">
                     <div id="hud-portrait">
@@ -173,6 +184,9 @@
                     <h2>World Map</h2>
                     <div id="world-map">
                         <canvas id="map-canvas" width="400" height="300"></canvas>
+                    </div>
+                    <div id="map-actions">
+                        <button id="btn-map-rest" class="menu-btn" title="Rest for several hours to recover HP">Rest</button>
                     </div>
                     <button class="close-btn" data-close="map-screen">Close (Esc)</button>
                 </div>

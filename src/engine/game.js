@@ -89,6 +89,11 @@ class Game {
             this.saveGame();
         });
 
+        document.getElementById('btn-map-rest').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.restOnMap();
+        });
+
         // Quick slot clicks
         document.querySelectorAll('.quick-slot').forEach(slot => {
             slot.addEventListener('click', () => {
@@ -579,6 +584,22 @@ class Game {
         this.addMessage(`You rest by the fire. Healed ${healAmt} HP. ${this.getTimeString()}`, 'info');
         this.audio.playSfx('heal');
         this.hud.update();
+    }
+
+    restOnMap() {
+        if (this.combat.active) {
+            this.addMessage('Cannot rest during combat!', 'combat');
+            return;
+        }
+        // Rest 8 hours, heal 50% HP
+        this.advanceTime(8);
+        const healAmt = Math.floor(this.player.stats.maxHp * 0.5);
+        CharacterSystem.heal(this.player, healAmt);
+        this.addMessage(`You make camp and rest for 8 hours. Healed ${healAmt} HP. ${this.getTimeString()}`, 'info');
+        this.audio.playSfx('heal');
+        this.hud.update();
+        // Refresh the map display
+        this.screens.drawWorldMap();
     }
 
     // ---- Game State Management ----

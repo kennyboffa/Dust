@@ -165,6 +165,7 @@ class CombatSystem {
         let anyHit = false;
         let anyCrit = false;
         let killed = false;
+        let anyDodged = false;
 
         for (let burst = 0; burst < burstHits; burst++) {
             if (killed) break;
@@ -182,6 +183,25 @@ class CombatSystem {
                     );
                     this.game.audio.playSfx('miss');
                     this.game.addFloatingText(defender.x, defender.y, 'MISS', '#aaa');
+                }
+                continue;
+            }
+
+            // Dodge check - based on defender's agility
+            const defAgi = defender.special ? defender.special.agility : (defender.stats ? Math.floor((defender.stats.armorClass || 0)) : 0);
+            const dodgeChance = Utils.clamp(Math.floor(defAgi * 1.5), 0, 50);
+            if (dodgeChance > 0 && Utils.randInt(1, 100) <= dodgeChance) {
+                anyDodged = true;
+                if (burstHits === 1) {
+                    this.game.addMessage(
+                        `${defender.name} dodges ${attacker.name}'s attack! (${dodgeChance}% dodge)`,
+                        'combat'
+                    );
+                    this.game.addFloatingText(defender.x, defender.y, 'DODGED', '#6cf');
+                    this.game.audio.playSfx('miss');
+                    // Play dodge animation
+                    defender.animState = 'dodge';
+                    setTimeout(() => { defender.animState = 'idle'; }, 500);
                 }
                 continue;
             }
@@ -239,7 +259,20 @@ class CombatSystem {
                 `${anyCrit ? 'CRIT! ' : ''}-${totalDamage}`,
                 anyCrit ? '#ff4' : '#f44'
             );
-        } else if (burstHits > 1) {
+
+            // Spawn blood effect
+            const bloodAmount = anyCrit ? 16 : 6 + Math.min(totalDamage, 10);
+            this.game.renderer.spawnBlood(defender.x, defender.y, bloodAmount);
+        } else if (anyDodged && !anyHit) {
+            this.game.addMessage(
+                `${defender.name} dodges ${attacker.name}'s attack!`,
+                'combat'
+            );
+            this.game.addFloatingText(defender.x, defender.y, 'DODGED', '#6cf');
+            this.game.audio.playSfx('miss');
+            defender.animState = 'dodge';
+            setTimeout(() => { defender.animState = 'idle'; }, 500);
+        } else if (burstHits > 1 && !anyHit) {
             this.game.addMessage(
                 `${attacker.name}'s burst misses ${defender.name} entirely!`,
                 'combat'
@@ -248,7 +281,7 @@ class CombatSystem {
             this.game.addFloatingText(defender.x, defender.y, 'MISS', '#aaa');
         }
 
-        return { success: true, hit: anyHit, damage: totalDamage, killed, critical: anyCrit };
+        return { success: true, hit: anyHit, damage: totalDamage, killed, critical: anyCrit, dodged: anyDodged };
     }
 
     onEntityKilled(killer, victim) {

@@ -11,13 +11,13 @@ class HUDManager {
         const player = this.game.player;
         if (!player) return;
 
-        // Update HP bar
+        // Update old HP bar (bottom portrait)
         const hpBar = document.getElementById('hp-bar');
         const hpPercent = (player.stats.hp / player.stats.maxHp) * 100;
         hpBar.style.width = hpPercent + '%';
         hpBar.querySelector('span').textContent = `HP: ${player.stats.hp}/${player.stats.maxHp}`;
 
-        // Update AP bar
+        // Update old AP bar (bottom portrait)
         const apBar = document.getElementById('ap-bar');
         const apPercent = (player.stats.ap / player.stats.maxAp) * 100;
         apBar.style.width = apPercent + '%';
@@ -26,6 +26,22 @@ class HUDManager {
         // Update name
         document.getElementById('portrait-name').textContent =
             `${player.name} Lv.${player.level}`;
+
+        // Update top-right status panel
+        const statusHp = document.getElementById('status-hp-bar');
+        if (statusHp) {
+            statusHp.style.width = hpPercent + '%';
+            statusHp.querySelector('span').textContent = `HP: ${player.stats.hp}/${player.stats.maxHp}`;
+        }
+        const statusAp = document.getElementById('status-ap-bar');
+        if (statusAp) {
+            statusAp.style.width = apPercent + '%';
+            statusAp.querySelector('span').textContent = `AP: ${player.stats.ap}/${player.stats.maxAp}`;
+        }
+        const statusName = document.getElementById('status-name');
+        if (statusName) {
+            statusName.textContent = `${player.name} Lv.${player.level}`;
+        }
 
         // Update location
         const area = this.game.currentArea;
