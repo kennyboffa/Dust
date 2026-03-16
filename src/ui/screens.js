@@ -216,7 +216,7 @@ class ScreenManager {
                 name: 'Dusthaven Village',
                 mapX: 200, mapY: 180,
                 discovered: true,
-                connections: ['cave']
+                connections: ['cave', 'oasis']
             },
             {
                 id: 'cave',
@@ -233,11 +233,18 @@ class ScreenManager {
                 connections: ['village']
             },
             {
+                id: 'oasis',
+                name: 'Desert Oasis',
+                mapX: 80, mapY: 180,
+                discovered: this.game.player.questFlags.found_oasis || this.game.areaStates['oasis'] !== undefined,
+                connections: ['village', 'bunker']
+            },
+            {
                 id: 'bunker',
-                name: '???',
-                mapX: 100, mapY: 250,
-                discovered: false,
-                connections: ['village']
+                name: 'Pre-War Bunker',
+                mapX: 80, mapY: 260,
+                discovered: this.game.player.questFlags.found_bunker || this.game.areaStates['bunker'] !== undefined,
+                connections: ['oasis']
             }
         ];
 

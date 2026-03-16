@@ -295,50 +295,84 @@ class Game {
     animateMovement(path) {
         let step = 0;
         this.player.animState = 'walk';
-        const animate = () => {
+        this._isMoving = true;
+
+        const tweenStep = () => {
             if (step >= path.length) {
                 this.player.animState = 'idle';
-                // Check for aggro after moving
+                this._isMoving = false;
+                this.player.renderX = this.player.x;
+                this.player.renderY = this.player.y;
                 this.checkCombatTrigger();
                 return;
             }
 
-            const dx = path[step].x - this.player.x;
-            const dy = path[step].y - this.player.y;
+            const targetX = path[step].x;
+            const targetY = path[step].y;
+            const dx = targetX - this.player.x;
+            const dy = targetY - this.player.y;
             if (dx !== 0 || dy !== 0) {
                 this.player.facing = this.getFacing(dx, dy);
             }
-            this.player.x = path[step].x;
-            this.player.y = path[step].y;
-            this.renderer.centerOn(this.player.x, this.player.y);
-            // Play door sound if stepping onto or adjacent to a door tile
-            const currentTile = this.getTileAt(this.player.x, this.player.y);
-            if (currentTile === 'door') {
-                this.audio.playSfx('door_open');
-            } else {
-                this.audio.playSfx('step');
-            }
-            step++;
 
-            // Check transition mid-path
-            const t = this.checkTransition(this.player.x, this.player.y);
-            if (t) {
-                this.player.animState = 'idle';
-                this.transitionArea(t);
-                return;
-            }
+            // Smooth interpolation: 6 sub-frames per tile
+            const subFrames = 6;
+            let subStep = 0;
+            const startX = this.player.x;
+            const startY = this.player.y;
 
-            // Check aggro mid-path (only nearby enemies)
-            const hostiles = this.ai.checkAggro(this.entities, this.player, 3);
-            if (hostiles.length > 0) {
-                this.player.animState = 'idle';
-                this.startCombatWith(hostiles);
-                return;
-            }
+            const tweenSub = () => {
+                subStep++;
+                const t = subStep / subFrames;
+                // Ease-in-out for natural feel
+                const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                this.player.renderX = startX + dx * ease;
+                this.player.renderY = startY + dy * ease;
+                this.renderer.centerOn(this.player.renderX, this.player.renderY);
 
-            setTimeout(animate, 180);
+                if (subStep < subFrames) {
+                    requestAnimationFrame(tweenSub);
+                } else {
+                    // Snap to final position
+                    this.player.x = targetX;
+                    this.player.y = targetY;
+                    this.player.renderX = targetX;
+                    this.player.renderY = targetY;
+                    this.renderer.centerOn(this.player.x, this.player.y);
+
+                    const currentTile = this.getTileAt(this.player.x, this.player.y);
+                    if (currentTile === 'door') {
+                        this.audio.playSfx('door_open');
+                    } else {
+                        this.audio.playSfx('step');
+                    }
+                    step++;
+
+                    // Check transition mid-path
+                    const tr = this.checkTransition(this.player.x, this.player.y);
+                    if (tr) {
+                        this.player.animState = 'idle';
+                        this._isMoving = false;
+                        this.transitionArea(tr);
+                        return;
+                    }
+
+                    // Check aggro mid-path
+                    const hostiles = this.ai.checkAggro(this.entities, this.player, 3);
+                    if (hostiles.length > 0) {
+                        this.player.animState = 'idle';
+                        this._isMoving = false;
+                        this.startCombatWith(hostiles);
+                        return;
+                    }
+
+                    // Small pause between tile steps for natural pace
+                    setTimeout(tweenStep, 30);
+                }
+            };
+            requestAnimationFrame(tweenSub);
         };
-        animate();
+        tweenStep();
     }
 
     walkToAndInteract(target) {
@@ -500,9 +534,31 @@ class Game {
             } else {
                 this.addMessage('Too far away.', 'info');
             }
+        } else if (target && target.type === 'environment' && target.spriteType === 'campfire') {
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (dist <= 2) {
+                this.restAtCampfire();
+            } else {
+                this.addMessage('Move closer to the campfire.', 'info');
+            }
         } else {
             this.addMessage('Nothing to use here.', 'info');
         }
+    }
+
+    restAtCampfire() {
+        if (this.combat.active) {
+            this.addMessage('Cannot rest during combat!', 'combat');
+            return;
+        }
+        const hoursToMorning = this.gameTime.hour >= 7 && this.gameTime.hour < 20
+            ? 1 : (24 - this.gameTime.hour + 7) % 24 || 8;
+        this.advanceTime(Math.max(1, hoursToMorning));
+        const healAmt = Math.floor(this.player.stats.maxHp * 0.3);
+        CharacterSystem.heal(this.player, healAmt);
+        this.addMessage(`You rest by the fire. Healed ${healAmt} HP. ${this.getTimeString()}`, 'info');
+        this.audio.playSfx('heal');
+        this.hud.update();
     }
 
     // ---- Game State Management ----
@@ -529,6 +585,8 @@ class Game {
             village: createVillageArea(),
             cave: createCaveArea(),
             wasteland: createWastelandArea(),
+            oasis: createOasisArea(),
+            bunker: createBunkerArea(),
         };
 
         // Load starting area
@@ -536,10 +594,95 @@ class Game {
 
         this.hideScreen('title-screen');
         this.hideScreen('char-creation');
-        this.showScreen('game-hud');
-        this.state = 'exploration';
-        this.addMessage('Welcome to Dusthaven, Wanderer. The wasteland stretches endlessly in every direction.', 'info');
-        this.addMessage('Talk to the villagers to learn about this place. Elder Mara may have work for you.', 'info');
+
+        // Show intro narrative
+        this.showIntroNarrative(() => {
+            this.showScreen('game-hud');
+            this.state = 'exploration';
+            this.addMessage('Welcome to Dusthaven, Wanderer. The wasteland stretches endlessly in every direction.', 'info');
+            this.addMessage('Talk to the villagers to learn about this place. Elder Mara may have work for you.', 'info');
+        });
+    }
+
+    showIntroNarrative(onComplete) {
+        const introText = [
+            'The year is 2247.',
+            '',
+            'Two centuries after the bombs fell, the world is a graveyard of the old civilization. What remains is dust, ruins, and the desperate creatures that cling to life between them.',
+            '',
+            'You are a wanderer — born in the wastes, raised by the sand and the silence. You carry no flag, owe no allegiance. Only the road ahead and the dust at your back.',
+            '',
+            'Word has reached you of a small settlement called Dusthaven, hidden among the crags of the eastern wasteland. They say the elder there knows of something buried — something from before the war. Something that could change everything.',
+            '',
+            'The journey has been long. Your water is low. Your boots are cracked. But as the sun sets behind the ridgeline, you see it — a cluster of buildings on the horizon, smoke rising from a cookfire.',
+            '',
+            'Dusthaven.',
+        ];
+
+        this.showScreen('intro-screen');
+        this.state = 'intro';
+        const textEl = document.getElementById('intro-text');
+        const promptEl = document.getElementById('intro-prompt');
+        textEl.innerHTML = '';
+        promptEl.style.display = 'none';
+
+        let lineIdx = 0;
+        let charIdx = 0;
+        let currentLine = '';
+        let done = false;
+
+        const typeNext = () => {
+            if (done) return;
+            if (lineIdx >= introText.length) {
+                promptEl.style.display = 'block';
+                done = true;
+                return;
+            }
+            const line = introText[lineIdx];
+            if (line === '') {
+                textEl.innerHTML += '<br>';
+                lineIdx++;
+                charIdx = 0;
+                setTimeout(typeNext, 200);
+                return;
+            }
+            if (charIdx === 0) {
+                currentLine = '';
+                textEl.innerHTML += '<span id="intro-line-' + lineIdx + '"></span>';
+            }
+            if (charIdx < line.length) {
+                currentLine += line[charIdx];
+                const span = document.getElementById('intro-line-' + lineIdx);
+                if (span) span.textContent = currentLine;
+                charIdx++;
+                setTimeout(typeNext, 28);
+            } else {
+                textEl.innerHTML += '<br>';
+                lineIdx++;
+                charIdx = 0;
+                setTimeout(typeNext, 300);
+            }
+        };
+
+        setTimeout(typeNext, 800);
+
+        // Skip/advance on click or keypress
+        const skipHandler = () => {
+            if (!done) {
+                // Fast-forward: show all text immediately
+                done = true;
+                textEl.innerHTML = introText.map(l => l === '' ? '<br>' : l).join('<br>');
+                promptEl.style.display = 'block';
+            } else {
+                // Dismiss intro
+                this.hideScreen('intro-screen');
+                document.removeEventListener('keydown', skipHandler);
+                document.getElementById('intro-screen').removeEventListener('click', skipHandler);
+                if (onComplete) onComplete();
+            }
+        };
+        document.addEventListener('keydown', skipHandler);
+        document.getElementById('intro-screen').addEventListener('click', skipHandler);
     }
 
     loadArea(areaId) {
@@ -564,6 +707,10 @@ class Game {
 
         // Add player
         this.entities.push(this.player);
+
+        // Discover area on first visit
+        if (areaId === 'oasis') this.player.questFlags.found_oasis = true;
+        if (areaId === 'bunker') this.player.questFlags.found_bunker = true;
 
         // Store NPC home positions for wandering
         this.npcHomes = {};
@@ -699,6 +846,9 @@ class Game {
 
         // Advance time
         this.advanceTime(1);
+
+        // Auto-save on area transition
+        try { this.saveGame(); } catch (e) { /* silent fail */ }
     }
 
     checkTransition(x, y) {
@@ -887,6 +1037,9 @@ class Game {
         this.audio.playSfx('combat_start');
         this.showCombatBanner();
         this.combat.startCombat(participants);
+        if (this.isNightTime()) {
+            this.addMessage('It is dark. All combatants suffer -15% hit chance.', 'combat');
+        }
     }
 
     showCombatBanner() {
@@ -1163,10 +1316,55 @@ class Game {
         }
     }
 
+    // Returns 0.0 (pitch black) to 1.0 (full daylight)
+    getLightLevel() {
+        const h = this.gameTime.hour;
+        // Dawn: 5-7, Day: 7-18, Dusk: 18-20, Night: 20-5
+        if (h >= 7 && h < 18) return 1.0;          // Full day
+        if (h >= 18 && h < 20) return 1.0 - (h - 18) / 2 * 0.6; // Dusk
+        if (h >= 5 && h < 7) return 0.4 + (h - 5) / 2 * 0.6;    // Dawn
+        return 0.35;                                  // Night
+    }
+
+    isNightTime() {
+        return this.getLightLevel() < 0.6;
+    }
+
+    getTimeString() {
+        const h = this.gameTime.hour;
+        const period = h >= 20 || h < 5 ? 'Night' : h >= 18 ? 'Dusk' : h >= 7 ? 'Day' : 'Dawn';
+        return `Day ${this.gameTime.day}, ${String(h).padStart(2, '0')}:00 (${period})`;
+    }
+
     gameOver() {
-        this.addMessage('Game Over. You have died in the wasteland.', 'combat');
-        this.addMessage('Load a save or start a new game.', 'info');
-        // Could show a game over screen here
+        this.audio.playSfx('death');
+        this.audio.stopMusic();
+
+        const quotes = [
+            '"War... war never changes."',
+            '"The wasteland does not forgive."',
+            '"In the end, the dust reclaims all."',
+            '"Another wanderer lost to the sands."',
+            '"Your bones will bleach under the wasteland sun."',
+            '"The vultures were patient. They always are."',
+        ];
+        const quote = quotes[Math.floor(Math.random() * quotes.length)];
+        const quoteEl = document.getElementById('death-quote');
+        if (quoteEl) quoteEl.textContent = quote;
+
+        this.showScreen('death-screen');
+        this.state = 'dead';
+
+        document.getElementById('btn-death-load').onclick = () => {
+            this.hideScreen('death-screen');
+            this.loadGame();
+        };
+        document.getElementById('btn-death-quit').onclick = () => {
+            this.hideScreen('death-screen');
+            this.hideScreen('game-hud');
+            this.showScreen('title-screen');
+            this.state = 'title';
+        };
     }
 
     // ---- Save/Load ----
@@ -1218,6 +1416,8 @@ class Game {
                 village: createVillageArea(),
                 cave: createCaveArea(),
                 wasteland: createWastelandArea(),
+                oasis: createOasisArea(),
+                bunker: createBunkerArea(),
             };
 
             // Load the saved area
@@ -1268,9 +1468,23 @@ class Game {
 
                 ent.facing = this.getFacing(dx, dy);
                 ent.animState = 'walk';
+                const fromX = ent.x, fromY = ent.y;
                 ent.x = nx;
                 ent.y = ny;
-                setTimeout(() => { ent.animState = 'idle'; }, 400);
+                // Smooth interpolation for NPCs
+                ent.renderX = fromX;
+                ent.renderY = fromY;
+                let npcSub = 0;
+                const npcTween = () => {
+                    npcSub++;
+                    const t = Math.min(1, npcSub / 8);
+                    const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                    ent.renderX = fromX + (nx - fromX) * ease;
+                    ent.renderY = fromY + (ny - fromY) * ease;
+                    if (t < 1) requestAnimationFrame(npcTween);
+                    else { ent.renderX = nx; ent.renderY = ny; ent.animState = 'idle'; }
+                };
+                requestAnimationFrame(npcTween);
                 break;
             }
         }
@@ -1288,13 +1502,15 @@ class Game {
         this.updateNPCWander();
 
         // Render
-        if (this.currentArea && this.state !== 'title' && this.state !== 'creation') {
+        if (this.currentArea && this.state !== 'title' && this.state !== 'creation' && this.state !== 'dead') {
             const gameState = {
                 selectedEntity: this.selectedEntity,
                 highlights: this.highlights,
                 hoverTile: this.hoverTile,
                 floatingTexts: this.floatingTexts,
                 inCombat: this.combat.active,
+                lightLevel: this.getLightLevel(),
+                timeString: this.getTimeString(),
             };
 
             this.renderer.renderArea(

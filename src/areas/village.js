@@ -170,6 +170,12 @@ function createVillageArea() {
             targetArea: 'wasteland',
             targetX: 10, targetY: 20,
         },
+        {
+            x: 0, y: 12,
+            label: 'To Desert Oasis',
+            targetArea: 'oasis',
+            targetX: 12, targetY: 22,
+        },
     ];
 
     return {

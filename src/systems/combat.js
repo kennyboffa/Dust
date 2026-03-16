@@ -114,7 +114,13 @@ class CombatSystem {
         const distPenalty = weapon && weapon.type === 'ranged' ? (distance - 1) * 4 : 0;
         const acBonus = defender.stats.armorClass || 0;
 
-        return Utils.clamp(skill - distPenalty - acBonus, 5, 95);
+        // Night penalty: -15% hit chance when dark (affects everyone)
+        let nightPenalty = 0;
+        if (this.game && this.game.isNightTime()) {
+            nightPenalty = 15;
+        }
+
+        return Utils.clamp(skill - distPenalty - acBonus - nightPenalty, 5, 95);
     }
 
     // Perform an attack

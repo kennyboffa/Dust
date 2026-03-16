@@ -323,17 +323,8 @@ class SpriteGenerator {
             ctx.closePath(); ctx.fill();
         }
 
-        // Edge outline
+        // No edge outline on pre-rendered tiles - drawn dynamically during combat only
         ctx.restore();
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - hth);
-        ctx.lineTo(cx + htw, cy);
-        ctx.lineTo(cx, cy + hth);
-        ctx.lineTo(cx - htw, cy);
-        ctx.closePath();
-        ctx.strokeStyle = `rgba(${Math.max(0,baseR-30)|0},${Math.max(0,baseG-30)|0},${Math.max(0,baseB-30)|0},0.6)`;
-        ctx.lineWidth = 0.7;
-        ctx.stroke();
 
         return c;
     }
@@ -4285,7 +4276,9 @@ class IsometricRenderer {
         }
 
         for (const ent of entities) {
-            renderList.push({ type: 'entity', x: ent.x, y: ent.y, depth: ent.x + ent.y + 0.5, entity: ent });
+            const rx = ent.renderX !== undefined ? ent.renderX : ent.x;
+            const ry = ent.renderY !== undefined ? ent.renderY : ent.y;
+            renderList.push({ type: 'entity', x: rx, y: ry, depth: rx + ry + 0.5, entity: ent });
         }
 
         renderList.sort((a, b) => a.depth - b.depth);
@@ -4295,7 +4288,9 @@ class IsometricRenderer {
                 this.drawTile(item.x, item.y, item.tileType, item.height);
             } else {
                 const ent = item.entity;
-                this.drawEntity(ent.x, ent.y, ent.spriteType || ent.type, ent.facing || 'south',
+                const ex = ent.renderX !== undefined ? ent.renderX : ent.x;
+                const ey = ent.renderY !== undefined ? ent.renderY : ent.y;
+                this.drawEntity(ex, ey, ent.spriteType || ent.type, ent.facing || 'south',
                     ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null, ent.animState || 'idle', gameState.inCombat, ent.variantIndex || 0);
             }
         }
@@ -4361,6 +4356,28 @@ class IsometricRenderer {
             }
         }
 
+        // Draw grid lines during combat only
+        if (gameState.inCombat) {
+            const ctx = this.ctx;
+            ctx.strokeStyle = 'rgba(100, 80, 40, 0.18)';
+            ctx.lineWidth = 0.6;
+            for (let y = 0; y < map.length; y++) {
+                for (let x = 0; x < map[0].length; x++) {
+                    if (map[y][x] === 'void') continue;
+                    const s = this.worldToScreen(x, y);
+                    const tw = this.tileWidth * this.camera.zoom / 2;
+                    const th = this.tileHeight * this.camera.zoom / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(s.x, s.y - th);
+                    ctx.lineTo(s.x + tw, s.y);
+                    ctx.lineTo(s.x, s.y + th);
+                    ctx.lineTo(s.x - tw, s.y);
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+        }
+
         // Only show grid highlights during combat
         if (gameState.inCombat) {
             if (gameState.highlights) {
@@ -4387,9 +4404,36 @@ class IsometricRenderer {
         // Color grade (warm sepia for wasteland, cool for caves)
         this.drawColorGrade(this.ctx, area.id);
 
-        // Vignette (heavier for caves, always present for Fallout 2 look)
+        // Day/night cycle overlay
+        if (gameState.lightLevel !== undefined && gameState.lightLevel < 1.0) {
+            const darkness = 1.0 - gameState.lightLevel;
+            const ctx = this.ctx;
+            const cw = this.canvas.width, ch = this.canvas.height;
+            // Blue-tinted darkness for night
+            ctx.fillStyle = `rgba(5, 8, 20, ${darkness * 0.55})`;
+            ctx.fillRect(0, 0, cw, ch);
+            // Dusk/dawn warm tint when transitional
+            if (gameState.lightLevel > 0.35 && gameState.lightLevel < 0.7) {
+                ctx.fillStyle = `rgba(40, 15, 0, ${(0.7 - gameState.lightLevel) * 0.15})`;
+                ctx.fillRect(0, 0, cw, ch);
+            }
+        }
+
+        // Time of day display
+        if (gameState.timeString) {
+            const ctx = this.ctx;
+            ctx.font = '11px "Courier New", monospace';
+            ctx.fillStyle = gameState.lightLevel < 0.6 ? 'rgba(120, 140, 180, 0.6)' : 'rgba(180, 160, 120, 0.5)';
+            ctx.textAlign = 'right';
+            ctx.fillText(gameState.timeString, this.canvas.width - 12, 18);
+            ctx.textAlign = 'left';
+        }
+
+        // Vignette (heavier for caves and night, always present for Fallout 2 look)
         if (area.id === 'cave') {
             this.drawVignette(this.ctx, 0.65);
+        } else if (gameState.lightLevel !== undefined && gameState.lightLevel < 0.6) {
+            this.drawVignette(this.ctx, 0.55);
         } else {
             this.drawVignette(this.ctx, 0.4);
         }

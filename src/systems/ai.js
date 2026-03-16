@@ -164,12 +164,15 @@ class AISystem {
         const playerSneak = (player.skills && player.skills.sneak) || 0;
         const isSneaking = player.sneaking || false;
 
+        // Night reduces detection range by 40%
+        const nightMod = (this.game && this.game.isNightTime()) ? 0.6 : 1.0;
+
         const hostiles = entities.filter(e => {
             if (!e.isHostile || e.stats.hp <= 0) return false;
             const dist = Utils.gridDistance(e.x, e.y, player.x, player.y);
             // Each enemy has perception-based detection range
             const perception = (e.stats && e.stats.perception) || 5;
-            const detectRange = Math.max(2, baseRange + Math.floor((perception - 5) / 2));
+            const detectRange = Math.max(2, Math.floor((baseRange + Math.floor((perception - 5) / 2)) * nightMod));
 
             if (dist > detectRange) return false;
 
