@@ -501,6 +501,37 @@ body {
 .msg-skill { color: #9a6ac4; }
 .msg-dialogue { color: #c4c4c4; }
 
+/* Survival Status Bars */
+#survival-panel {
+    position: absolute;
+    bottom: 75px;
+    right: 10px;
+    background: rgba(10, 6, 0, 0.8);
+    border: 1px solid #4a3a2066;
+    padding: 6px 8px;
+    pointer-events: all;
+    min-width: 120px;
+}
+#survival-panel .survival-label {
+    font-size: 10px;
+    color: #8a7a5a;
+    margin-bottom: 2px;
+}
+#survival-panel .survival-bar-bg {
+    height: 8px;
+    background: #0a0600;
+    border: 1px solid #3a2a10;
+    margin-bottom: 4px;
+    position: relative;
+}
+#survival-panel .survival-bar {
+    height: 100%;
+    transition: width 0.3s;
+}
+#survival-panel .survival-bar.hunger { background: #8a6a20; }
+#survival-panel .survival-bar.thirst { background: #2060a0; }
+#survival-panel .survival-bar.sleep { background: #506090; }
+
 /* Overlay Screens */
 .overlay {
     background: rgba(10, 6, 0, 0.85);
@@ -1319,7 +1350,49 @@ canvas {
                     <div class="creation-layout">
                         <div class="creation-left">
                             <label>Name: <input type="text" id="char-name" value="Wanderer" maxlength="20"></label>
-                            <div class="stats-section">
+
+                            <div class="stats-section" style="margin-top:12px">
+                                <h3>Appearance</h3>
+                                <div class="stat-row">
+                                    <span class="stat-name">Gender</span>
+                                    <select id="char-gender" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-name">Skin Color</span>
+                                    <select id="char-skin" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
+                                        <option value="0">Light</option>
+                                        <option value="1">Fair</option>
+                                        <option value="2">Medium</option>
+                                        <option value="3">Tan</option>
+                                        <option value="4">Dark</option>
+                                    </select>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-name">Hair Color</span>
+                                    <select id="char-hair-color" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
+                                        <option value="0">Black</option>
+                                        <option value="1">Brown</option>
+                                        <option value="2">Dark</option>
+                                        <option value="3">Grey</option>
+                                        <option value="4">Auburn</option>
+                                        <option value="5">Red</option>
+                                    </select>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-name">Hairstyle</span>
+                                    <select id="char-hairstyle" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
+                                        <option value="0">Short</option>
+                                        <option value="1">Long</option>
+                                        <option value="2">Mohawk</option>
+                                        <option value="3">Bald</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="stats-section" style="margin-top:12px">
                                 <h3>S.P.E.C.I.A.L. <span id="stat-points-remaining">5</span> points remaining</h3>
                                 <div id="special-stats"></div>
                             </div>
@@ -1342,6 +1415,16 @@ canvas {
                 <div id="hud-top">
                     <div id="hud-location">Dusthaven Village</div>
                     <div id="hud-time">Day 1 - 08:00</div>
+                </div>
+
+                <!-- Survival Status -->
+                <div id="survival-panel">
+                    <div class="survival-label">Hunger</div>
+                    <div class="survival-bar-bg"><div id="hunger-bar" class="survival-bar hunger" style="width:100%"></div></div>
+                    <div class="survival-label">Thirst</div>
+                    <div class="survival-bar-bg"><div id="thirst-bar" class="survival-bar thirst" style="width:100%"></div></div>
+                    <div class="survival-label">Sleep</div>
+                    <div class="survival-bar-bg"><div id="sleep-bar" class="survival-bar sleep" style="width:100%"></div></div>
                 </div>
 
                 <!-- Action bar (bottom) -->
@@ -1466,7 +1549,10 @@ canvas {
                     <div id="world-map">
                         <canvas id="map-canvas" width="400" height="300"></canvas>
                     </div>
-                    <button class="close-btn" data-close="map-screen">Close (Esc)</button>
+                    <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+                        <button id="btn-hunt" class="menu-btn" style="font-size:14px;padding:8px 16px;min-width:auto">Hunt (1 hour)</button>
+                        <button class="close-btn" data-close="map-screen">Close (Esc)</button>
+                    </div>
                 </div>
             </div>
 
@@ -1816,9 +1902,9 @@ const ItemDatabase = {
     },
     nuka_cola: {
         id: 'nuka_cola', name: 'Nuka-Cola', type: 'consumable',
-        usable: true, useEffect: 'heal', healAmount: 5,
+        usable: true, useEffect: 'heal', healAmount: 5, thirstRestore: 20,
         stackable: true, weight: 1, value: 15,
-        desc: 'A warm, flat soda. Mildly refreshing. Restores 5 HP.',
+        desc: 'A warm, flat soda. Mildly refreshing. Restores 5 HP and 20 thirst.',
     },
     jet: {
         id: 'jet', name: 'Jet', type: 'consumable',
@@ -1876,9 +1962,34 @@ const ItemDatabase = {
         desc: 'The currency of the wasteland.',
     },
     water_flask: {
-        id: 'water_flask', name: 'Water Flask', type: 'misc',
+        id: 'water_flask', name: 'Water Flask', type: 'consumable',
+        usable: true, useEffect: 'thirst', thirstRestore: 40,
         stackable: true, weight: 1, value: 20,
-        desc: 'Clean drinking water. Precious commodity.',
+        desc: 'Clean drinking water. Restores 40 thirst.',
+    },
+    raw_meat: {
+        id: 'raw_meat', name: 'Raw Meat', type: 'consumable',
+        usable: true, useEffect: 'hunger', hungerRestore: 30,
+        stackable: true, weight: 1, value: 10,
+        desc: 'Raw animal meat. Not very appetizing but filling. Restores 30 hunger.',
+    },
+    cooked_meat: {
+        id: 'cooked_meat', name: 'Cooked Meat', type: 'consumable',
+        usable: true, useEffect: 'hunger', hungerRestore: 50,
+        stackable: true, weight: 1, value: 25,
+        desc: 'Properly cooked meat. Restores 50 hunger.',
+    },
+    dried_rations: {
+        id: 'dried_rations', name: 'Dried Rations', type: 'consumable',
+        usable: true, useEffect: 'hunger', hungerRestore: 25,
+        stackable: true, weight: 0.5, value: 15,
+        desc: 'Dried meat and grain. Restores 25 hunger.',
+    },
+    bedroll: {
+        id: 'bedroll', name: 'Bedroll', type: 'consumable',
+        usable: true, useEffect: 'sleep', sleepRestore: 50,
+        stackable: false, weight: 3, value: 30,
+        desc: 'A simple bedroll. Rest for a few hours to restore 50 sleep. Not consumed.',
     },
     scrap_metal: {
         id: 'scrap_metal', name: 'Scrap Metal', type: 'misc',
@@ -2563,6 +2674,10 @@ const DialogueDatabase = {
                                 { ...ItemDatabase.healing_powder, value: 20, quantity: 5 },
                                 { ...ItemDatabase.pipe_pistol, value: 100, quantity: 1 },
                                 { ...ItemDatabase.lockpick, value: 15, quantity: 3 },
+                                { ...ItemDatabase.water_flask, value: 20, quantity: 5 },
+                                { ...ItemDatabase.dried_rations, value: 15, quantity: 5 },
+                                { ...ItemDatabase.cooked_meat, value: 25, quantity: 3 },
+                                { ...ItemDatabase.bedroll, value: 30, quantity: 1 },
                             ];
                         }
                         if (merchant) setTimeout(() => game.hud.showBarterScreen(merchant), 100);
@@ -2948,6 +3063,13 @@ class CharacterSystem {
 
             questFlags: {},
             killedEnemies: {},
+
+            // Survival stats (0-100, 100 = fully sated/rested)
+            survival: {
+                hunger: 100,
+                thirst: 100,
+                sleep: 100,
+            },
         };
 
         CharacterSystem.recalcStats(player);
@@ -2969,6 +3091,7 @@ class CharacterSystem {
         char.stats.meleeDmg = Math.max(1, s.strength - 5);
         char.stats.critChance = s.luck;
         char.stats.armorClass = s.agility;
+        char.stats.dodgeChance = Math.floor(s.agility * 1.5); // base dodge % from agility
         char.stats.damageResist = 0;
         char.stats.poisonResist = s.endurance * 5;
         char.stats.radiationResist = (s.endurance - 1) * 2;
@@ -3106,6 +3229,7 @@ class CharacterSystem {
                 meleeDmg: template.meleeDmg || 0,
                 sequence: template.sequence || 10,
                 critChance: template.critChance || 5,
+                dodgeChance: Math.floor(((template.special && template.special.agility) || 5) * 1.5),
             },
 
             skills: template.skills || { melee: 50, unarmed: 50 },
@@ -3352,6 +3476,20 @@ class CombatSystem {
                     );
                     this.game.audio.playSfx('miss');
                     this.game.addFloatingText(defender.x, defender.y, 'MISS', '#aaa');
+                }
+                continue;
+            }
+
+            // Dodge check - defender can dodge based on agility
+            const dodgeChance = (defender.stats && defender.stats.dodgeChance) || 0;
+            if (dodgeChance > 0 && Utils.randInt(1, 100) <= Utils.clamp(dodgeChance, 0, 50)) {
+                if (burstHits === 1) {
+                    this.game.addMessage(
+                        `${defender.name} dodges ${attacker.name}'s attack!`,
+                        'combat'
+                    );
+                    this.game.audio.playSfx('miss');
+                    this.game.addFloatingText(defender.x, defender.y, 'DODGE', '#6af');
                 }
                 continue;
             }
@@ -4075,17 +4213,49 @@ class InventorySystem {
 
         switch (item.useEffect) {
             case 'heal':
-                if (char.stats.hp < char.stats.maxHp) {
+                if (char.stats.hp < char.stats.maxHp || (item.thirstRestore && char.survival && char.survival.thirst < 100)) {
                     let healAmt = item.healAmount || 10;
                     if (char.perks && char.perks.includes('medic')) {
                         healAmt = Math.floor(healAmt * 1.5);
                     }
                     CharacterSystem.heal(char, healAmt);
-                    game.addMessage(`Used ${item.name}. Healed ${healAmt} HP.`, 'info');
+                    // Also restore thirst if applicable (e.g. Nuka-Cola)
+                    if (item.thirstRestore && char.survival) {
+                        char.survival.thirst = Math.min(100, char.survival.thirst + item.thirstRestore);
+                    }
+                    game.addMessage(`Used ${item.name}. Healed ${healAmt} HP.${item.thirstRestore ? ` Thirst +${item.thirstRestore}.` : ''}`, 'info');
                     game.audio.playSfx('heal');
                     used = true;
                 } else {
                     game.addMessage('Already at full health.', 'info');
+                }
+                break;
+            case 'hunger':
+                if (char.survival) {
+                    const amt = item.hungerRestore || 25;
+                    char.survival.hunger = Math.min(100, char.survival.hunger + amt);
+                    game.addMessage(`Used ${item.name}. Hunger restored by ${amt}.`, 'info');
+                    game.audio.playSfx('heal');
+                    used = true;
+                }
+                break;
+            case 'thirst':
+                if (char.survival) {
+                    const amt = item.thirstRestore || 25;
+                    char.survival.thirst = Math.min(100, char.survival.thirst + amt);
+                    game.addMessage(`Used ${item.name}. Thirst restored by ${amt}.`, 'info');
+                    game.audio.playSfx('heal');
+                    used = true;
+                }
+                break;
+            case 'sleep':
+                if (char.survival) {
+                    const amt = item.sleepRestore || 50;
+                    char.survival.sleep = Math.min(100, char.survival.sleep + amt);
+                    game.addMessage(`Used ${item.name}. Rested and restored ${amt} sleep.`, 'info');
+                    game.audio.playSfx('heal');
+                    if (game.advanceTime) game.advanceTime(3); // Sleeping takes 3 hours
+                    used = true;
                 }
                 break;
             case 'buff':
@@ -4120,7 +4290,7 @@ class InventorySystem {
                 game.addMessage(`Cannot use ${item.name} right now.`, 'info');
         }
 
-        if (used) {
+        if (used && item.id !== 'bedroll') {
             InventorySystem.removeItem(char, item.uid || item.id, 1);
         }
 
@@ -4888,12 +5058,12 @@ class SpriteGenerator {
     // ---- HUMANOID SPRITE GENERATION (pixel-by-pixel with Fallout 2 pre-rendered look) ----
     // variant: { skinTone: 0-4, hairColor: 0-5, bodyScale: 0.9-1.1, gender: 'male'|'female', seed: int }
     static generateHumanoidSprite(type, frame, facing = 'south', animType = 'idle', variant = null) {
-        const w = 48, h = 48;
+        const w = 72, h = 72;
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
         const imgData = ctx.createImageData(w, h);
         const pixels = imgData.data;
-        const cx = w / 2, baseY = h - 3;
+        const cx = w / 2, baseY = h - 4;
 
         // Variation parameters
         const v = variant || {};
@@ -4951,7 +5121,7 @@ class SpriteGenerator {
             }
         }
         const isMutant = type === 'mutant';
-        const sc = (isMutant ? 1.25 : 1) * bodySc; // no multiplier - half size sprites
+        const sc = (isMutant ? 1.25 : 1) * bodySc * 1.5; // 1.5x scale for bigger characters
 
         // ---- Pixel placement helpers ----
         const setPixel = (x, y, r, g, b, a) => {
@@ -5292,13 +5462,26 @@ class SpriteGenerator {
             fillEllipse(cx, headCYf - headR * 0.2 * headTopVis, headR * 0.75 * headTopVis, headR * 0.4 * headTopVis, topColor, 8, -4);
         }
 
+        const hairstyle = v.hairstyle !== undefined ? v.hairstyle : (type === 'raider' ? 2 : 0);
+        const isBald = hairstyle === 3;
+        const isMohawk = hairstyle === 2 || type === 'raider';
+        const isLongHair = hairstyle === 1;
+
         if (fc.showBack) {
             // Back of head - hair covers all
-            if (!isMutant) {
+            if (!isMutant && !isBald) {
                 fillEllipse(cx, headCYf, headR + 0.3, headR * 0.7, p.hair, 8, -10);
                 outlineEllipse(cx, headCYf, headR + 0.3, headR * 0.7, p.hair);
-                if (isFemale) {
+                if (isLongHair || isFemale) {
                     fillEllipse(cx, headCYf + headR * 0.3, headR * 0.6, headR * 0.5, p.hair, 6, -10);
+                    // Long hair extends further down
+                    fillRect(cx - headR * 0.4, headCYf + headR * 0.5, headR * 0.8, headR * 0.6, p.hair, 5, -8);
+                }
+                if (isMohawk) {
+                    // Mohawk ridge visible from back
+                    for (let i = 0; i < 3; i++) {
+                        fillRect(cx - 0.3, headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
+                    }
                 }
             }
             // Ears visible from behind
@@ -5307,23 +5490,31 @@ class SpriteGenerator {
             fillEllipse(cx + headR, headCYf, 1, 1.5, earSkin, 4, -6);
         } else {
             // Front/side face
-            if (!isMutant) {
-                // Hair crown (dominant feature from above - covers top dome of head)
-                for (let py = Math.floor(headCYf - headR * 0.6); py <= Math.floor(headCYf + headR * 0.1); py++) {
-                    for (let px = Math.floor(cx - headR - 0.3); px <= Math.ceil(cx + headR + 0.3); px++) {
-                        const dx = (px - cx) / (headR + 0.3);
-                        const dy = (py - (headCYf - headR * 0.15)) / (headR * 0.55);
-                        if (dx * dx + dy * dy <= 1) {
-                            ditheredPixel(px, py, p.hair, 8, -10);
+            if (!isMutant && !isBald) {
+                if (isMohawk) {
+                    // Mohawk - narrow strip on top
+                    for (let i = 0; i < 3; i++) {
+                        fillRect(cx - 0.5 * sc + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
+                    }
+                } else {
+                    // Hair crown (dominant feature from above - covers top dome of head)
+                    for (let py = Math.floor(headCYf - headR * 0.6); py <= Math.floor(headCYf + headR * 0.1); py++) {
+                        for (let px = Math.floor(cx - headR - 0.3); px <= Math.ceil(cx + headR + 0.3); px++) {
+                            const dx = (px - cx) / (headR + 0.3);
+                            const dy = (py - (headCYf - headR * 0.15)) / (headR * 0.55);
+                            if (dx * dx + dy * dy <= 1) {
+                                ditheredPixel(px, py, p.hair, 8, -10);
+                            }
                         }
                     }
-                }
-                // Sideburns (short, isometric)
-                fillRect(cx - headR - 0.3, headCYf - 0.5, 1, isFemale ? 3.5 : 2.5, p.hair, 5, -8);
-                fillRect(cx + headR - 0.5, headCYf - 0.5, 1, isFemale ? 3.5 : 2.5, p.hair, 5, -8);
-                if (isFemale) {
-                    fillRect(cx - headR - 0.5, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
-                    fillRect(cx + headR - 0.3, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
+                    // Sideburns
+                    const sideLength = isLongHair ? 4.5 : (isFemale ? 3.5 : 2.5);
+                    fillRect(cx - headR - 0.3, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
+                    fillRect(cx + headR - 0.5, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
+                    if (isLongHair || isFemale) {
+                        fillRect(cx - headR - 0.5, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
+                        fillRect(cx + headR - 0.3, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
+                    }
                 }
             }
             // Face details (subtle at this scale - just shadow hints)
@@ -5342,8 +5533,8 @@ class SpriteGenerator {
             }
         }
 
-        // Raider mohawk
-        if (type === 'raider') {
+        // Raider mohawk (handled by hairstyle system for player, keep for NPC raiders)
+        if (type === 'raider' && !isMohawk) {
             if (isFemale) {
                 for (let i = 0; i < 2; i++) {
                     fillRect(cx + (rng() - 0.5) * 2, headCYf - headR * 0.6 - 1 - i, 1.5, 1.5, p.hair, 4, -6);
@@ -5369,10 +5560,14 @@ class SpriteGenerator {
 
     // ---- CREATURE SPRITE GENERATION ----
     static generateCreatureSprite(type, frame) {
-        const w = 64, h = 64;
+        const w = 96, h = 96;
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
-        const cx = w / 2, cy = h - 10;
+        // Scale 1.5x for bigger creatures
+        ctx.translate(w / 2, h - 15);
+        ctx.scale(1.5, 1.5);
+        ctx.translate(-64 / 2, -(64 - 10));
+        const cx = 64 / 2, cy = 64 - 10;
         const rng = this.seededRandom(type.length * 500 + frame * 50);
         const bob = 0;
 
@@ -7202,16 +7397,17 @@ class IsometricRenderer {
     }
 
     // Regenerate player sprites with current armor appearance
-    regeneratePlayerSprites(armorId) {
+    regeneratePlayerSprites(armorId, appearance) {
         const type = 'player';
         this._humanoidSprites[type] = [];
 
-        const vrng = SpriteGenerator.seededRandom(type.length * 7919);
+        const app = appearance || {};
         const variant = {
-            skinTone: Math.floor(vrng() * 5),
-            hairColor: Math.floor(vrng() * 6),
-            bodyScale: 0.92 + vrng() * 0.16,
-            gender: 'male',
+            skinTone: app.skinTone !== undefined ? app.skinTone : 0,
+            hairColor: app.hairColor !== undefined ? app.hairColor : 0,
+            bodyScale: 1.0,
+            gender: app.gender || 'male',
+            hairstyle: app.hairstyle !== undefined ? app.hairstyle : 0,
             seed: type.length * 10000,
             armorId: armorId || null,
         };
@@ -7221,8 +7417,11 @@ class IsometricRenderer {
 
         const variantSet = {
             south: [], north: [], east: [], west: [],
+            southeast: [], northeast: [], southwest: [], northwest: [],
             walk_south: [], walk_north: [], walk_east: [], walk_west: [],
+            walk_southeast: [], walk_northeast: [], walk_southwest: [], walk_northwest: [],
             attack_south: [], attack_north: [], attack_east: [], attack_west: [],
+            attack_southeast: [], attack_northeast: [], attack_southwest: [], attack_northwest: [],
         };
 
         for (let f = 0; f < 4; f++) {
@@ -7233,6 +7432,10 @@ class IsometricRenderer {
             variantSet.north.push(north);
             variantSet.east.push(east);
             variantSet.west.push(south);
+            variantSet.southeast.push(east);
+            variantSet.southwest.push(south);
+            variantSet.northeast.push(SpriteGenerator.mirrorSprite(north));
+            variantSet.northwest.push(north);
 
             const walkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'walk', variant);
             const walkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'walk', variant);
@@ -7241,6 +7444,10 @@ class IsometricRenderer {
             variantSet.walk_north.push(walkNorth);
             variantSet.walk_east.push(walkEast);
             variantSet.walk_west.push(walkSouth);
+            variantSet.walk_southeast.push(walkEast);
+            variantSet.walk_southwest.push(walkSouth);
+            variantSet.walk_northeast.push(SpriteGenerator.mirrorSprite(walkNorth));
+            variantSet.walk_northwest.push(walkNorth);
 
             const atkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack', variant);
             const atkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack', variant);
@@ -7249,6 +7456,10 @@ class IsometricRenderer {
             variantSet.attack_north.push(atkNorth);
             variantSet.attack_east.push(atkEast);
             variantSet.attack_west.push(atkSouth);
+            variantSet.attack_southeast.push(atkEast);
+            variantSet.attack_southwest.push(atkSouth);
+            variantSet.attack_northeast.push(SpriteGenerator.mirrorSprite(atkNorth));
+            variantSet.attack_northwest.push(atkNorth);
         }
 
         this._humanoidSprites[type].push(variantSet);
@@ -10885,6 +11096,21 @@ class HUDManager {
             }
         });
 
+        // Update survival bars
+        if (player.survival) {
+            const hungerBar = document.getElementById('hunger-bar');
+            const thirstBar = document.getElementById('thirst-bar');
+            const sleepBar = document.getElementById('sleep-bar');
+            if (hungerBar) hungerBar.style.width = player.survival.hunger + '%';
+            if (thirstBar) thirstBar.style.width = player.survival.thirst + '%';
+            if (sleepBar) sleepBar.style.width = player.survival.sleep + '%';
+
+            // Color warnings when low
+            if (hungerBar) hungerBar.style.background = player.survival.hunger <= 20 ? '#c44a3a' : player.survival.hunger <= 50 ? '#b08020' : '#8a6a20';
+            if (thirstBar) thirstBar.style.background = player.survival.thirst <= 20 ? '#c44a3a' : player.survival.thirst <= 50 ? '#4070a0' : '#2060a0';
+            if (sleepBar) sleepBar.style.background = player.survival.sleep <= 20 ? '#c44a3a' : player.survival.sleep <= 50 ? '#607090' : '#506090';
+        }
+
         // Combat indicator
         const hud = document.getElementById('game-hud');
         hud.classList.toggle('combat-active', this.game.combat.active);
@@ -11293,7 +11519,13 @@ class ScreenManager {
             }
 
             const name = document.getElementById('char-name').value || 'Wanderer';
-            this.game.startNewGame(name, stats, Array.from(taggedSkills));
+            const appearance = {
+                gender: document.getElementById('char-gender').value,
+                skinTone: parseInt(document.getElementById('char-skin').value),
+                hairColor: parseInt(document.getElementById('char-hair-color').value),
+                hairstyle: parseInt(document.getElementById('char-hairstyle').value),
+            };
+            this.game.startNewGame(name, stats, Array.from(taggedSkills), appearance);
         });
 
         document.getElementById('btn-back-title').addEventListener('click', () => {
@@ -11549,6 +11781,11 @@ class Game {
             this.audio.playSfx('click');
             this.screens.drawWorldMap();
             this.showScreen('map-screen');
+        });
+
+        document.getElementById('btn-hunt').addEventListener('click', () => {
+            this.audio.playSfx('click');
+            this.huntAction();
         });
 
         document.getElementById('btn-save').addEventListener('click', () => {
@@ -11837,8 +12074,8 @@ class Game {
                 this.player.facing = this.getFacing(dx, dy);
             }
 
-            // Smooth interpolation: 12 sub-frames per tile for slower, more natural movement
-            const subFrames = 12;
+            // Smooth interpolation: 15 sub-frames per tile (25% slower for natural movement)
+            const subFrames = 15;
             let subStep = 0;
             const startX = this.player.x;
             const startY = this.player.y;
@@ -11889,7 +12126,7 @@ class Game {
                     }
 
                     // Pause between tile steps for natural pace (adjusted by speed setting)
-                    const stepDelay = Math.round(60 / (this._moveSpeedMultiplier || 1.0));
+                    const stepDelay = Math.round(75 / (this._moveSpeedMultiplier || 1.0));
                     setTimeout(tweenStep, stepDelay);
                 }
             };
@@ -12103,8 +12340,9 @@ class Game {
 
     // ---- Game State Management ----
 
-    startNewGame(name, special, tagSkills) {
+    startNewGame(name, special, tagSkills, appearance) {
         this.player = CharacterSystem.createPlayer(name, special, tagSkills);
+        this.player.appearance = appearance || { gender: 'male', skinTone: 0, hairColor: 0, hairstyle: 0 };
 
         // Starting equipment
         InventorySystem.addItem(this.player, ItemDatabase.knife, 1);
@@ -12113,6 +12351,8 @@ class Game {
         InventorySystem.addItem(this.player, ItemDatabase.nuka_cola, 2);
         InventorySystem.addItem(this.player, ItemDatabase.lockpick, 3);
         InventorySystem.addItem(this.player, ItemDatabase.tribal_garb, 1);
+        InventorySystem.addItem(this.player, ItemDatabase.dried_rations, 3);
+        InventorySystem.addItem(this.player, ItemDatabase.water_flask, 2);
 
         // Equip starting gear
         const knife = this.player.inventory.find(i => i.id === 'knife');
@@ -12248,6 +12488,10 @@ class Game {
 
         // Add player
         this.entities.push(this.player);
+
+        // Ensure player render position is set (fixes invisible on area entry)
+        this.player.renderX = this.player.x;
+        this.player.renderY = this.player.y;
 
         // Discover area on first visit
         if (areaId === 'oasis') this.player.questFlags.found_oasis = true;
@@ -12535,6 +12779,31 @@ class Game {
         this.advanceTime(Utils.randInt(2, 5));
     }
 
+    // ---- Hunting ----
+
+    huntAction() {
+        // Base chance 1%, +1% per 2 points in outdoorsman skill
+        const outdoorsman = (this.player.skills && this.player.skills.outdoorsman) || 0;
+        const huntChance = 1 + Math.floor(outdoorsman / 2);
+        const roll = Utils.randInt(1, 100);
+
+        // Advance 1 hour
+        this.advanceTime(1);
+
+        if (roll <= huntChance) {
+            const meatCount = Utils.randInt(1, 2);
+            InventorySystem.addItem(this.player, ItemDatabase.raw_meat, meatCount);
+            this.addMessage(`Hunting success! You caught ${meatCount} raw meat. (${huntChance}% chance)`, 'loot');
+            this.audio.playSfx('loot');
+        } else {
+            this.addMessage(`Hunting failed. Nothing caught this hour. (${huntChance}% chance)`, 'info');
+        }
+
+        this.hud.update();
+        // Redraw world map to show time change
+        this.screens.drawWorldMap();
+    }
+
     // ---- Entity Management ----
 
     addEntity(entity) {
@@ -12600,6 +12869,7 @@ class Game {
         this.addMessage(`Switched to: ${name}`, 'combat');
         this.audio.playSfx('click');
         this.updateHighlights();
+        this._recalcSelectedHitChance();
         this.hud.update();
     }
 
@@ -12623,6 +12893,7 @@ class Game {
         };
         this.addMessage(`Attack mode: ${modeDescs[this.player.attackMode]}`, 'combat');
         this.audio.playSfx('click');
+        this._recalcSelectedHitChance();
         this.hud.update();
     }
 
@@ -12713,7 +12984,7 @@ class Game {
     updatePlayerArmorSprite() {
         const armor = this.player.equipment.armor;
         const armorId = armor ? armor.id : null;
-        this.renderer.regeneratePlayerSprites(armorId);
+        this.renderer.regeneratePlayerSprites(armorId, this.player.appearance);
     }
 
     dropItem(itemId) {
@@ -12875,6 +13146,17 @@ class Game {
         if (action === 'look') this.canvas.classList.add('cursor-look');
     }
 
+    _recalcSelectedHitChance() {
+        if (!this.combat.active || !this.selectedEntity) return;
+        const target = this.selectedEntity;
+        if (target.type !== 'enemy' && !(target.type === 'npc' && target.isHostile)) return;
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        const hitChance = this.combat.calculateHitChance(this.player, target, weapon);
+        this._hitChance = hitChance;
+        const apCost = weapon ? (weapon.apCost || 4) : 3;
+        this.addMessage(`Target: ${target.name} | Hit: ${hitChance}% | AP: ${apCost}`, 'combat');
+    }
+
     updateHighlights() {
         this.highlights = [];
 
@@ -12974,6 +13256,32 @@ class Game {
             // Heal on rest/day change
             CharacterSystem.heal(this.player, this.player.stats.healRate);
         }
+
+        // Tick survival stats (decrease per hour)
+        if (this.player.survival) {
+            for (let h = 0; h < hours; h++) {
+                this.player.survival.hunger = Math.max(0, this.player.survival.hunger - 3);
+                this.player.survival.thirst = Math.max(0, this.player.survival.thirst - 4);
+                this.player.survival.sleep = Math.max(0, this.player.survival.sleep - 2);
+
+                // Damage if any survival stat is at zero
+                let dmg = 0;
+                if (this.player.survival.hunger <= 0) dmg += Utils.randInt(1, 2);
+                if (this.player.survival.thirst <= 0) dmg += Utils.randInt(1, 2);
+                if (this.player.survival.sleep <= 0) dmg += Utils.randInt(1, 2);
+                if (dmg > 0) {
+                    this.player.stats.hp = Math.max(1, this.player.stats.hp - dmg);
+                    const reasons = [];
+                    if (this.player.survival.hunger <= 0) reasons.push('starvation');
+                    if (this.player.survival.thirst <= 0) reasons.push('dehydration');
+                    if (this.player.survival.sleep <= 0) reasons.push('exhaustion');
+                    this.addMessage(`You suffer ${dmg} damage from ${reasons.join(' and ')}!`, 'combat');
+                    if (this.player.stats.hp <= 1) {
+                        this.addMessage('You are near death! Find food, water, or rest immediately!', 'combat');
+                    }
+                }
+            }
+        }
     }
 
     // Returns 0.0 (pitch black) to 1.0 (full daylight)
@@ -13068,6 +13376,14 @@ class Game {
 
             const saveData = JSON.parse(data);
             this.player = saveData.player;
+            // Ensure survival stats exist for old saves
+            if (!this.player.survival) {
+                this.player.survival = { hunger: 100, thirst: 100, sleep: 100 };
+            }
+            // Ensure appearance exists for old saves
+            if (!this.player.appearance) {
+                this.player.appearance = { gender: 'male', skinTone: 0, hairColor: 0, hairstyle: 0 };
+            }
             this.areaStates = saveData.areaStates || {};
             this.gameTime = saveData.gameTime || { day: 1, hour: 8 };
 
