@@ -2097,6 +2097,33 @@ const ItemDatabase = {
         weight: 0.1, value: 0,
         desc: 'Crumpled orders from the raider warlord. Mentions a planned attack on Dusthaven and references a "bunker full of pre-war tech" to the west.',
     },
+    // ---- CREATURE DROPS ----
+    scorpion_tail: {
+        id: 'scorpion_tail', name: 'Scorpion Tail', type: 'misc',
+        stackable: true, weight: 1, value: 25,
+        desc: 'A severed radscorpion tail. The venom sac is still intact — valuable for making antidotes.',
+    },
+    rat_fur: {
+        id: 'rat_fur', name: 'Rat Fur', type: 'misc',
+        stackable: true, weight: 0.5, value: 5,
+        desc: 'A scrap of coarse rat fur. Can be used for crude repairs or traded.',
+    },
+    rat_meat: {
+        id: 'rat_meat', name: 'Rat Meat', type: 'consumable',
+        usable: true, useEffect: 'hunger', hungerRestore: 20,
+        stackable: true, weight: 1, value: 8,
+        desc: 'Stringy meat from a wasteland rat. Not appetizing but edible. Restores 20 hunger.',
+    },
+    spider_silk: {
+        id: 'spider_silk', name: 'Spider Silk', type: 'misc',
+        stackable: true, weight: 0.3, value: 15,
+        desc: 'Strong, sticky webbing from a cave spider. Useful for crafting or trade.',
+    },
+    mutant_hide: {
+        id: 'mutant_hide', name: 'Mutant Hide', type: 'misc',
+        stackable: true, weight: 3, value: 40,
+        desc: 'Thick, irradiated skin from a mutant brute. Extremely tough.',
+    },
     // ---- ACCESSORY ----
     lucky_charm: {
         id: 'lucky_charm', name: 'Lucky Charm', type: 'accessory',
@@ -2137,7 +2164,8 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 40, unarmed: 45 },
         loot: [
-            { id: 'healing_powder', chance: 20, quantity: 1 },
+            { id: 'rat_meat', chance: 60, quantity: 1 },
+            { id: 'rat_fur', chance: 40, quantity: 1 },
         ]
     },
 
@@ -2159,7 +2187,8 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 55, unarmed: 55 },
         loot: [
-            { id: 'healing_powder', chance: 30, quantity: 1 },
+            { id: 'rat_meat', chance: 80, quantity: 2 },
+            { id: 'rat_fur', chance: 50, quantity: 1 },
             { id: 'cave_mushroom', chance: 40, quantity: 1 },
         ]
     },
@@ -2182,8 +2211,8 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 65, unarmed: 65 },
         loot: [
+            { id: 'scorpion_tail', chance: 75, quantity: 1 },
             { id: 'antidote', chance: 25, quantity: 1 },
-            { id: 'scrap_metal', chance: 40, quantity: 1 },
         ]
     },
 
@@ -2205,6 +2234,7 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 50, unarmed: 55 },
         loot: [
+            { id: 'spider_silk', chance: 60, quantity: 1 },
             { id: 'antidote', chance: 30, quantity: 1 },
         ]
     },
@@ -2228,9 +2258,10 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 55, unarmed: 45, smallGuns: 40 },
         loot: [
-            { id: 'bottle_caps', chance: 80, quantity: 15 },
-            { id: 'healing_powder', chance: 40, quantity: 1 },
-            { id: 'knife', chance: 20, quantity: 1 },
+            { id: 'bottle_caps', chance: 90, quantity: 15 },
+            { id: 'knife', chance: 40, quantity: 1 },
+            { id: 'pipe_pistol', chance: 15, quantity: 1 },
+            { id: 'healing_powder', chance: 30, quantity: 1 },
             { id: 'raider_badge', chance: 60, quantity: 1 },
         ]
     },
@@ -2253,8 +2284,9 @@ const EnemyTemplates = {
         aiType: 'ranged',
         skills: { smallGuns: 55, melee: 35 },
         loot: [
-            { id: 'bottle_caps', chance: 70, quantity: 20 },
-            { id: 'ammo_9mm', chance: 60, quantity: 10 },
+            { id: 'bottle_caps', chance: 80, quantity: 20 },
+            { id: 'pipe_pistol', chance: 30, quantity: 1 },
+            { id: 'ammo_9mm', chance: 70, quantity: 10 },
             { id: 'stimpak', chance: 20, quantity: 1 },
         ]
     },
@@ -2279,6 +2311,7 @@ const EnemyTemplates = {
         skills: { melee: 65, unarmed: 70 },
         loot: [
             { id: 'bottle_caps', chance: 100, quantity: 100 },
+            { id: 'mutant_hide', chance: 80, quantity: 1 },
             { id: 'stimpak', chance: 80, quantity: 2 },
             { id: 'sledgehammer', chance: 50, quantity: 1 },
             { id: 'cave_crystal', chance: 100, quantity: 1 },
@@ -2304,7 +2337,8 @@ const EnemyTemplates = {
         aiType: 'aggressive',
         skills: { melee: 50, unarmed: 40, smallGuns: 35 },
         loot: [
-            { id: 'bottle_caps', chance: 70, quantity: 10 },
+            { id: 'bottle_caps', chance: 80, quantity: 10 },
+            { id: 'knife', chance: 30, quantity: 1 },
             { id: 'healing_powder', chance: 30, quantity: 1 },
             { id: 'raider_badge', chance: 80, quantity: 1 },
         ]
@@ -3057,6 +3091,64 @@ const DialogueDatabase = {
             }
         }
     },
+
+    // ---- OLD EZRA (Oasis Hermit) ----
+    old_ezra: {
+        getStartNode(player) {
+            if (player.questFlags.found_bunker) return 'bunker_found';
+            return 'start';
+        },
+        nodes: {
+            start: {
+                text: "Hm? A visitor... Been a long time. I'm Ezra. Used to be a scout, back before my knees gave out. Settled here by the oasis. Quiet life, mostly.",
+                options: [
+                    { text: "What do you know about this area?", next: 'area_info' },
+                    { text: "You mentioned you were a scout?", next: 'scout_past' },
+                    { text: "Take care, old man.", end: true }
+                ]
+            },
+            area_info: {
+                text: "The oasis here is one of the few clean water sources left. Traders pass through now and then. But be wary of the wildlife — radscorpions and rats lurk near the edges. And to the south... there's an old bunker entrance. Pre-war military, sealed up tight.",
+                options: [
+                    { text: "Tell me about the bunker.", next: 'bunker_info' },
+                    { text: "Thanks for the warning.", end: true }
+                ]
+            },
+            scout_past: {
+                text: "Thirty years wandering the wastes. I've seen things that'd turn your hair white. Lost my whole squad to a rad storm near the old highway. After that, I hung up my boots. But I still remember every trail, every ruin.",
+                options: [
+                    { text: "Do you know about any ruins nearby?", next: 'bunker_info' },
+                    { text: "Sounds like a hard life.", end: true }
+                ]
+            },
+            bunker_info: {
+                text: "There's a bunker south of here, built into the rocks. Military installation from before the war. I tried to get in once — the door was jammed, but I heard machinery inside. Still running after all these years. If you can get in, there might be weapons, tech, supplies... the works.",
+                options: [
+                    { text: "How do I get in?", next: 'bunker_entrance' },
+                    { text: "I'll check it out.", end: true }
+                ]
+            },
+            bunker_entrance: {
+                text: "Look for the rocks south of the oasis. There's an entrance hidden among them. Watch yourself in there — if the security systems are still active, it won't be a warm welcome.",
+                options: [
+                    { text: "Thanks for the tip.", end: true }
+                ]
+            },
+            bunker_found: {
+                text: "I can see it in your eyes — you found the bunker, didn't you? Any luck inside?",
+                options: [
+                    { text: "It was rough, but worth it.", next: 'bunker_reaction' },
+                    { text: "Still working on clearing it.", end: true }
+                ]
+            },
+            bunker_reaction: {
+                text: "Ha! You've got more guts than I ever did. That bunker was the one place I could never crack. Glad someone finally did. If you need rest, the oasis is safe enough. Just don't drink from the south pool — trust me on that.",
+                options: [
+                    { text: "Thanks, Ezra.", end: true }
+                ]
+            }
+        }
+    },
 };
 
 // ==== src/systems/character.js ====
@@ -3255,6 +3347,7 @@ class CharacterSystem {
     static _nextVariantIndex = 0;
 
     static createNPC(template) {
+        const isGuard = template.spriteType === 'guard';
         const npc = {
             id: template.id || Utils.uid(),
             name: template.name,
@@ -3267,9 +3360,22 @@ class CharacterSystem {
             isHostile: false,
             variantIndex: template.variantIndex !== undefined ? template.variantIndex : CharacterSystem._nextVariantIndex++,
             stats: {
-                hp: template.hp || 30,
-                maxHp: template.hp || 30,
+                hp: template.hp || (isGuard ? 40 : 30),
+                maxHp: template.hp || (isGuard ? 40 : 30),
+                ap: template.ap || (isGuard ? 8 : 6),
+                maxAp: template.ap || (isGuard ? 8 : 6),
+                armorClass: isGuard ? 6 : 2,
+                damageResist: isGuard ? 10 : 0,
+                meleeDmg: isGuard ? 2 : 0,
+                sequence: isGuard ? 10 : 6,
+                critChance: isGuard ? 5 : 2,
+                dodgeChance: isGuard ? 8 : 3,
             },
+            skills: template.skills || (isGuard ? { melee: 55, unarmed: 50, smallGuns: 45 } : { melee: 30, unarmed: 25 }),
+            damage: template.damage || (isGuard ? '1d6+1' : '1d4'),
+            damageType: 'normal',
+            attackRange: template.attackRange || 1,
+            aiType: 'npc_defender',
             schedule: template.schedule || null,
             flags: template.flags || {},
         };
@@ -3665,20 +3771,32 @@ class CombatSystem {
             }
         }
 
-        // XP reward
-        if (killer.type === 'player' && victim.xpReward) {
-            const leveled = CharacterSystem.addXP(killer, victim.xpReward);
-            this.game.addMessage(`+${victim.xpReward} XP`, 'xp');
-            this.game.addFloatingText(killer.x, killer.y, `+${victim.xpReward} XP`, '#6af');
-
-            if (leveled) {
-                this.game.addMessage(`Level up! You are now level ${killer.level}!`, 'xp');
-                this.game.audio.playSfx('levelup');
-                this.game.showLevelUp();
+        // XP reward - player gets XP for own kills and half XP for NPC ally kills
+        if (victim.xpReward) {
+            const player = this.game.player;
+            if (killer.type === 'player') {
+                const leveled = CharacterSystem.addXP(player, victim.xpReward);
+                this.game.addMessage(`+${victim.xpReward} XP`, 'xp');
+                this.game.addFloatingText(killer.x, killer.y, `+${victim.xpReward} XP`, '#6af');
+                if (leveled) {
+                    this.game.addMessage(`Level up! You are now level ${player.level}!`, 'xp');
+                    this.game.audio.playSfx('levelup');
+                    this.game.showLevelUp();
+                }
+                player.killedEnemies[victim.name] = (player.killedEnemies[victim.name] || 0) + 1;
+            } else if (killer.type === 'npc' && player && player.stats.hp > 0) {
+                // NPC ally kill - player gets half XP
+                const halfXP = Math.floor(victim.xpReward / 2);
+                const leveled = CharacterSystem.addXP(player, halfXP);
+                this.game.addMessage(`${killer.name} killed ${victim.name}! +${halfXP} XP`, 'xp');
+                this.game.addFloatingText(player.x, player.y, `+${halfXP} XP`, '#6af');
+                if (leveled) {
+                    this.game.addMessage(`Level up! You are now level ${player.level}!`, 'xp');
+                    this.game.audio.playSfx('levelup');
+                    this.game.showLevelUp();
+                }
+                player.killedEnemies[victim.name] = (player.killedEnemies[victim.name] || 0) + 1;
             }
-
-            // Track kill
-            killer.killedEnemies[victim.name] = (killer.killedEnemies[victim.name] || 0) + 1;
         }
 
         // Drop loot
@@ -3880,35 +3998,54 @@ class AISystem {
             case 'ranged':
                 this.rangedAI(entity);
                 break;
+            case 'npc_defender':
+                this.npcDefenderAI(entity);
+                break;
             default:
                 this.aggressiveAI(entity);
         }
     }
 
+    // Find the closest non-hostile target for an enemy (player or friendly NPC)
+    _findClosestTarget(entity) {
+        const targets = this.game.combat.turnOrder
+            .map(t => t.entity)
+            .filter(e => !e.isHostile && e.stats.hp > 0);
+        let closest = null;
+        let closestDist = Infinity;
+        for (const t of targets) {
+            const d = Utils.gridDistance(entity.x, entity.y, t.x, t.y);
+            if (d < closestDist) {
+                closestDist = d;
+                closest = t;
+            }
+        }
+        return closest;
+    }
+
     aggressiveAI(entity) {
-        const player = this.game.player;
-        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const target = this._findClosestTarget(entity) || this.game.player;
         const attackRange = entity.attackRange || 1;
 
         let actionsRemaining = 3; // Max actions per turn to prevent infinite loops
 
         const doAction = () => {
-            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || entity.stats.hp <= 0) {
+            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || entity.stats.hp <= 0 || target.stats.hp <= 0) {
                 setTimeout(() => this.game.combat.endTurn(), 300);
                 return;
             }
             actionsRemaining--;
 
-            const currentDist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+            const currentDist = Utils.gridDistance(entity.x, entity.y, target.x, target.y);
 
             if (currentDist <= attackRange && entity.stats.ap >= 3) {
                 // Attack
                 const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
-                this.game.combat.attack(entity, player, weapon);
+                this.game.combat.attack(entity, target, weapon);
                 setTimeout(doAction, 600);
             } else if (entity.stats.ap >= 1) {
-                // Move towards player
-                this.moveTowards(entity, player.x, player.y);
+                // Move towards target
+                this.moveTowards(entity, target.x, target.y);
                 setTimeout(doAction, 400);
             } else {
                 setTimeout(() => this.game.combat.endTurn(), 300);
@@ -3919,14 +4056,14 @@ class AISystem {
     }
 
     defensiveAI(entity) {
-        const player = this.game.player;
-        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const target = this._findClosestTarget(entity) || this.game.player;
+        const dist = Utils.gridDistance(entity.x, entity.y, target.x, target.y);
         const attackRange = entity.attackRange || 1;
 
-        // Only attack if player is in range, otherwise hold position
+        // Only attack if target is in range, otherwise hold position
         if (dist <= attackRange && entity.stats.ap >= 3) {
             const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
-            this.game.combat.attack(entity, player, weapon);
+            this.game.combat.attack(entity, target, weapon);
             setTimeout(() => this.game.combat.endTurn(), 600);
         } else {
             setTimeout(() => this.game.combat.endTurn(), 300);
@@ -3934,33 +4071,83 @@ class AISystem {
     }
 
     rangedAI(entity) {
-        const player = this.game.player;
-        const dist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+        const target = this._findClosestTarget(entity) || this.game.player;
         const attackRange = entity.attackRange || 5;
 
         let actionsRemaining = 2;
 
         const doAction = () => {
-            if (actionsRemaining <= 0 || entity.stats.ap <= 0) {
+            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || target.stats.hp <= 0) {
                 setTimeout(() => this.game.combat.endTurn(), 300);
                 return;
             }
             actionsRemaining--;
 
-            const currentDist = Utils.gridDistance(entity.x, entity.y, player.x, player.y);
+            const currentDist = Utils.gridDistance(entity.x, entity.y, target.x, target.y);
 
             if (currentDist <= attackRange && entity.stats.ap >= 4) {
                 // Attack from range
                 const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
-                this.game.combat.attack(entity, player, weapon);
+                this.game.combat.attack(entity, target, weapon);
                 setTimeout(doAction, 600);
             } else if (currentDist < 2 && entity.stats.ap >= 1) {
                 // Too close, back away
-                this.moveAway(entity, player.x, player.y);
+                this.moveAway(entity, target.x, target.y);
                 setTimeout(doAction, 400);
             } else if (entity.stats.ap >= 1) {
                 // Move closer to get in range
-                this.moveTowards(entity, player.x, player.y);
+                this.moveTowards(entity, target.x, target.y);
+                setTimeout(doAction, 400);
+            } else {
+                setTimeout(() => this.game.combat.endTurn(), 300);
+            }
+        };
+
+        setTimeout(doAction, 300);
+    }
+
+    // NPC defender AI - attacks nearest hostile enemy
+    npcDefenderAI(entity) {
+        // Find the nearest hostile enemy
+        const enemies = this.game.combat.turnOrder
+            .map(t => t.entity)
+            .filter(e => e.isHostile && e.stats.hp > 0);
+
+        if (enemies.length === 0) {
+            setTimeout(() => this.game.combat.endTurn(), 300);
+            return;
+        }
+
+        // Find closest enemy
+        let closestEnemy = null;
+        let closestDist = Infinity;
+        for (const e of enemies) {
+            const d = Utils.gridDistance(entity.x, entity.y, e.x, e.y);
+            if (d < closestDist) {
+                closestDist = d;
+                closestEnemy = e;
+            }
+        }
+
+        const attackRange = entity.attackRange || 1;
+        let actionsRemaining = 3;
+
+        const doAction = () => {
+            if (actionsRemaining <= 0 || entity.stats.ap <= 0 || entity.stats.hp <= 0 || !closestEnemy || closestEnemy.stats.hp <= 0) {
+                setTimeout(() => this.game.combat.endTurn(), 300);
+                return;
+            }
+            actionsRemaining--;
+
+            const currentDist = Utils.gridDistance(entity.x, entity.y, closestEnemy.x, closestEnemy.y);
+
+            if (currentDist <= attackRange && entity.stats.ap >= 3) {
+                // Attack the enemy
+                this.game.combat.attack(entity, closestEnemy, null);
+                setTimeout(doAction, 600);
+            } else if (entity.stats.ap >= 1) {
+                // Move towards enemy
+                this.moveTowards(entity, closestEnemy.x, closestEnemy.y);
                 setTimeout(doAction, 400);
             } else {
                 setTimeout(() => this.game.combat.endTurn(), 300);
@@ -4913,14 +5100,16 @@ class SpriteGenerator {
         const rng = this.seededRandom(seed);
         const cx = w / 2, cy = th / 2 + 2;
         const htw = tw / 2, hth = th / 2;
+        // Slight overscan to eliminate seams between adjacent tiles
+        const overscan = 1.5;
 
         // Draw iso diamond fill
         const drawDiamond = (color) => {
             ctx.beginPath();
-            ctx.moveTo(cx, cy - hth);
-            ctx.lineTo(cx + htw, cy);
-            ctx.lineTo(cx, cy + hth);
-            ctx.lineTo(cx - htw, cy);
+            ctx.moveTo(cx, cy - hth - overscan);
+            ctx.lineTo(cx + htw + overscan, cy);
+            ctx.lineTo(cx, cy + hth + overscan);
+            ctx.lineTo(cx - htw - overscan, cy);
             ctx.closePath();
             ctx.fillStyle = color;
             ctx.fill();
@@ -4952,13 +5141,13 @@ class SpriteGenerator {
         const baseR = pal.base[0] + bv, baseG = pal.base[1] + bv, baseB = pal.base[2] + bv;
         drawDiamond(`rgb(${baseR|0},${baseG|0},${baseB|0})`);
 
-        // Clip to diamond for texture work
+        // Clip to diamond for texture work (with overscan)
         ctx.save();
         ctx.beginPath();
-        ctx.moveTo(cx, cy - hth);
-        ctx.lineTo(cx + htw, cy);
-        ctx.lineTo(cx, cy + hth);
-        ctx.lineTo(cx - htw, cy);
+        ctx.moveTo(cx, cy - hth - overscan);
+        ctx.lineTo(cx + htw + overscan, cy);
+        ctx.lineTo(cx, cy + hth + overscan);
+        ctx.lineTo(cx - htw - overscan, cy);
         ctx.closePath();
         ctx.clip();
 
@@ -10240,10 +10429,10 @@ function createVillageArea() {
         row.split('').map(c => tileKey[c.trim()] || 'sand')
     );
 
-    // Heights - only walls are raised
+    // Heights - only walls are raised (half-tile thick)
     const heights = mapRaw.map(row =>
         row.split('').map(c => {
-            if (c === 'w') return 2;
+            if (c === 'w') return 1;
             return 0;
         })
     );
@@ -10793,7 +10982,7 @@ function createOasisArea() {
     );
 
     const heights = mapRaw.map(row =>
-        row.split('').map(c => c === 'w' ? 2 : c === 'S' ? 1 : 0)
+        row.split('').map(c => c === 'w' ? 1 : c === 'S' ? 1 : 0)
     );
 
     const blocked = new Set(['wall', 'water', 'void']);
@@ -10825,7 +11014,7 @@ function createOasisArea() {
         name: 'Old Ezra',
         spriteType: 'elder',
         x: 18, y: 13,
-        dialogueId: 'elder_mara', // Reuse elder dialogue for now
+        dialogueId: 'old_ezra',
     }));
     entities.push(CharacterSystem.createNPC({
         id: 'oasis_settler1',
@@ -10933,35 +11122,43 @@ function createOasisArea() {
 // ============================================
 
 function createBunkerArea() {
-    // 22x22 underground military bunker - tight corridors, locked rooms, terminals
+    // 30x30 underground military bunker - expanded with more rooms, corridors, lab wing
     const tileKey = {
         'S': 'stone', 'w': 'wall', 'D': 'door', 'o': 'wood',
         'v': 'void', 'c': 'cave_floor', 'C': 'crystal',
     };
 
     const mapRaw = [
-        'vvvvvvvvvvvvvvvvvvvvvv',
-        'vvvvvwwwwDwwwwvvvvvvvv',
-        'vvvvvwooooooowvvvvvvvv',
-        'vvvvvwooooooowvvvvvvvv',
-        'vvvvvwooooooowwwwwwwvv',
-        'vvwwwwoooooooDooooowvv',
-        'vvwooDooooooowoooooD vv',
-        'vvwoowooooooowoooooD vv',
-        'vvwoowooooooowoooooD vv',
-        'vvwoowooooooowoooooD vv',
-        'vvwwwwwDwwwwwwwwDwwwvv',
-        'vvwoooooooccccoooooovv',
-        'vvwoooooooccccoooooovv',
-        'vvwoooooooocccoooooovv',
-        'vvwwwwDwwwwwwwwwDwwwvv',
-        'vvwooooowvvvwooooowvv',
-        'vvwooooowvvvwooooowvv',
-        'vvwooCoowvvvwooCo owvv',
-        'vvwwDwwwwvvvwwDwwwwvv',
-        'vvvvcccccvvvvcccccvvvv',
-        'vvvvcccccvvvvcccccvvvv',
-        'vvvvvvvvvvvvvvvvvvvvvv',
+        'vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv',
+        'vvvvvvvwwwwwDwwwwwvvvvvvvvvvvv',
+        'vvvvvvvwooooooooowvvvvvvvvvvvv',
+        'vvvvvvvwooooooooowvvvvvvvvvvvv',
+        'vvvvvvvwooooooooowwwwwwwwwwvvv',
+        'vvwwwwwwoooooooooDooooooooowvvv',
+        'vvwoooDoooooooooowoooooooooDvvv',
+        'vvwooowoooooooooowoooooooooD vvv',
+        'vvwooowoooooooooowoooooooooD vvv',
+        'vvwooowoooooooooowoooooooooD vvv',
+        'vvwwwwwwDwwwwwwwwwwwwDwwwwwvvv',
+        'vvwoooooooooccccooooooooooowvvv',
+        'vvwoooooooooccccooooooooooowvvv',
+        'vvwoooooooooocccooooooooooowvvv',
+        'vvwoooooooooccccooooooooooowvvv',
+        'vvwwwwwDwwwwwwwwwwwwDwwwwwwvvv',
+        'vvwoooooowvvvvvvwoooooooooowvvv',
+        'vvwoooooowvvvvvvwoooooooooowvvv',
+        'vvwooCoooD ccccccDooooooCooowvvv',
+        'vvwoooooowccccccwoooooooooowvvv',
+        'vvwwwDwwwwccccccwwwwwDwwwwwvvv',
+        'vvvvvcccccccccccccccccccccvvvvv',
+        'vvvvvccwwwwDwwwwwwDwwwwccvvvvv',
+        'vvvvvccwoooooooooooooowccvvvvv',
+        'vvvvvccwoooooooooooooowccvvvvv',
+        'vvvvvccwooCoooooooCoowccvvvvv',
+        'vvvvvccwoooooooooooooowccvvvvv',
+        'vvvvvccwwwwwwwwwwwwwwwwccvvvvv',
+        'vvvvvcccccccccccccccccccccvvvvv',
+        'vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv',
     ];
 
     const map = mapRaw.map(row =>
@@ -10969,24 +11166,27 @@ function createBunkerArea() {
     );
 
     const heights = mapRaw.map(row =>
-        row.split('').map(c => c === 'w' ? 2 : 0)
+        row.split('').map(c => c === 'w' ? 1 : 0)
     );
 
     const blocked = new Set(['wall', 'void']);
 
     const entities = [];
 
-    // Security robots / mutant guards
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.mutant_brute, 7, 3));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider, 12, 8));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider_gunner, 4, 12));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.mutant_brute, 15, 16));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 8, 19));
-    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_spider, 14, 19));
+    // Security robots / mutant guards - spread across the larger bunker
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.mutant_brute, 10, 3));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider, 18, 7));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider_gunner, 5, 12));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.security_bot || EnemyTemplates.raider_gunner, 20, 13));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.mutant_brute, 10, 18));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 12, 21));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 18, 24));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_spider, 8, 25));
+    entities.push(CharacterSystem.createEnemy(EnemyTemplates.mutant_brute, 15, 25));
 
     // Loot containers - mostly locked
     const techCache = CharacterSystem.createContainer(
-        'bunker_tech', 'Pre-War Terminal Cache', 6, 2,
+        'bunker_tech', 'Pre-War Terminal Cache', 9, 2,
         [
             { ...ItemDatabase.electronic_lockpick, quantity: 1 },
             { ...ItemDatabase.stimpak, quantity: 4 },
@@ -10999,7 +11199,7 @@ function createBunkerArea() {
     entities.push(techCache);
 
     const armory = CharacterSystem.createContainer(
-        'bunker_armory', 'Military Armory Locker', 15, 6,
+        'bunker_armory', 'Military Armory Locker', 22, 6,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
             { ...ItemDatabase.ammo_308, quantity: 30 },
@@ -11013,7 +11213,7 @@ function createBunkerArea() {
     entities.push(armory);
 
     entities.push(CharacterSystem.createContainer(
-        'bunker_supplies', 'Emergency Supplies', 3, 6,
+        'bunker_supplies', 'Emergency Supplies', 4, 7,
         [
             { ...ItemDatabase.stimpak, quantity: 3 },
             { ...ItemDatabase.nuka_cola, quantity: 4 },
@@ -11024,7 +11224,7 @@ function createBunkerArea() {
     ));
 
     const vaultChest = CharacterSystem.createContainer(
-        'bunker_vault', 'Sealed Vault Container', 8, 17,
+        'bunker_vault', 'Sealed Vault Container', 10, 24,
         [
             { ...ItemDatabase.sledgehammer, quantity: 1 },
             { ...ItemDatabase.stimpak, quantity: 5 },
@@ -11038,7 +11238,7 @@ function createBunkerArea() {
     entities.push(vaultChest);
 
     entities.push(CharacterSystem.createContainer(
-        'bunker_lab', 'Research Samples', 14, 17,
+        'bunker_lab', 'Research Samples', 20, 24,
         [
             { ...ItemDatabase.antidote, quantity: 3 },
             { ...ItemDatabase.cave_mushroom, quantity: 5 },
@@ -11048,25 +11248,51 @@ function createBunkerArea() {
         'crate'
     ));
 
+    entities.push(CharacterSystem.createContainer(
+        'bunker_medbay', 'Medical Cabinet', 22, 17,
+        [
+            { ...ItemDatabase.stimpak, quantity: 3 },
+            { ...ItemDatabase.antidote, quantity: 2 },
+            { ...ItemDatabase.healing_powder, quantity: 4 },
+        ],
+        'chest'
+    ));
+
+    const commandChest = CharacterSystem.createContainer(
+        'bunker_command', 'Commander\'s Footlocker', 4, 17,
+        [
+            { ...ItemDatabase.bottle_caps, quantity: 200 },
+            { ...ItemDatabase.ammo_308, quantity: 20 },
+            { ...ItemDatabase.mentats, quantity: 2 },
+        ],
+        'chest'
+    );
+    commandChest.locked = true;
+    commandChest.lockDifficulty = 65;
+    entities.push(commandChest);
+
     // Environment
     const env = (id, sprite, x, y, name, blocking = true) => ({
         id, name: name || sprite, type: 'environment', spriteType: sprite,
         x, y, facing: 'south', isHostile: false, blocking,
     });
-    entities.push(env('bk_ruins1', 'ruins', 10, 12, 'Collapsed Ceiling'));
-    entities.push(env('bk_ruins2', 'ruins', 11, 12, 'Rubble'));
-    entities.push(env('bk_wreck1', 'wreckage', 5, 8, 'Broken Terminal'));
-    entities.push(env('bk_wreck2', 'wreckage', 16, 8, 'Destroyed Console'));
-    entities.push(env('bk_bones1', 'bones', 3, 16, 'Pre-War Skeleton', false));
-    entities.push(env('bk_bones2', 'bones', 16, 15, 'Skeletal Remains', false));
+    entities.push(env('bk_ruins1', 'ruins', 13, 12, 'Collapsed Ceiling'));
+    entities.push(env('bk_ruins2', 'ruins', 14, 13, 'Rubble'));
+    entities.push(env('bk_wreck1', 'wreckage', 6, 8, 'Broken Terminal'));
+    entities.push(env('bk_wreck2', 'wreckage', 23, 8, 'Destroyed Console'));
+    entities.push(env('bk_wreck3', 'wreckage', 15, 17, 'Shattered Monitor'));
+    entities.push(env('bk_bones1', 'bones', 4, 16, 'Pre-War Skeleton', false));
+    entities.push(env('bk_bones2', 'bones', 22, 16, 'Skeletal Remains', false));
+    entities.push(env('bk_bones3', 'bones', 12, 27, 'Ancient Corpse', false));
+    entities.push(env('bk_ruins3', 'ruins', 18, 21, 'Collapsed Support'));
 
     const transitions = [
         {
-            x: 7, y: 1,
+            x: 10, y: 1,
             label: 'Exit Bunker',
             targetArea: 'oasis',
             targetX: 12, targetY: 12,
-            zone: [{x:6, y:1}, {x:7, y:1}, {x:8, y:1}],
+            zone: [{x:9, y:1}, {x:10, y:1}, {x:11, y:1}],
         },
     ];
 
@@ -11078,7 +11304,7 @@ function createBunkerArea() {
         blocked,
         entities,
         transitions,
-        playerStart: { x: 7, y: 2 },
+        playerStart: { x: 10, y: 2 },
         ambientColor: '#0a0c1811',
     };
 }
@@ -12263,11 +12489,26 @@ class Game {
     }
 
     animateMovement(path) {
+        // Cancel any existing movement
+        if (this._isMoving) {
+            this._moveCancelled = true;
+        }
+
         let step = 0;
         this.player.animState = 'walk';
         this._isMoving = true;
+        this._moveCancelled = false;
+        const moveId = ++this._moveId || (this._moveId = 1);
 
         const tweenStep = () => {
+            // If this movement was cancelled by a new click, stop
+            if (this._moveCancelled && this._moveId !== moveId) {
+                this.player.renderX = this.player.x;
+                this.player.renderY = this.player.y;
+                this.player.animState = 'idle';
+                return;
+            }
+
             if (step >= path.length) {
                 this.player.animState = 'idle';
                 this._isMoving = false;
@@ -12713,10 +12954,10 @@ class Game {
         if (areaId === 'oasis') this.player.questFlags.found_oasis = true;
         if (areaId === 'bunker') this.player.questFlags.found_bunker = true;
 
-        // Store NPC home positions for wandering
+        // Store NPC and enemy home positions for wandering
         this.npcHomes = {};
         for (const ent of this.entities) {
-            if (ent.type === 'npc') {
+            if (ent.type === 'npc' || ent.type === 'enemy') {
                 this.npcHomes[ent.id] = { x: ent.x, y: ent.y };
             }
         }
@@ -13159,6 +13400,21 @@ class Game {
 
     startCombatWith(enemies) {
         const participants = [this.player, ...enemies];
+
+        // Include nearby friendly NPCs in combat
+        for (const ent of this.entities) {
+            if (ent.type !== 'npc') continue;
+            if (ent.stats.hp <= 0) continue;
+            // Check if NPC is within 5 tiles of any enemy
+            const nearEnemy = enemies.some(e =>
+                Utils.gridDistance(ent.x, ent.y, e.x, e.y) <= 5
+            );
+            if (nearEnemy) {
+                participants.push(ent);
+                this.addMessage(`${ent.name} joins the fight!`, 'combat');
+            }
+        }
+
         this.audio.playSfx('combat_start');
         this.showCombatBanner();
         this.combat.startCombat(participants);
@@ -13646,7 +13902,7 @@ class Game {
 
     // ---- Main Game Loop ----
 
-    // NPC wandering - move NPCs 1-2 tiles occasionally, staying near home
+    // NPC and enemy wandering - move NPCs/enemies 1-2 tiles occasionally, staying near home
     updateNPCWander() {
         if (this.state !== 'exploration' || this.combat.active) return;
         this.wanderTimer++;
@@ -13654,11 +13910,16 @@ class Game {
         this.wanderTimer = 0;
 
         for (const ent of this.entities) {
-            if (ent.type !== 'npc' || !this.npcHomes[ent.id]) continue;
+            // Wander both NPCs and enemies (enemies only wander outside combat)
+            if (ent.type !== 'npc' && ent.type !== 'enemy') continue;
+            if (!this.npcHomes[ent.id]) continue;
+            if (ent.stats && ent.stats.hp <= 0) continue;
             // 30% chance to move each cycle
             if (Math.random() > 0.3) continue;
 
             const home = this.npcHomes[ent.id];
+            // Enemies wander within 3 tiles, NPCs within 5
+            const wanderRange = ent.type === 'enemy' ? 3 : 5;
             const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
             // Shuffle directions
             for (let i = dirs.length - 1; i > 0; i--) {
@@ -13669,9 +13930,9 @@ class Game {
             for (const [dx, dy] of dirs) {
                 const nx = ent.x + dx;
                 const ny = ent.y + dy;
-                // Stay within 5 tiles of home
+                // Stay within wander range of home
                 const distFromHome = Utils.gridDistance(nx, ny, home.x, home.y);
-                if (distFromHome > 5) continue;
+                if (distFromHome > wanderRange) continue;
                 if (!this.isWalkableFor(nx, ny, ent)) continue;
                 // Don't walk onto player
                 if (this.player && nx === this.player.x && ny === this.player.y) continue;
@@ -13681,7 +13942,7 @@ class Game {
                 const fromX = ent.x, fromY = ent.y;
                 ent.x = nx;
                 ent.y = ny;
-                // Smooth interpolation for NPCs
+                // Smooth interpolation
                 ent.renderX = fromX;
                 ent.renderY = fromY;
                 let npcSub = 0;
