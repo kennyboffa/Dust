@@ -518,6 +518,17 @@ body {
     overflow-y: auto;
     position: relative;
 }
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.settings-row label {
+    min-width: 120px;
+}
+.settings-row input[type="range"] {
+    accent-color: #8a6a30;
+}
 
 .overlay-panel h2 {
     color: #c4943a;
@@ -1296,6 +1307,7 @@ canvas {
                     <div class="menu-buttons">
                         <button id="btn-new-game" class="menu-btn">New Game</button>
                         <button id="btn-load-game" class="menu-btn">Load Game</button>
+                        <button id="btn-settings-menu" class="menu-btn">Settings</button>
                     </div>
                 </div>
             </div>
@@ -1363,6 +1375,7 @@ canvas {
                         <button class="hud-btn" id="btn-journal" title="Journal (J)">QUEST</button>
                         <button class="hud-btn" id="btn-pipboy" title="PipBoy (P)">MAP</button>
                         <button class="hud-btn" id="btn-save" title="Save (F5)">SAVE</button>
+                        <button class="hud-btn" id="btn-settings" title="Settings (O)">OPT</button>
                     </div>
                 </div>
 
@@ -1464,6 +1477,78 @@ canvas {
                     <div id="loot-items"></div>
                     <button id="btn-take-all" class="menu-btn">Take All</button>
                     <button class="close-btn" data-close="loot-screen">Close</button>
+                </div>
+            </div>
+
+            <!-- Settings Screen -->
+            <div id="settings-screen" class="screen overlay">
+                <div class="overlay-panel" style="max-width:450px">
+                    <h2>Settings</h2>
+                    <div style="display:flex;flex-direction:column;gap:14px;padding:10px 0">
+                        <div class="settings-row">
+                            <label style="color:#a08050;font-size:13px">Difficulty</label>
+                            <select id="setting-difficulty" style="background:#1a1610;color:#c8a848;border:1px solid #3a3020;padding:4px 8px;font-family:inherit">
+                                <option value="easy">Easy</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="hard">Hard</option>
+                                <option value="survival">Survival</option>
+                            </select>
+                        </div>
+                        <div class="settings-row">
+                            <label style="color:#a08050;font-size:13px">Music Volume</label>
+                            <input type="range" id="setting-music-vol" min="0" max="100" value="25" style="flex:1">
+                            <span id="setting-music-val" style="color:#8a7a5a;font-size:12px;width:30px">25%</span>
+                        </div>
+                        <div class="settings-row">
+                            <label style="color:#a08050;font-size:13px">SFX Volume</label>
+                            <input type="range" id="setting-sfx-vol" min="0" max="100" value="50" style="flex:1">
+                            <span id="setting-sfx-val" style="color:#8a7a5a;font-size:12px;width:30px">50%</span>
+                        </div>
+                        <div class="settings-row">
+                            <label style="color:#a08050;font-size:13px">Brightness</label>
+                            <input type="range" id="setting-brightness" min="50" max="150" value="100" style="flex:1">
+                            <span id="setting-brightness-val" style="color:#8a7a5a;font-size:12px;width:30px">100%</span>
+                        </div>
+                        <div class="settings-row">
+                            <label style="color:#a08050;font-size:13px">Font Size</label>
+                            <select id="setting-fontsize" style="background:#1a1610;color:#c8a848;border:1px solid #3a3020;padding:4px 8px;font-family:inherit">
+                                <option value="small">Small</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div class="settings-row">
+                            <label style="color:#a08050;font-size:13px">Movement Speed</label>
+                            <select id="setting-movespeed" style="background:#1a1610;color:#c8a848;border:1px solid #3a3020;padding:4px 8px;font-family:inherit">
+                                <option value="slow">Slow</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="fast">Fast</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="close-btn" data-close="settings-screen">Done</button>
+                </div>
+            </div>
+
+            <!-- Barter Screen -->
+            <div id="barter-screen" class="screen overlay">
+                <div class="overlay-panel" style="max-width:700px">
+                    <h2 id="barter-title">Trade</h2>
+                    <div style="display:flex;gap:20px;min-height:300px">
+                        <div style="flex:1">
+                            <h3 style="color:#a08050;font-size:13px;margin:0 0 8px">Merchant</h3>
+                            <div id="barter-merchant-items" style="max-height:280px;overflow-y:auto"></div>
+                        </div>
+                        <div style="width:1px;background:#3a3020"></div>
+                        <div style="flex:1">
+                            <h3 style="color:#a08050;font-size:13px;margin:0 0 8px">Your Items</h3>
+                            <div id="barter-player-items" style="max-height:280px;overflow-y:auto"></div>
+                        </div>
+                    </div>
+                    <div style="text-align:center;margin-top:10px;color:#8a7a5a;font-size:12px">
+                        Your caps: <span id="barter-player-caps" style="color:#c8a848">0</span>
+                    </div>
+                    <button class="close-btn" data-close="barter-screen">Done Trading</button>
                 </div>
             </div>
 
@@ -2469,9 +2554,19 @@ const DialogueDatabase = {
             shop: {
                 text: "Here's what I've got. Prices are fair — well, fair for the wasteland anyway.",
                 options: [
-                    { text: "[Buy] Stimpak - 75 caps", next: 'buy_stimpak' },
-                    { text: "[Buy] Healing Powder - 20 caps", next: 'buy_healing' },
-                    { text: "[Buy] Pipe Pistol - 100 caps", next: 'buy_pistol' },
+                    { text: "[Open Barter Menu]", end: true, action: (p, game) => {
+                        // Build merchant shop data if not present
+                        const merchant = game.entities.find(e => e.dialogueId === 'merchant_hank');
+                        if (merchant && !merchant.shopItems) {
+                            merchant.shopItems = [
+                                { ...ItemDatabase.stimpak, value: 75, quantity: 3 },
+                                { ...ItemDatabase.healing_powder, value: 20, quantity: 5 },
+                                { ...ItemDatabase.pipe_pistol, value: 100, quantity: 1 },
+                                { ...ItemDatabase.lockpick, value: 15, quantity: 3 },
+                            ];
+                        }
+                        if (merchant) setTimeout(() => game.hud.showBarterScreen(merchant), 100);
+                    }},
                     { text: "That's all for now.", end: true }
                 ]
             },
@@ -2754,34 +2849,16 @@ const DialogueDatabase = {
             trade: {
                 text: "Take a look. Fair prices — I'm no raider.",
                 options: [
-                    {
-                        text: "Buy Stimpak (40 caps)",
-                        next: 'start',
-                        action: (p, game) => {
-                            const caps = p.inventory.find(i => i.id === 'bottle_caps');
-                            if (caps && caps.quantity >= 40) {
-                                caps.quantity -= 40;
-                                InventorySystem.addItem(p, ItemDatabase.stimpak, 1);
-                                game.addMessage('Purchased Stimpak.', 'loot');
-                            } else {
-                                game.addMessage('Not enough caps.', 'combat');
-                            }
+                    { text: "[Open Barter Menu]", end: true, action: (p, game) => {
+                        const trader = game.entities.find(e => e.dialogueId === 'wasteland_trader');
+                        if (trader && !trader.shopItems) {
+                            trader.shopItems = [
+                                { ...ItemDatabase.stimpak, value: 40, quantity: 2 },
+                                { ...ItemDatabase.healing_powder, value: 15, quantity: 4 },
+                            ];
                         }
-                    },
-                    {
-                        text: "Buy Healing Powder (15 caps)",
-                        next: 'start',
-                        action: (p, game) => {
-                            const caps = p.inventory.find(i => i.id === 'bottle_caps');
-                            if (caps && caps.quantity >= 15) {
-                                caps.quantity -= 15;
-                                InventorySystem.addItem(p, ItemDatabase.healing_powder, 2);
-                                game.addMessage('Purchased Healing Powder x2.', 'loot');
-                            } else {
-                                game.addMessage('Not enough caps.', 'combat');
-                            }
-                        }
-                    },
+                        if (trader) setTimeout(() => game.hud.showBarterScreen(trader), 100);
+                    }},
                     { text: "Nevermind.", end: true }
                 ]
             },
@@ -3061,7 +3138,12 @@ class CharacterSystem {
         char.stats.hp = Math.min(char.stats.maxHp, char.stats.hp + amount);
     }
 
-    static takeDamage(char, amount) {
+    static takeDamage(char, amount, difficulty = 'normal') {
+        // Apply difficulty scaling for player damage taken
+        if (char.isPlayer) {
+            const dmgMult = { easy: 0.6, normal: 1.0, hard: 1.4, survival: 2.0 }[difficulty] || 1.0;
+            amount = Math.ceil(amount * dmgMult);
+        }
         // Apply damage resist
         const resist = char.stats.damageResist || 0;
         const actualDmg = Math.max(1, amount - Math.floor(amount * resist / 100));
@@ -3297,7 +3379,8 @@ class CombatSystem {
             }
 
             damage = Math.floor(damage * damageMultiplier);
-            const result = CharacterSystem.takeDamage(defender, damage);
+            const difficulty = this.game && this.game.settings ? this.game.settings.difficulty : 'normal';
+            const result = CharacterSystem.takeDamage(defender, damage, difficulty);
             totalDamage += result.damage;
 
             if (result.killed) {
@@ -4159,6 +4242,7 @@ class AudioManager {
 
         // Base drone frequencies per area mood
         const moods = {
+            'menu': { baseFreq: 48, chordFreqs: [48, 72, 96], tempo: 0.008, brightness: 0.12, windVol: 0.06 },
             'village': { baseFreq: 55, chordFreqs: [55, 82.4, 110], tempo: 0.02, brightness: 0.3, windVol: 0.04 },
             'wasteland': { baseFreq: 41.2, chordFreqs: [41.2, 61.7, 82.4], tempo: 0.015, brightness: 0.15, windVol: 0.08 },
             'cave': { baseFreq: 36.7, chordFreqs: [36.7, 55, 73.4], tempo: 0.01, brightness: 0.1, windVol: 0.02 },
@@ -4598,6 +4682,7 @@ class SpriteGenerator {
             'water':      { base: [18,32,52], var: 5 },
             'lava':       { base: [120,35,5], var: 20 },
             'crystal':    { base: [45,88,100], var: 12 },
+            'asphalt':    { base: [38,36,32], var: 6 },
             'void':       { base: [3,3,3], var: 0 },
         };
         const pal = palettes[type] || palettes['dirt'];
@@ -4803,7 +4888,7 @@ class SpriteGenerator {
     // ---- HUMANOID SPRITE GENERATION (pixel-by-pixel with Fallout 2 pre-rendered look) ----
     // variant: { skinTone: 0-4, hairColor: 0-5, bodyScale: 0.9-1.1, gender: 'male'|'female', seed: int }
     static generateHumanoidSprite(type, frame, facing = 'south', animType = 'idle', variant = null) {
-        const w = 48, h = 64;
+        const w = 72, h = 96;
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
         const imgData = ctx.createImageData(w, h);
@@ -4866,7 +4951,7 @@ class SpriteGenerator {
             }
         }
         const isMutant = type === 'mutant';
-        const sc = (isMutant ? 1.4 : 1) * bodySc;
+        const sc = (isMutant ? 1.4 : 1) * bodySc * 1.5; // 1.5x for higher resolution sprites
 
         // ---- Pixel placement helpers ----
         const setPixel = (x, y, r, g, b, a) => {
@@ -5246,14 +5331,10 @@ class SpriteGenerator {
                     fillRect(cx + headR - 0.5, headY + 1, 1.5, headR + 2, p.hair, 5, -8);
                 }
             }
-            // Eyes (small, proportional to smaller head)
-            const eyeWhite = [220, 215, 210];
-            fillEllipse(cx - 1.5 * sc, headY - 0.2, 1, 0.6, eyeWhite, 4, -2);
-            fillEllipse(cx + 1.5 * sc, headY - 0.2, 1, 0.6, eyeWhite, 4, -2);
-            // Irises
-            const irisColor = isMutant ? [138, 168, 0] : [34, 24, 8];
-            setPixel(cx - 1.3 * sc, headY - 0.1, irisColor[0], irisColor[1], irisColor[2]);
-            setPixel(cx + 1.7 * sc, headY - 0.1, irisColor[0], irisColor[1], irisColor[2]);
+            // Eye sockets - just subtle shadow indentations, no visible eyes at this scale
+            const socketShadow = [Math.max(0, p.skin[0] - 22), Math.max(0, p.skin[1] - 22), Math.max(0, p.skin[2] - 22)];
+            setPixel(cx - 1.5 * sc, headY - 0.2, socketShadow[0], socketShadow[1], socketShadow[2], 140);
+            setPixel(cx + 1.5 * sc, headY - 0.2, socketShadow[0], socketShadow[1], socketShadow[2], 140);
             // Nose shadow
             const noseShadow = [Math.max(0, p.skin[0] - 18), Math.max(0, p.skin[1] - 18), Math.max(0, p.skin[2] - 18)];
             setPixel(cx, headY + 0.8, noseShadow[0], noseShadow[1], noseShadow[2], 180);
@@ -6627,6 +6708,232 @@ class SpriteGenerator {
         ctx.fillRect(cx - 0.5, by - 34, 1, 1);
         return this.weatherSprite(c, 0.6);
     }
+
+    static generateCarWreck(variant) {
+        const w = 72, h = 48;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+        const rng = this.seededRandom(variant * 773);
+
+        // Ground shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.beginPath();
+        ctx.ellipse(cx, by + 1, 28, 6, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (variant % 2 === 0) {
+            // Sedan wreck (isometric 3/4 view)
+            // Body - left side panel
+            ctx.fillStyle = '#3A3028';
+            ctx.beginPath();
+            ctx.moveTo(cx - 24, by - 8);
+            ctx.lineTo(cx - 24, by);
+            ctx.lineTo(cx - 4, by + 4);
+            ctx.lineTo(cx - 4, by - 4);
+            ctx.closePath();
+            ctx.fill();
+            // Body - front/right panel
+            ctx.fillStyle = '#2E2820';
+            ctx.beginPath();
+            ctx.moveTo(cx - 4, by - 4);
+            ctx.lineTo(cx - 4, by + 4);
+            ctx.lineTo(cx + 22, by);
+            ctx.lineTo(cx + 22, by - 8);
+            ctx.closePath();
+            ctx.fill();
+            // Roof (crushed)
+            ctx.fillStyle = '#343025';
+            ctx.beginPath();
+            ctx.moveTo(cx - 18, by - 14);
+            ctx.lineTo(cx - 4, by - 10);
+            ctx.lineTo(cx + 14, by - 14);
+            ctx.lineTo(cx - 2, by - 18);
+            ctx.closePath();
+            ctx.fill();
+            // Windshield (broken)
+            ctx.fillStyle = '#0C0A08';
+            ctx.fillRect(cx - 12, by - 13, 6, 4);
+            // Rust patches
+            ctx.fillStyle = 'rgba(80,38,14,0.25)';
+            ctx.beginPath();
+            ctx.ellipse(cx - 12, by - 4, 5, 3, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + 8, by - 6, 4, 2.5, -0.1, 0, Math.PI * 2);
+            ctx.fill();
+            // Flat tires
+            ctx.fillStyle = '#1A1A18';
+            ctx.beginPath();
+            ctx.ellipse(cx - 18, by + 1, 3.5, 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + 14, by + 1, 3.5, 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Oil stain
+            ctx.fillStyle = 'rgba(15,12,8,0.15)';
+            ctx.beginPath();
+            ctx.ellipse(cx + 5, by + 3, 6, 2, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Truck/van wreck
+            ctx.fillStyle = '#383028';
+            ctx.beginPath();
+            ctx.moveTo(cx - 20, by - 18);
+            ctx.lineTo(cx - 20, by);
+            ctx.lineTo(cx, by + 5);
+            ctx.lineTo(cx, by - 14);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#302820';
+            ctx.beginPath();
+            ctx.moveTo(cx, by - 14);
+            ctx.lineTo(cx, by + 5);
+            ctx.lineTo(cx + 20, by);
+            ctx.lineTo(cx + 20, by - 18);
+            ctx.closePath();
+            ctx.fill();
+            // Roof
+            ctx.fillStyle = '#2E2A22';
+            ctx.beginPath();
+            ctx.moveTo(cx - 22, by - 18);
+            ctx.lineTo(cx - 2, by - 12);
+            ctx.lineTo(cx + 22, by - 18);
+            ctx.lineTo(cx, by - 24);
+            ctx.closePath();
+            ctx.fill();
+            // Broken windshield
+            ctx.fillStyle = '#0A0808';
+            ctx.fillRect(cx - 14, by - 16, 8, 5);
+            // Rust
+            ctx.fillStyle = 'rgba(80,35,12,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(cx + 8, by - 8, 5, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Missing door (hole)
+            ctx.fillStyle = '#1A1408';
+            ctx.fillRect(cx + 5, by - 10, 6, 8);
+        }
+        return this.weatherSprite(c, 0.7);
+    }
+
+    static generateBrokenRoad(variant) {
+        const w = 64, h = 36;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, cy = h / 2 + 2;
+        const htw = 30, hth = 14;
+        const rng = this.seededRandom(variant * 557);
+
+        // Cracked asphalt surface (isometric diamond)
+        ctx.fillStyle = `rgb(${42 + rng() * 8 |0},${40 + rng() * 6 |0},${36 + rng() * 5 |0})`;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - hth);
+        ctx.lineTo(cx + htw, cy);
+        ctx.lineTo(cx, cy + hth);
+        ctx.lineTo(cx - htw, cy);
+        ctx.closePath();
+        ctx.fill();
+
+        // Road markings (faded)
+        if (variant % 3 === 0) {
+            ctx.fillStyle = 'rgba(90,85,60,0.12)';
+            ctx.fillRect(cx - 8, cy - 1, 16, 2);
+        }
+
+        // Cracks
+        ctx.strokeStyle = `rgba(20,18,14,${0.3 + rng() * 0.15})`;
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 3 + Math.floor(rng() * 3); i++) {
+            ctx.beginPath();
+            ctx.moveTo(cx + (rng() - 0.5) * 40, cy + (rng() - 0.5) * 20);
+            ctx.lineTo(cx + (rng() - 0.5) * 30, cy + (rng() - 0.5) * 16);
+            ctx.stroke();
+        }
+
+        // Potholes
+        if (rng() > 0.4) {
+            const px = cx + (rng() - 0.5) * 20;
+            const py = cy + (rng() - 0.5) * 10;
+            ctx.fillStyle = 'rgba(25,22,18,0.4)';
+            ctx.beginPath();
+            ctx.ellipse(px, py, 4 + rng() * 3, 2 + rng() * 1.5, rng(), 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Debris on road
+        ctx.fillStyle = 'rgba(55,50,38,0.3)';
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.ellipse(cx + (rng()-0.5) * 30, cy + (rng()-0.5) * 12, 1 + rng() * 2, 0.5 + rng(), rng() * 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        return this.weatherSprite(c, 0.6);
+    }
+
+    static generateConcreteRuins(variant) {
+        const w = 64, h = 56;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+        const cx = w / 2, by = h - 4;
+        const rng = this.seededRandom(variant * 893);
+
+        // Concrete slab (isometric)
+        ctx.fillStyle = '#484440';
+        ctx.beginPath();
+        ctx.moveTo(cx, by - 16);
+        ctx.lineTo(cx + 20, by - 10);
+        ctx.lineTo(cx, by - 4);
+        ctx.lineTo(cx - 20, by - 10);
+        ctx.closePath();
+        ctx.fill();
+        // Slab edge
+        ctx.fillStyle = '#3A3834';
+        ctx.beginPath();
+        ctx.moveTo(cx + 20, by - 10);
+        ctx.lineTo(cx, by - 4);
+        ctx.lineTo(cx, by);
+        ctx.lineTo(cx + 20, by - 6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Rebar sticking out
+        ctx.strokeStyle = '#5A3A20';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, by - 12);
+        ctx.lineTo(cx - 6, by - 28);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + 5, by - 10);
+        ctx.lineTo(cx + 7, by - 24);
+        ctx.stroke();
+
+        // Rubble pile
+        for (let i = 0; i < 5; i++) {
+            ctx.fillStyle = `rgb(${50 + rng()*15 |0},${46 + rng()*12 |0},${40 + rng()*10 |0})`;
+            ctx.beginPath();
+            ctx.ellipse(cx + (rng()-0.5) * 24, by - 2 - rng() * 6, 2 + rng() * 4, 1.5 + rng() * 2, rng(), 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Broken column
+        if (variant % 2 === 0) {
+            ctx.fillStyle = '#504C48';
+            ctx.fillRect(cx + 12, by - 32, 5, 28);
+            ctx.fillStyle = '#3E3A36';
+            ctx.fillRect(cx + 12, by - 32, 5, 3); // capital
+            // Cracks
+            ctx.strokeStyle = 'rgba(30,28,22,0.3)';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(cx + 13, by - 15);
+            ctx.lineTo(cx + 16, by - 25);
+            ctx.stroke();
+        }
+
+        return this.weatherSprite(c, 0.7);
+    }
 }
 
 class IsometricRenderer {
@@ -6642,7 +6949,7 @@ class IsometricRenderer {
 
         // Heavier dust/ash particle system
         this.particles = [];
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < 120; i++) {
             this.particles.push({
                 x: Math.random() * 2000 - 1000,
                 y: Math.random() * 2000 - 1000,
@@ -6729,8 +7036,11 @@ class IsometricRenderer {
             for (let vi = 0; vi < numVariants; vi++) {
                 const variantSet = {
                     south: [], north: [], east: [], west: [],
+                    southeast: [], northeast: [], southwest: [], northwest: [],
                     walk_south: [], walk_north: [], walk_east: [], walk_west: [],
+                    walk_southeast: [], walk_northeast: [], walk_southwest: [], walk_northwest: [],
                     attack_south: [], attack_north: [], attack_east: [], attack_west: [],
+                    attack_southeast: [], attack_northeast: [], attack_southwest: [], attack_northwest: [],
                 };
 
                 // Build variant params - randomized skin, hair, scale, gender
@@ -6753,6 +7063,11 @@ class IsometricRenderer {
                     variantSet.north.push(north);
                     variantSet.east.push(east);
                     variantSet.west.push(south);
+                    // Diagonal: reuse cardinal with slight offset - SE/SW use south, NE/NW use north
+                    variantSet.southeast.push(east);
+                    variantSet.southwest.push(south);
+                    variantSet.northeast.push(SpriteGenerator.mirrorSprite(north));
+                    variantSet.northwest.push(north);
 
                     const walkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'walk', variant);
                     const walkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'walk', variant);
@@ -6761,6 +7076,10 @@ class IsometricRenderer {
                     variantSet.walk_north.push(walkNorth);
                     variantSet.walk_east.push(walkEast);
                     variantSet.walk_west.push(walkSouth);
+                    variantSet.walk_southeast.push(walkEast);
+                    variantSet.walk_southwest.push(walkSouth);
+                    variantSet.walk_northeast.push(SpriteGenerator.mirrorSprite(walkNorth));
+                    variantSet.walk_northwest.push(walkNorth);
 
                     const atkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack', variant);
                     const atkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack', variant);
@@ -6769,6 +7088,10 @@ class IsometricRenderer {
                     variantSet.attack_north.push(atkNorth);
                     variantSet.attack_east.push(atkEast);
                     variantSet.attack_west.push(atkSouth);
+                    variantSet.attack_southeast.push(atkEast);
+                    variantSet.attack_southwest.push(atkSouth);
+                    variantSet.attack_northeast.push(SpriteGenerator.mirrorSprite(atkNorth));
+                    variantSet.attack_northwest.push(atkNorth);
                 }
 
                 this._humanoidSprites[type].push(variantSet);
@@ -6779,7 +7102,7 @@ class IsometricRenderer {
         const creatureTypes = ['rat', 'scorpion', 'cave_spider'];
         this._creatureSprites = {};
         for (const type of creatureTypes) {
-            this._creatureSprites[type] = { south: [], north: [], east: [], west: [] };
+            this._creatureSprites[type] = { south: [], north: [], east: [], west: [], southeast: [], northeast: [], southwest: [], northwest: [] };
             for (let f = 0; f < 4; f++) {
                 const sprite = SpriteGenerator.generateCreatureSprite(type, f);
                 const mirrored = SpriteGenerator.mirrorSprite(sprite);
@@ -6787,6 +7110,10 @@ class IsometricRenderer {
                 this._creatureSprites[type].north.push(sprite);
                 this._creatureSprites[type].east.push(mirrored);
                 this._creatureSprites[type].west.push(sprite);
+                this._creatureSprites[type].southeast.push(mirrored);
+                this._creatureSprites[type].southwest.push(sprite);
+                this._creatureSprites[type].northeast.push(mirrored);
+                this._creatureSprites[type].northwest.push(sprite);
             }
         }
 
@@ -6803,6 +7130,7 @@ class IsometricRenderer {
         this._envSprites = {
             'dead_tree': [], 'ruins': [], 'wreckage': [], 'building': [],
             'cactus': [], 'rock_formation': [],
+            'car_wreck': [], 'broken_road': [], 'concrete_ruins': [],
             'campfire': [SpriteGenerator.generateCampfire()],
             'signpost': [SpriteGenerator.generateSignpost()],
         };
@@ -6812,6 +7140,9 @@ class IsometricRenderer {
             this._envSprites['wreckage'].push(SpriteGenerator.generateWreckage(v));
             this._envSprites['cactus'].push(SpriteGenerator.generateCactus(v));
             this._envSprites['rock_formation'].push(SpriteGenerator.generateRockFormation(v));
+            this._envSprites['car_wreck'].push(SpriteGenerator.generateCarWreck(v));
+            this._envSprites['broken_road'].push(SpriteGenerator.generateBrokenRoad(v));
+            this._envSprites['concrete_ruins'].push(SpriteGenerator.generateConcreteRuins(v));
         }
         for (let v = 0; v < 2; v++) {
             this._envSprites['building'].push(SpriteGenerator.generateBuilding(v));
@@ -7392,8 +7723,9 @@ class IsometricRenderer {
                 const ny = this.noise(gx * 7, gy * 11 + i);
                 const bx = cx + (nx - 0.5) * tw * 1.1;
                 const by = cy + (ny - 0.5) * th * 1.1;
-                const sway = Math.sin(this.time * 0.015 + gx + i * 0.7) * 0.5 * z;
-                const h = (2 + nx * 4) * z;
+                const windSpeed = 0.025;
+                const sway = Math.sin(this.time * windSpeed + gx * 1.3 + i * 0.9) * 1.2 * z + Math.sin(this.time * windSpeed * 0.7 + gy + i) * 0.4 * z;
+                const h = (2.5 + nx * 4.5) * z;
                 // Mostly brown/dead, rarely green
                 const alive = this.noise(gx + i * 3, gy + i * 5) > 0.7;
                 ctx.strokeStyle = alive
@@ -7412,6 +7744,21 @@ class IsometricRenderer {
                 ctx.fillStyle = `rgba(55,50,40,${0.25})`;
                 ctx.beginPath();
                 ctx.ellipse(rx, ry, 1.5 * z, z, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Small shrubs that sway in wind
+            if (n3 > 0.6) {
+                const bushX = cx + (n - 0.5) * tw * 0.5;
+                const bushY = cy + (n2 - 0.5) * th * 0.4;
+                const bushSway = Math.sin(this.time * 0.02 + gx * 2 + gy) * 1.5 * z;
+                ctx.fillStyle = this.rgbStr(45 + n * 15, 55 + n * 10, 22, 0.35);
+                ctx.beginPath();
+                ctx.ellipse(bushX + bushSway, bushY - 2 * z, 3 * z, 2 * z, bushSway * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+                // Bush shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.06)';
+                ctx.beginPath();
+                ctx.ellipse(bushX, bushY + 0.5 * z, 2.5 * z, 1 * z, 0, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
@@ -7878,7 +8225,7 @@ class IsometricRenderer {
         }
 
         // Environmental objects (trees, ruins, wreckage, etc.)
-        const envTypes = ['dead_tree','ruins','wreckage','building','cactus','rock_formation','campfire','signpost'];
+        const envTypes = ['dead_tree','ruins','wreckage','building','cactus','rock_formation','campfire','signpost','car_wreck','broken_road','concrete_ruins'];
         if (envTypes.includes(entityType)) {
             const sprites = this._envSprites[entityType];
             if (sprites && sprites.length > 0) {
@@ -8645,23 +8992,10 @@ class IsometricRenderer {
             ctx.fill();
         }
 
-        // Eyes (smaller, proportionate)
-        ctx.fillStyle = '#DDD';
-        ctx.beginPath();
-        ctx.ellipse(x - 1.5 * z * sc, headY - 0.3 * z, 1 * z, 0.7 * z, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(x + 1.5 * z * sc, headY - 0.3 * z, 1 * z, 0.7 * z, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Irises
-        const eyeColor = isMutant ? '#AACC00' : '#443322';
-        ctx.fillStyle = eyeColor;
-        ctx.beginPath();
-        ctx.arc(x - 1.3 * z * sc, headY - 0.2 * z, 0.5 * z, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x + 1.7 * z * sc, headY - 0.2 * z, 0.5 * z, 0, Math.PI * 2);
-        ctx.fill();
+        // Eye sockets - subtle shadow only
+        ctx.fillStyle = this.adjustColor(p.skin, -20);
+        ctx.fillRect(x - 1.8 * z * sc, headY - 0.5 * z, 1 * z, 0.8 * z);
+        ctx.fillRect(x + 0.8 * z * sc, headY - 0.5 * z, 1 * z, 0.8 * z);
         // Pupils
         ctx.fillStyle = '#111';
         ctx.beginPath();
@@ -8989,6 +9323,43 @@ class IsometricRenderer {
                 const ey = ent.renderY !== undefined ? ent.renderY : ent.y;
                 this.drawEntity(ex, ey, ent.spriteType || ent.type, ent.facing || 'south',
                     ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null, ent.animState || 'idle', gameState.inCombat, ent.variantIndex || 0);
+
+                // Red glow on enemies in combat
+                if (gameState.inCombat && ent.type === 'enemy') {
+                    const screen = this.worldToScreen(ex, ey);
+                    const pulse = 0.08 + Math.sin(this.time * 0.06) * 0.04;
+                    const ctx = this.ctx;
+                    const z = this.camera.zoom;
+                    ctx.fillStyle = `rgba(180, 30, 20, ${pulse})`;
+                    ctx.beginPath();
+                    ctx.ellipse(screen.x, screen.y - 15 * z, 14 * z, 22 * z, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Hit chance label next to selected enemy
+                if (ent === gameState.selectedEntity && gameState.inCombat && gameState.hitChance !== undefined) {
+                    const screen = this.worldToScreen(ex, ey);
+                    const ctx = this.ctx;
+                    const z = this.camera.zoom;
+                    const labelX = screen.x + 18 * z;
+                    const labelY = screen.y - 30 * z;
+                    // Background pill
+                    const text = `${gameState.hitChance}%`;
+                    ctx.font = `bold ${9 * z}px 'Courier New'`;
+                    const tw = ctx.measureText(text).width;
+                    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                    ctx.beginPath();
+                    ctx.roundRect(labelX - 4 * z, labelY - 8 * z, tw + 8 * z, 12 * z, 3 * z);
+                    ctx.fill();
+                    ctx.strokeStyle = gameState.hitChance >= 60 ? 'rgba(80,160,60,0.8)' : gameState.hitChance >= 30 ? 'rgba(180,160,40,0.8)' : 'rgba(180,50,30,0.8)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    // Text
+                    ctx.fillStyle = gameState.hitChance >= 60 ? '#8fc860' : gameState.hitChance >= 30 ? '#c8b840' : '#c84030';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(text, labelX, labelY);
+                    ctx.textAlign = 'start';
+                }
             }
         }
 
@@ -9857,6 +10228,11 @@ function createWastelandArea() {
     entities.push(env('cactus1', 'cactus', 6, 2, 'Cactus'));
     entities.push(env('cactus2', 'cactus', 20, 13, 'Cactus'));
     entities.push(env('cactus3', 'cactus', 1, 16, 'Saguaro'));
+    // Car wrecks and broken road
+    entities.push(env('car1', 'car_wreck', 14, 4, 'Rusted Car'));
+    entities.push(env('road1', 'broken_road', 12, 3, 'Cracked Asphalt'));
+    entities.push(env('road2', 'broken_road', 13, 3, 'Broken Road'));
+    entities.push(env('concrete1', 'concrete_ruins', 3, 14, 'Concrete Rubble'));
     // Raider camp structures
     entities.push(env('tower1', 'watchtower', 10, 5, 'Lookout Tower'));
     entities.push(env('shack1', 'building', 17, 12, 'Raider Shack'));
@@ -10203,6 +10579,9 @@ function createOasisArea() {
     entities.push(env('oasis_rocks2', 'rock_formation', 14, 19, 'Stone Marker'));
     entities.push(env('oasis_campfire', 'campfire', 12, 9, 'Trading Post Fire', false));
     entities.push(env('oasis_sign', 'signpost', 11, 22, 'Road Sign', false));
+    entities.push(env('oasis_car', 'car_wreck', 18, 3, 'Abandoned Vehicle'));
+    entities.push(env('oasis_road1', 'broken_road', 5, 22, 'Old Highway'));
+    entities.push(env('oasis_concrete', 'concrete_ruins', 21, 14, 'Foundation Remains'));
     entities.push(env('oasis_bones', 'bones', 21, 19, 'Bleached Bones', false));
     entities.push(env('oasis_wreck1', 'wreckage', 1, 20, 'Rusted Truck'));
     entities.push(env('oasis_ruins1', 'ruins', 15, 3, 'Old Foundation'));
@@ -10462,8 +10841,8 @@ function generateEncounterArea(fromArea, toArea, encounterType) {
         const ex = Utils.randInt(2, width - 3);
         const ey = Utils.randInt(2, height - 3);
         if (map[ey][ex] === 'road') continue;
-        const type = Utils.randChoice(['dead_tree', 'cactus', 'rock_formation']);
-        const names = { dead_tree: 'Dead Tree', cactus: 'Cactus', rock_formation: 'Rocks' };
+        const type = Utils.randChoice(['dead_tree', 'cactus', 'rock_formation', 'car_wreck', 'broken_road', 'concrete_ruins']);
+        const names = { dead_tree: 'Dead Tree', cactus: 'Cactus', rock_formation: 'Rocks', car_wreck: 'Rusted Wreck', broken_road: 'Cracked Road', concrete_ruins: 'Concrete Ruins' };
         entities.push(env(`enc_env_${i}`, type, ex, ey, names[type]));
     }
 
@@ -10814,6 +11193,82 @@ class HUDManager {
 
         this.game.showScreen('loot-screen');
     }
+    showBarterScreen(merchant) {
+        document.getElementById('barter-title').textContent = `Trade with ${merchant.name}`;
+        const barterSkill = CharacterSystem.getSkillValue(this.game.player, 'barter');
+        const priceMultiplierBuy = Math.max(0.7, 1.3 - barterSkill * 0.003);
+        const priceMultiplierSell = Math.min(0.8, 0.3 + barterSkill * 0.004);
+
+        const refreshBarter = () => {
+            const caps = this.game.player.inventory.find(i => i.id === 'bottle_caps');
+            const capCount = caps ? caps.quantity : 0;
+            document.getElementById('barter-player-caps').textContent = capCount;
+
+            // Merchant items
+            const merchantEl = document.getElementById('barter-merchant-items');
+            merchantEl.innerHTML = '';
+            if (!merchant.shopItems) merchant.shopItems = [];
+            for (let i = 0; i < merchant.shopItems.length; i++) {
+                const item = merchant.shopItems[i];
+                const price = Math.ceil((item.value || 10) * priceMultiplierBuy);
+                const div = document.createElement('div');
+                div.className = 'loot-item';
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''} — ${price} caps`;
+                const buyBtn = document.createElement('button');
+                buyBtn.textContent = 'Buy';
+                buyBtn.disabled = capCount < price;
+                buyBtn.addEventListener('click', () => {
+                    InventorySystem.removeItem(this.game.player, 'bottle_caps', price);
+                    InventorySystem.addItem(this.game.player, { ...item, quantity: undefined }, 1);
+                    if (item.quantity > 1) { item.quantity--; } else { merchant.shopItems.splice(i, 1); }
+                    this.game.addMessage(`Bought ${item.name} for ${price} caps.`, 'loot');
+                    this.game.audio.playSfx('click');
+                    refreshBarter();
+                });
+                div.appendChild(nameSpan);
+                div.appendChild(buyBtn);
+                merchantEl.appendChild(div);
+            }
+            if (merchant.shopItems.length === 0) {
+                merchantEl.innerHTML = '<p style="color:#6b5a3a;padding:10px">Nothing for sale</p>';
+            }
+
+            // Player items for selling
+            const playerEl = document.getElementById('barter-player-items');
+            playerEl.innerHTML = '';
+            const sellableItems = this.game.player.inventory.filter(i => i.id !== 'bottle_caps' && i.value);
+            for (const item of sellableItems) {
+                const sellPrice = Math.max(1, Math.floor((item.value || 5) * priceMultiplierSell));
+                const div = document.createElement('div');
+                div.className = 'loot-item';
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''} — ${sellPrice} caps`;
+                const sellBtn = document.createElement('button');
+                sellBtn.textContent = 'Sell';
+                sellBtn.addEventListener('click', () => {
+                    InventorySystem.removeItem(this.game.player, item.uid || item.id, 1);
+                    InventorySystem.addItem(this.game.player, ItemDatabase.bottle_caps, sellPrice);
+                    // Add to merchant stock
+                    const existing = merchant.shopItems.find(si => si.id === item.id);
+                    if (existing) { existing.quantity = (existing.quantity || 1) + 1; }
+                    else { merchant.shopItems.push({ ...item, quantity: 1 }); }
+                    this.game.addMessage(`Sold ${item.name} for ${sellPrice} caps.`, 'loot');
+                    this.game.audio.playSfx('click');
+                    refreshBarter();
+                });
+                div.appendChild(nameSpan);
+                div.appendChild(sellBtn);
+                playerEl.appendChild(div);
+            }
+            if (sellableItems.length === 0) {
+                playerEl.innerHTML = '<p style="color:#6b5a3a;padding:10px">Nothing to sell</p>';
+            }
+        };
+
+        refreshBarter();
+        this.game.showScreen('barter-screen');
+    }
 }
 
 // ==== src/ui/screens.js ====
@@ -11132,15 +11587,26 @@ class Game {
 
     setupUI() {
         // Title screen buttons
+        // Start menu music on first interaction
+        const startMenuMusic = () => {
+            if (!this.audio.ctx) {
+                this.audio.init();
+                this.audio.startMusic('menu');
+            }
+        };
+        document.getElementById('title-screen').addEventListener('click', startMenuMusic, { once: true });
+        document.getElementById('title-screen').addEventListener('mousemove', startMenuMusic, { once: true });
+
         document.getElementById('btn-new-game').addEventListener('click', () => {
-            this.audio.init();
+            if (!this.audio.ctx) this.audio.init();
+            this.audio.startMusic('menu'); // Continue menu music during char creation
             this.audio.playSfx('click');
             this.screens.setupCharCreation();
             this.showScreen('char-creation');
         });
 
         document.getElementById('btn-load-game').addEventListener('click', () => {
-            this.audio.init();
+            if (!this.audio.ctx) this.audio.init();
             this.loadGame();
         });
 
@@ -11181,6 +11647,51 @@ class Game {
             this.audio.playSfx('click');
             this.saveGame();
         });
+
+        // Settings buttons (both main menu and in-game)
+        const openSettings = () => {
+            this.audio.playSfx('click');
+            this.showScreen('settings-screen');
+        };
+        document.getElementById('btn-settings').addEventListener('click', openSettings);
+        document.getElementById('btn-settings-menu').addEventListener('click', () => {
+            if (!this.audio.ctx) this.audio.init();
+            openSettings();
+        });
+
+        // Settings controls
+        this.settings = { difficulty: 'normal', brightness: 100, musicVol: 25, sfxVol: 50, fontSize: 'medium', moveSpeed: 'normal' };
+        document.getElementById('setting-difficulty').addEventListener('change', (e) => {
+            this.settings.difficulty = e.target.value;
+            this.addMessage(`Difficulty set to ${e.target.value}.`, 'info');
+        });
+        document.getElementById('setting-music-vol').addEventListener('input', (e) => {
+            this.settings.musicVol = parseInt(e.target.value);
+            document.getElementById('setting-music-val').textContent = e.target.value + '%';
+            if (this.audio.musicBus) this.audio.musicBus.gain.value = e.target.value / 100;
+            this.audio.musicVolume = e.target.value / 100;
+        });
+        document.getElementById('setting-sfx-vol').addEventListener('input', (e) => {
+            this.settings.sfxVol = parseInt(e.target.value);
+            document.getElementById('setting-sfx-val').textContent = e.target.value + '%';
+            if (this.audio.sfxBus) this.audio.sfxBus.gain.value = e.target.value / 100;
+            this.audio.sfxVolume = e.target.value / 100;
+        });
+        document.getElementById('setting-brightness').addEventListener('input', (e) => {
+            this.settings.brightness = parseInt(e.target.value);
+            document.getElementById('setting-brightness-val').textContent = e.target.value + '%';
+            document.getElementById('game-canvas').style.filter = `brightness(${e.target.value}%)`;
+        });
+        document.getElementById('setting-fontsize').addEventListener('change', (e) => {
+            this.settings.fontSize = e.target.value;
+            const sizes = { small: '11px', medium: '13px', large: '16px' };
+            document.getElementById('message-log').style.fontSize = sizes[e.target.value] || '13px';
+        });
+        document.getElementById('setting-movespeed').addEventListener('change', (e) => {
+            this.settings.moveSpeed = e.target.value;
+            this._moveSpeedMultiplier = { slow: 0.6, normal: 1.0, fast: 1.6 }[e.target.value] || 1.0;
+        });
+        this._moveSpeedMultiplier = 1.0;
 
         // Quick slot clicks
         document.querySelectorAll('.quick-slot').forEach(slot => {
@@ -11384,10 +11895,15 @@ class Game {
 
     // Compute facing direction from movement delta
     getFacing(dx, dy) {
-        if (Math.abs(dx) >= Math.abs(dy)) {
-            return dx > 0 ? 'east' : 'west';
-        }
-        return dy > 0 ? 'south' : 'north';
+        const adx = Math.abs(dx), ady = Math.abs(dy);
+        // 8-directional: if both axes are significant, use diagonal
+        if (adx > ady * 2) return dx > 0 ? 'east' : 'west';
+        if (ady > adx * 2) return dy > 0 ? 'south' : 'north';
+        // Diagonal
+        if (dx > 0 && dy > 0) return 'southeast';
+        if (dx > 0 && dy <= 0) return 'northeast';
+        if (dx <= 0 && dy > 0) return 'southwest';
+        return 'northwest';
     }
 
     animateMovement(path) {
@@ -11464,8 +11980,9 @@ class Game {
                         return;
                     }
 
-                    // Pause between tile steps for natural pace
-                    setTimeout(tweenStep, 60);
+                    // Pause between tile steps for natural pace (adjusted by speed setting)
+                    const stepDelay = Math.round(60 / (this._moveSpeedMultiplier || 1.0));
+                    setTimeout(tweenStep, stepDelay);
                 }
             };
             requestAnimationFrame(tweenSub);
@@ -11569,6 +12086,7 @@ class Game {
                 this.selectedEntity = target;
                 const hitChance = this.combat.calculateHitChance(this.player, target, weapon);
                 const apCost = weapon ? (weapon.apCost || 4) : 3;
+                this._hitChance = hitChance;
                 this.addMessage(`Target: ${target.name} | Hit: ${hitChance}% | AP: ${apCost} | Click again to attack`, 'combat');
                 this.hud.update();
                 return;
@@ -11577,6 +12095,7 @@ class Game {
             // Second click — perform the attack
             this.combat.attack(this.player, target, weapon);
             this.selectedEntity = null;
+            this._hitChance = undefined;
             this.hud.update();
             this.checkAutoEndTurn();
         }
@@ -12123,6 +12642,10 @@ class Game {
         return this.entities.find(e => e.x === x && e.y === y && e !== this.player);
     }
 
+    getEntitiesInArea() {
+        return this.entities.filter(e => e !== this.player);
+    }
+
     // ---- Map Queries ----
 
     getTileAt(x, y) {
@@ -12339,6 +12862,38 @@ class Game {
     }
 
     attemptLockpick(container) {
+        // Check if an NPC owner is nearby and can see you (not sneaking)
+        if (container.ownerId && !this.player.sneaking) {
+            const perceptionRange = 6;
+            const nearbyNpc = this.getEntitiesInArea().find(ent => {
+                if (ent.type !== 'npc' || ent.id !== container.ownerId) return false;
+                const dist = Utils.gridDistance(this.player.x, this.player.y, ent.x, ent.y);
+                const perception = (ent.stats && ent.stats.perception) || 5;
+                return dist <= perception + 1 && dist <= perceptionRange;
+            });
+            if (nearbyNpc) {
+                this.addMessage(`${nearbyNpc.name} notices you trying to pick their lock: "Hey! Keep your hands off my things!"`, 'dialogue');
+                this.audio.playSfx('locked');
+                return;
+            }
+        }
+
+        // Even without owner, any NPC within perception range can interrupt if not sneaking
+        if (!this.player.sneaking) {
+            const witnesses = this.getEntitiesInArea().filter(ent => {
+                if (ent.type !== 'npc') return false;
+                const dist = Utils.gridDistance(this.player.x, this.player.y, ent.x, ent.y);
+                const perception = (ent.stats && ent.stats.perception) || 5;
+                return dist <= perception;
+            });
+            if (witnesses.length > 0) {
+                const witness = witnesses[0];
+                this.addMessage(`${witness.name} spots you: "What do you think you're doing?!" Lockpicking interrupted.`, 'dialogue');
+                this.audio.playSfx('locked');
+                return;
+            }
+        }
+
         // Check for lockpicks in inventory
         const hasElectronic = this.player.inventory.find(i => i.id === 'electronic_lockpick');
         const hasLockpick = this.player.inventory.find(i => i.id === 'lockpick');
@@ -12709,6 +13264,7 @@ class Game {
                 inCombat: this.combat.active,
                 lightLevel: this.getLightLevel(),
                 timeString: this.getTimeString(),
+                hitChance: this._hitChance,
             };
 
             this.renderer.renderArea(
