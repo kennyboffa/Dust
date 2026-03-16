@@ -125,7 +125,23 @@ class CombatSystem {
 
     // Perform an attack
     attack(attacker, defender, weapon) {
-        const apCost = weapon ? (weapon.apCost || 4) : 3;
+        const mode = attacker.attackMode || 'normal';
+        let baseApCost = weapon ? (weapon.apCost || 4) : 3;
+        let apCost = baseApCost;
+        let hitBonus = 0;
+        let critBonus = 0;
+        let damageMultiplier = 1;
+        let burstHits = 1;
+
+        // Attack mode modifiers
+        if (mode === 'aimed') {
+            apCost = Math.ceil(baseApCost * 1.2); // +20% AP
+            hitBonus = 15;
+            critBonus = 50; // +50% crit chance (additive to base)
+        } else if (mode === 'burst' && weapon && weapon.type === 'ranged' && weapon.burstCapable) {
+            apCost = baseApCost + 3;
+            burstHits = Utils.randInt(1, 3);
+        }
 
         // Face the defender
         const adx = defender.x - attacker.x;
@@ -145,68 +161,94 @@ class CombatSystem {
             return { success: false, reason: 'no_ap' };
         }
 
-        const hitChance = this.calculateHitChance(attacker, defender, weapon);
-        const roll = Utils.randInt(1, 100);
-        const hit = roll <= hitChance;
+        let totalDamage = 0;
+        let anyHit = false;
+        let anyCrit = false;
+        let killed = false;
 
-        if (!hit) {
+        for (let burst = 0; burst < burstHits; burst++) {
+            if (killed) break;
+
+            const hitChance = this.calculateHitChance(attacker, defender, weapon) + hitBonus;
+            const clampedHit = Utils.clamp(hitChance, 5, 95);
+            const roll = Utils.randInt(1, 100);
+            const hit = roll <= clampedHit;
+
+            if (!hit) {
+                if (burstHits === 1) {
+                    this.game.addMessage(
+                        `${attacker.name} misses ${defender.name}! (${clampedHit}% chance)`,
+                        'combat'
+                    );
+                    this.game.audio.playSfx('miss');
+                    this.game.addFloatingText(defender.x, defender.y, 'MISS', '#aaa');
+                }
+                continue;
+            }
+
+            anyHit = true;
+
+            // Calculate damage
+            let damage;
+            if (weapon) {
+                damage = Utils.rollDice(weapon.damage || '1d4');
+                if (weapon.type === 'melee') {
+                    damage += attacker.stats.meleeDmg || 0;
+                }
+            } else {
+                damage = 1 + (attacker.stats.meleeDmg || 0);
+            }
+
+            // Critical hit check
+            const baseCritChance = attacker.stats.critChance || 5;
+            const finalCritChance = baseCritChance + critBonus;
+            const isCrit = Utils.randInt(1, 100) <= finalCritChance;
+            if (isCrit) {
+                damage = Math.floor(damage * 2);
+                anyCrit = true;
+            }
+
+            damage = Math.floor(damage * damageMultiplier);
+            const result = CharacterSystem.takeDamage(defender, damage);
+            totalDamage += result.damage;
+
+            if (result.killed) {
+                killed = true;
+                this.onEntityKilled(attacker, defender);
+            }
+        }
+
+        if (anyHit) {
+            const critText = anyCrit ? ' CRITICAL!' : '';
+            const burstText = burstHits > 1 ? ` (${burstHits} round burst)` : '';
             this.game.addMessage(
-                `${attacker.name} misses ${defender.name}! (${hitChance}% chance)`,
+                `${attacker.name} hits ${defender.name} for ${totalDamage} damage!${critText}${burstText}`,
+                'combat'
+            );
+
+            const isRanged = weapon && weapon.type === 'ranged';
+            if (anyCrit) {
+                this.game.audio.playSfx('critical');
+            } else if (isRanged) {
+                this.game.audio.playSfx('gunshot');
+            } else {
+                this.game.audio.playSfx('hit');
+            }
+            this.game.addFloatingText(
+                defender.x, defender.y,
+                `${anyCrit ? 'CRIT! ' : ''}-${totalDamage}`,
+                anyCrit ? '#ff4' : '#f44'
+            );
+        } else if (burstHits > 1) {
+            this.game.addMessage(
+                `${attacker.name}'s burst misses ${defender.name} entirely!`,
                 'combat'
             );
             this.game.audio.playSfx('miss');
             this.game.addFloatingText(defender.x, defender.y, 'MISS', '#aaa');
-            return { success: true, hit: false };
         }
 
-        // Calculate damage
-        let damage;
-        if (weapon) {
-            damage = Utils.rollDice(weapon.damage || '1d4');
-            if (weapon.type === 'melee') {
-                damage += attacker.stats.meleeDmg || 0;
-            }
-        } else {
-            // Unarmed
-            damage = 1 + (attacker.stats.meleeDmg || 0);
-        }
-
-        // Critical hit check
-        const critChance = attacker.stats.critChance || 5;
-        const isCrit = Utils.randInt(1, 100) <= critChance;
-        if (isCrit) {
-            damage = Math.floor(damage * 2);
-        }
-
-        // Apply damage
-        const result = CharacterSystem.takeDamage(defender, damage);
-
-        const critText = isCrit ? ' CRITICAL!' : '';
-        this.game.addMessage(
-            `${attacker.name} hits ${defender.name} for ${result.damage} damage!${critText}`,
-            'combat'
-        );
-
-        // Play appropriate attack sound
-        const isRanged = weapon && weapon.type === 'ranged';
-        if (isCrit) {
-            this.game.audio.playSfx('critical');
-        } else if (isRanged) {
-            this.game.audio.playSfx('gunshot');
-        } else {
-            this.game.audio.playSfx('hit');
-        }
-        this.game.addFloatingText(
-            defender.x, defender.y,
-            `${isCrit ? 'CRIT! ' : ''}-${result.damage}`,
-            isCrit ? '#ff4' : '#f44'
-        );
-
-        if (result.killed) {
-            this.onEntityKilled(attacker, defender);
-        }
-
-        return { success: true, hit: true, damage: result.damage, killed: result.killed, critical: isCrit };
+        return { success: true, hit: anyHit, damage: totalDamage, killed, critical: anyCrit };
     }
 
     onEntityKilled(killer, victim) {
@@ -269,6 +311,7 @@ class CombatSystem {
         this.active = false;
         this.turnOrder = [];
         this.currentTurnIndex = 0;
+        this.game.selectedEntity = null;
         this.game.setState('exploration');
     }
 
@@ -306,7 +349,7 @@ class CombatSystem {
         return tiles;
     }
 
-    // Move entity during combat (costs AP)
+    // Move entity during combat (costs AP) - one tile at a time with smooth animation
     combatMove(entity, targetX, targetY) {
         // Check tile is not occupied
         if (!this.game.isWalkableFor(targetX, targetY, entity)) {
@@ -326,16 +369,88 @@ class CombatSystem {
             return false;
         }
 
-        const dx = targetX - entity.x;
-        const dy = targetY - entity.y;
+        // Use pathfinding to find step-by-step route
+        const path = Utils.findPath(
+            entity.x, entity.y, targetX, targetY,
+            (x, y) => this.game.isWalkableFor(x, y, entity),
+            20
+        );
+
+        if (!path || path.length === 0) {
+            // Direct move fallback for adjacent tiles
+            const dx = targetX - entity.x;
+            const dy = targetY - entity.y;
+            if (dx !== 0 || dy !== 0) {
+                entity.facing = this.game.getFacing(dx, dy);
+            }
+            const fromX = entity.x, fromY = entity.y;
+            entity.x = targetX;
+            entity.y = targetY;
+            // Smooth visual interpolation
+            entity.renderX = fromX;
+            entity.renderY = fromY;
+            entity.animState = 'walk';
+            let sub = 0;
+            const tween = () => {
+                sub++;
+                const t = Math.min(1, sub / 8);
+                const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                entity.renderX = fromX + (targetX - fromX) * ease;
+                entity.renderY = fromY + (targetY - fromY) * ease;
+                if (entity.type === 'player') this.game.renderer.centerOn(entity.renderX, entity.renderY);
+                if (t < 1) {
+                    requestAnimationFrame(tween);
+                } else {
+                    entity.renderX = targetX;
+                    entity.renderY = targetY;
+                    entity.animState = 'idle';
+                }
+            };
+            requestAnimationFrame(tween);
+        } else {
+            // Animate step-by-step along path
+            this._animateCombatPath(entity, path, 0);
+        }
+
+        this.game.audio.playSfx('step');
+        return true;
+    }
+
+    // Animate entity along a combat path tile by tile
+    _animateCombatPath(entity, path, stepIdx) {
+        if (stepIdx >= path.length) {
+            entity.animState = 'idle';
+            return;
+        }
+        const target = path[stepIdx];
+        const fromX = entity.x, fromY = entity.y;
+        const dx = target.x - fromX;
+        const dy = target.y - fromY;
         if (dx !== 0 || dy !== 0) {
             entity.facing = this.game.getFacing(dx, dy);
         }
+        entity.x = target.x;
+        entity.y = target.y;
+        entity.renderX = fromX;
+        entity.renderY = fromY;
         entity.animState = 'walk';
-        entity.x = targetX;
-        setTimeout(() => { entity.animState = 'idle'; }, 300);
-        entity.y = targetY;
-        this.game.audio.playSfx('step');
-        return true;
+        let sub = 0;
+        const tween = () => {
+            sub++;
+            const t = Math.min(1, sub / 8);
+            const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+            entity.renderX = fromX + dx * ease;
+            entity.renderY = fromY + dy * ease;
+            if (entity.type === 'player') this.game.renderer.centerOn(entity.renderX, entity.renderY);
+            if (t < 1) {
+                requestAnimationFrame(tween);
+            } else {
+                entity.renderX = target.x;
+                entity.renderY = target.y;
+                this.game.audio.playSfx('step');
+                setTimeout(() => this._animateCombatPath(entity, path, stepIdx + 1), 50);
+            }
+        };
+        requestAnimationFrame(tween);
     }
 }

@@ -34,7 +34,7 @@ const ItemDatabase = {
     pipe_pistol: {
         id: 'pipe_pistol', name: 'Pipe Pistol', type: 'ranged',
         damage: '1d8', range: 8, apCost: 4, skill: 'smallGuns',
-        weight: 3, value: 100, ammoType: '9mm',
+        weight: 3, value: 100, ammoType: '9mm', burstCapable: true,
         desc: 'A crude but functional pistol cobbled together from scrap.',
     },
     hunting_rifle: {

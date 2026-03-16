@@ -47,7 +47,16 @@ class InventorySystem {
 
         let slot;
         if (item.type === 'weapon' || item.type === 'melee' || item.type === 'ranged') {
-            slot = 'weapon';
+            // If primary weapon slot full, try secondary
+            if (char.equipment.weapon) {
+                slot = 'weapon2';
+                // If both full, replace primary
+                if (char.equipment.weapon2) {
+                    slot = 'weapon';
+                }
+            } else {
+                slot = 'weapon';
+            }
         } else if (item.type === 'armor') {
             slot = 'armor';
         } else if (item.type === 'accessory') {
@@ -78,6 +87,15 @@ class InventorySystem {
         char.inventory.push(item);
         CharacterSystem.recalcStats(char);
         return true;
+    }
+
+    // Swap primary and secondary weapons
+    static switchWeapons(char) {
+        const w1 = char.equipment.weapon;
+        const w2 = char.equipment.weapon2;
+        char.equipment.weapon = w2;
+        char.equipment.weapon2 = w1;
+        CharacterSystem.recalcStats(char);
     }
 
     static useItem(char, itemUid, game) {

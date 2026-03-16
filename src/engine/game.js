@@ -176,6 +176,12 @@ class Game {
             case 't': this.setAction('talk'); break;
             case 'l': this.setAction('look'); break;
             case 's': this.toggleSneak(); break;
+            case 'w':
+                if (this.combat.active) this.switchWeapon();
+                break;
+            case 'q':
+                if (this.combat.active) this.cycleAttackMode();
+                break;
             case ' ':
                 if (this.combat.active) {
                     this.combat.endTurn();
@@ -245,6 +251,25 @@ class Game {
             }
         }
 
+        if (this.combat.active) {
+            // Combat movement — use isWalkableFor which excludes the mover
+            if (!this.isWalkableFor(gridX, gridY, this.player)) {
+                this.addMessage('That tile is blocked!', 'combat');
+                return;
+            }
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (dist > this.player.stats.ap) {
+                this.addMessage('Not enough AP to move there!', 'combat');
+                return;
+            }
+            this.selectedEntity = null;
+            this.combat.combatMove(this.player, gridX, gridY);
+            this.hud.update();
+            this.updateHighlights();
+            this.checkAutoEndTurn();
+            return;
+        }
+
         if (!this.isWalkable(gridX, gridY)) {
             // Check for transitions
             const transition = this.checkTransition(gridX, gridY);
@@ -255,16 +280,7 @@ class Game {
             return;
         }
 
-        if (this.combat.active) {
-            // Combat movement (costs AP)
-            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
-            if (dist <= this.player.stats.ap) {
-                this.combat.combatMove(this.player, gridX, gridY);
-                this.renderer.centerOn(this.player.x, this.player.y);
-                this.hud.update();
-                this.checkAutoEndTurn();
-            }
-        } else {
+        {
             // Free movement (pathfinding)
             const path = Utils.findPath(
                 this.player.x, this.player.y, gridX, gridY,
@@ -315,8 +331,8 @@ class Game {
                 this.player.facing = this.getFacing(dx, dy);
             }
 
-            // Smooth interpolation: 6 sub-frames per tile
-            const subFrames = 6;
+            // Smooth interpolation: 12 sub-frames per tile for slower, more natural movement
+            const subFrames = 12;
             let subStep = 0;
             const startX = this.player.x;
             const startY = this.player.y;
@@ -366,8 +382,8 @@ class Game {
                         return;
                     }
 
-                    // Small pause between tile steps for natural pace
-                    setTimeout(tweenStep, 30);
+                    // Pause between tile steps for natural pace
+                    setTimeout(tweenStep, 60);
                 }
             };
             requestAnimationFrame(tweenSub);
@@ -434,6 +450,8 @@ class Game {
     handleAttack(gridX, gridY) {
         const target = this.getEntityAt(gridX, gridY);
         if (!target) {
+            // Clicked empty tile — deselect
+            this.selectedEntity = null;
             this.addMessage('Nothing to attack there.', 'info');
             return;
         }
@@ -463,7 +481,20 @@ class Game {
         }
 
         if (this.state === 'playerTurn') {
+            // Two-click targeting: first click selects, second click attacks
+            if (this.selectedEntity !== target) {
+                // First click — highlight/select the target
+                this.selectedEntity = target;
+                const hitChance = this.combat.calculateHitChance(this.player, target, weapon);
+                const apCost = weapon ? (weapon.apCost || 4) : 3;
+                this.addMessage(`Target: ${target.name} | Hit: ${hitChance}% | AP: ${apCost} | Click again to attack`, 'combat');
+                this.hud.update();
+                return;
+            }
+
+            // Second click — perform the attack
             this.combat.attack(this.player, target, weapon);
+            this.selectedEntity = null;
             this.hud.update();
             this.checkAutoEndTurn();
         }
@@ -1005,6 +1036,39 @@ class Game {
 
     // ---- Combat ----
 
+    switchWeapon() {
+        InventorySystem.switchWeapons(this.player);
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        const name = weapon ? weapon.name : 'Unarmed';
+        this.addMessage(`Switched to: ${name}`, 'combat');
+        this.audio.playSfx('click');
+        this.updateHighlights();
+        this.hud.update();
+    }
+
+    cycleAttackMode() {
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        const modes = ['normal'];
+        // Aimed shot available for all weapons
+        modes.push('aimed');
+        // Burst only for certain ranged weapons
+        if (weapon && weapon.type === 'ranged' && weapon.burstCapable) {
+            modes.push('burst');
+        }
+        const currentIdx = modes.indexOf(this.player.attackMode || 'normal');
+        const nextIdx = (currentIdx + 1) % modes.length;
+        this.player.attackMode = modes[nextIdx];
+
+        const modeDescs = {
+            normal: 'Normal attack',
+            aimed: 'Aimed Shot (+20% AP, +15% hit, +50% crit)',
+            burst: 'Burst Fire (+3 AP, hits 1-3 times)'
+        };
+        this.addMessage(`Attack mode: ${modeDescs[this.player.attackMode]}`, 'combat');
+        this.audio.playSfx('click');
+        this.hud.update();
+    }
+
     checkAutoEndTurn() {
         if (!this.combat.active || this.state !== 'playerTurn') return;
         if (this.player.stats.ap <= 0) {
@@ -1477,7 +1541,7 @@ class Game {
                 let npcSub = 0;
                 const npcTween = () => {
                     npcSub++;
-                    const t = Math.min(1, npcSub / 8);
+                    const t = Math.min(1, npcSub / 14);
                     const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
                     ent.renderX = fromX + (nx - fromX) * ease;
                     ent.renderY = fromY + (ny - fromY) * ease;

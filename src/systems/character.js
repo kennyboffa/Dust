@@ -61,9 +61,11 @@ class CharacterSystem {
 
             equipment: {
                 weapon: null,
+                weapon2: null,
                 armor: null,
                 accessory: null
             },
+            attackMode: 'normal', // 'normal', 'aimed', 'burst'
 
             inventory: [],
             maxCarryWeight: 0,

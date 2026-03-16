@@ -73,12 +73,24 @@ class HUDManager {
                 combatBar.innerHTML = `
                     <span id="combat-status">COMBAT</span>
                     <span id="combat-ap-display">AP: 0</span>
+                    <div id="combat-weapon-panel">
+                        <button id="combat-weapon-btn" title="Switch Weapon (W)">WEAPON</button>
+                        <button id="combat-mode-btn" title="Attack Mode (Q)">MODE</button>
+                    </div>
                     <button id="combat-end-turn-btn">END TURN</button>
                 `;
                 document.getElementById('game-hud').appendChild(combatBar);
                 document.getElementById('combat-end-turn-btn').addEventListener('click', () => {
                     this.game.audio.playSfx('click');
                     this.game.combat.endTurn();
+                });
+                document.getElementById('combat-weapon-btn').addEventListener('click', () => {
+                    this.game.audio.playSfx('click');
+                    this.game.switchWeapon();
+                });
+                document.getElementById('combat-mode-btn').addEventListener('click', () => {
+                    this.game.audio.playSfx('click');
+                    this.game.cycleAttackMode();
                 });
             }
             combatBar.style.display = 'flex';
@@ -89,6 +101,19 @@ class HUDManager {
                 `AP: ${player.stats.ap}/${player.stats.maxAp}`;
             document.getElementById('combat-end-turn-btn').style.display =
                 isPlayerTurn ? 'block' : 'none';
+
+            // Update weapon display
+            const weapon = InventorySystem.getEquippedWeapon(player);
+            const weaponBtn = document.getElementById('combat-weapon-btn');
+            weaponBtn.textContent = weapon ? weapon.name : 'Unarmed';
+            weaponBtn.title = player.equipment.weapon2
+                ? `Switch to: ${player.equipment.weapon2.name} (W)`
+                : 'No secondary weapon (W)';
+
+            // Update attack mode display
+            const modeBtn = document.getElementById('combat-mode-btn');
+            const modeLabels = { normal: 'Normal', aimed: 'Aimed', burst: 'Burst' };
+            modeBtn.textContent = modeLabels[player.attackMode || 'normal'] || 'Normal';
         } else if (combatBar) {
             combatBar.style.display = 'none';
         }
@@ -99,7 +124,7 @@ class HUDManager {
         if (!player) return;
 
         // Equipped items
-        const slots = ['weapon', 'armor', 'accessory'];
+        const slots = ['weapon', 'weapon2', 'armor', 'accessory'];
         for (const slot of slots) {
             const el = document.querySelector(`.equip-slot[data-slot="${slot}"] span`);
             const item = player.equipment[slot];

@@ -901,6 +901,34 @@ body {
     text-shadow: 0 0 8px rgba(255, 255, 100, 0.5);
 }
 
+#combat-weapon-panel {
+    display: flex;
+    gap: 6px;
+}
+
+#combat-weapon-btn, #combat-mode-btn {
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 5px 10px;
+    background: #5a3a1a;
+    color: #ddb866;
+    border: 1px solid #8b6914;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#combat-weapon-btn:hover, #combat-mode-btn:hover {
+    background: #7a4a2a;
+    border-color: #ffcc44;
+    color: #ffcc44;
+}
+
 /* Tile hover highlight */
 canvas {
     cursor: default;
@@ -1351,7 +1379,8 @@ canvas {
                     <div class="inventory-layout">
                         <div id="equipped-items">
                             <h3>Equipped</h3>
-                            <div class="equip-slot" data-slot="weapon">Weapon: <span>—</span></div>
+                            <div class="equip-slot" data-slot="weapon">Weapon 1: <span>—</span></div>
+                            <div class="equip-slot" data-slot="weapon2">Weapon 2: <span>—</span></div>
                             <div class="equip-slot" data-slot="armor">Armor: <span>—</span></div>
                             <div class="equip-slot" data-slot="accessory">Accessory: <span>—</span></div>
                         </div>
@@ -1639,7 +1668,7 @@ const ItemDatabase = {
     pipe_pistol: {
         id: 'pipe_pistol', name: 'Pipe Pistol', type: 'ranged',
         damage: '1d8', range: 8, apCost: 4, skill: 'smallGuns',
-        weight: 3, value: 100, ammoType: '9mm',
+        weight: 3, value: 100, ammoType: '9mm', burstCapable: true,
         desc: 'A crude but functional pistol cobbled together from scrap.',
     },
     hunting_rifle: {
@@ -2831,9 +2860,11 @@ class CharacterSystem {
 
             equipment: {
                 weapon: null,
+                weapon2: null,
                 armor: null,
                 accessory: null
             },
+            attackMode: 'normal', // 'normal', 'aimed', 'burst'
 
             inventory: [],
             maxCarryWeight: 0,
@@ -3182,7 +3213,23 @@ class CombatSystem {
 
     // Perform an attack
     attack(attacker, defender, weapon) {
-        const apCost = weapon ? (weapon.apCost || 4) : 3;
+        const mode = attacker.attackMode || 'normal';
+        let baseApCost = weapon ? (weapon.apCost || 4) : 3;
+        let apCost = baseApCost;
+        let hitBonus = 0;
+        let critBonus = 0;
+        let damageMultiplier = 1;
+        let burstHits = 1;
+
+        // Attack mode modifiers
+        if (mode === 'aimed') {
+            apCost = Math.ceil(baseApCost * 1.2); // +20% AP
+            hitBonus = 15;
+            critBonus = 50; // +50% crit chance (additive to base)
+        } else if (mode === 'burst' && weapon && weapon.type === 'ranged' && weapon.burstCapable) {
+            apCost = baseApCost + 3;
+            burstHits = Utils.randInt(1, 3);
+        }
 
         // Face the defender
         const adx = defender.x - attacker.x;
@@ -3202,68 +3249,94 @@ class CombatSystem {
             return { success: false, reason: 'no_ap' };
         }
 
-        const hitChance = this.calculateHitChance(attacker, defender, weapon);
-        const roll = Utils.randInt(1, 100);
-        const hit = roll <= hitChance;
+        let totalDamage = 0;
+        let anyHit = false;
+        let anyCrit = false;
+        let killed = false;
 
-        if (!hit) {
+        for (let burst = 0; burst < burstHits; burst++) {
+            if (killed) break;
+
+            const hitChance = this.calculateHitChance(attacker, defender, weapon) + hitBonus;
+            const clampedHit = Utils.clamp(hitChance, 5, 95);
+            const roll = Utils.randInt(1, 100);
+            const hit = roll <= clampedHit;
+
+            if (!hit) {
+                if (burstHits === 1) {
+                    this.game.addMessage(
+                        `${attacker.name} misses ${defender.name}! (${clampedHit}% chance)`,
+                        'combat'
+                    );
+                    this.game.audio.playSfx('miss');
+                    this.game.addFloatingText(defender.x, defender.y, 'MISS', '#aaa');
+                }
+                continue;
+            }
+
+            anyHit = true;
+
+            // Calculate damage
+            let damage;
+            if (weapon) {
+                damage = Utils.rollDice(weapon.damage || '1d4');
+                if (weapon.type === 'melee') {
+                    damage += attacker.stats.meleeDmg || 0;
+                }
+            } else {
+                damage = 1 + (attacker.stats.meleeDmg || 0);
+            }
+
+            // Critical hit check
+            const baseCritChance = attacker.stats.critChance || 5;
+            const finalCritChance = baseCritChance + critBonus;
+            const isCrit = Utils.randInt(1, 100) <= finalCritChance;
+            if (isCrit) {
+                damage = Math.floor(damage * 2);
+                anyCrit = true;
+            }
+
+            damage = Math.floor(damage * damageMultiplier);
+            const result = CharacterSystem.takeDamage(defender, damage);
+            totalDamage += result.damage;
+
+            if (result.killed) {
+                killed = true;
+                this.onEntityKilled(attacker, defender);
+            }
+        }
+
+        if (anyHit) {
+            const critText = anyCrit ? ' CRITICAL!' : '';
+            const burstText = burstHits > 1 ? ` (${burstHits} round burst)` : '';
             this.game.addMessage(
-                `${attacker.name} misses ${defender.name}! (${hitChance}% chance)`,
+                `${attacker.name} hits ${defender.name} for ${totalDamage} damage!${critText}${burstText}`,
+                'combat'
+            );
+
+            const isRanged = weapon && weapon.type === 'ranged';
+            if (anyCrit) {
+                this.game.audio.playSfx('critical');
+            } else if (isRanged) {
+                this.game.audio.playSfx('gunshot');
+            } else {
+                this.game.audio.playSfx('hit');
+            }
+            this.game.addFloatingText(
+                defender.x, defender.y,
+                `${anyCrit ? 'CRIT! ' : ''}-${totalDamage}`,
+                anyCrit ? '#ff4' : '#f44'
+            );
+        } else if (burstHits > 1) {
+            this.game.addMessage(
+                `${attacker.name}'s burst misses ${defender.name} entirely!`,
                 'combat'
             );
             this.game.audio.playSfx('miss');
             this.game.addFloatingText(defender.x, defender.y, 'MISS', '#aaa');
-            return { success: true, hit: false };
         }
 
-        // Calculate damage
-        let damage;
-        if (weapon) {
-            damage = Utils.rollDice(weapon.damage || '1d4');
-            if (weapon.type === 'melee') {
-                damage += attacker.stats.meleeDmg || 0;
-            }
-        } else {
-            // Unarmed
-            damage = 1 + (attacker.stats.meleeDmg || 0);
-        }
-
-        // Critical hit check
-        const critChance = attacker.stats.critChance || 5;
-        const isCrit = Utils.randInt(1, 100) <= critChance;
-        if (isCrit) {
-            damage = Math.floor(damage * 2);
-        }
-
-        // Apply damage
-        const result = CharacterSystem.takeDamage(defender, damage);
-
-        const critText = isCrit ? ' CRITICAL!' : '';
-        this.game.addMessage(
-            `${attacker.name} hits ${defender.name} for ${result.damage} damage!${critText}`,
-            'combat'
-        );
-
-        // Play appropriate attack sound
-        const isRanged = weapon && weapon.type === 'ranged';
-        if (isCrit) {
-            this.game.audio.playSfx('critical');
-        } else if (isRanged) {
-            this.game.audio.playSfx('gunshot');
-        } else {
-            this.game.audio.playSfx('hit');
-        }
-        this.game.addFloatingText(
-            defender.x, defender.y,
-            `${isCrit ? 'CRIT! ' : ''}-${result.damage}`,
-            isCrit ? '#ff4' : '#f44'
-        );
-
-        if (result.killed) {
-            this.onEntityKilled(attacker, defender);
-        }
-
-        return { success: true, hit: true, damage: result.damage, killed: result.killed, critical: isCrit };
+        return { success: true, hit: anyHit, damage: totalDamage, killed, critical: anyCrit };
     }
 
     onEntityKilled(killer, victim) {
@@ -3326,6 +3399,7 @@ class CombatSystem {
         this.active = false;
         this.turnOrder = [];
         this.currentTurnIndex = 0;
+        this.game.selectedEntity = null;
         this.game.setState('exploration');
     }
 
@@ -3363,7 +3437,7 @@ class CombatSystem {
         return tiles;
     }
 
-    // Move entity during combat (costs AP)
+    // Move entity during combat (costs AP) - one tile at a time with smooth animation
     combatMove(entity, targetX, targetY) {
         // Check tile is not occupied
         if (!this.game.isWalkableFor(targetX, targetY, entity)) {
@@ -3383,17 +3457,89 @@ class CombatSystem {
             return false;
         }
 
-        const dx = targetX - entity.x;
-        const dy = targetY - entity.y;
+        // Use pathfinding to find step-by-step route
+        const path = Utils.findPath(
+            entity.x, entity.y, targetX, targetY,
+            (x, y) => this.game.isWalkableFor(x, y, entity),
+            20
+        );
+
+        if (!path || path.length === 0) {
+            // Direct move fallback for adjacent tiles
+            const dx = targetX - entity.x;
+            const dy = targetY - entity.y;
+            if (dx !== 0 || dy !== 0) {
+                entity.facing = this.game.getFacing(dx, dy);
+            }
+            const fromX = entity.x, fromY = entity.y;
+            entity.x = targetX;
+            entity.y = targetY;
+            // Smooth visual interpolation
+            entity.renderX = fromX;
+            entity.renderY = fromY;
+            entity.animState = 'walk';
+            let sub = 0;
+            const tween = () => {
+                sub++;
+                const t = Math.min(1, sub / 8);
+                const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                entity.renderX = fromX + (targetX - fromX) * ease;
+                entity.renderY = fromY + (targetY - fromY) * ease;
+                if (entity.type === 'player') this.game.renderer.centerOn(entity.renderX, entity.renderY);
+                if (t < 1) {
+                    requestAnimationFrame(tween);
+                } else {
+                    entity.renderX = targetX;
+                    entity.renderY = targetY;
+                    entity.animState = 'idle';
+                }
+            };
+            requestAnimationFrame(tween);
+        } else {
+            // Animate step-by-step along path
+            this._animateCombatPath(entity, path, 0);
+        }
+
+        this.game.audio.playSfx('step');
+        return true;
+    }
+
+    // Animate entity along a combat path tile by tile
+    _animateCombatPath(entity, path, stepIdx) {
+        if (stepIdx >= path.length) {
+            entity.animState = 'idle';
+            return;
+        }
+        const target = path[stepIdx];
+        const fromX = entity.x, fromY = entity.y;
+        const dx = target.x - fromX;
+        const dy = target.y - fromY;
         if (dx !== 0 || dy !== 0) {
             entity.facing = this.game.getFacing(dx, dy);
         }
+        entity.x = target.x;
+        entity.y = target.y;
+        entity.renderX = fromX;
+        entity.renderY = fromY;
         entity.animState = 'walk';
-        entity.x = targetX;
-        setTimeout(() => { entity.animState = 'idle'; }, 300);
-        entity.y = targetY;
-        this.game.audio.playSfx('step');
-        return true;
+        let sub = 0;
+        const tween = () => {
+            sub++;
+            const t = Math.min(1, sub / 8);
+            const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+            entity.renderX = fromX + dx * ease;
+            entity.renderY = fromY + dy * ease;
+            if (entity.type === 'player') this.game.renderer.centerOn(entity.renderX, entity.renderY);
+            if (t < 1) {
+                requestAnimationFrame(tween);
+            } else {
+                entity.renderX = target.x;
+                entity.renderY = target.y;
+                this.game.audio.playSfx('step');
+                setTimeout(() => this._animateCombatPath(entity, path, stepIdx + 1), 50);
+            }
+        };
+        requestAnimationFrame(tween);
     }
 }
 
@@ -3787,7 +3933,16 @@ class InventorySystem {
 
         let slot;
         if (item.type === 'weapon' || item.type === 'melee' || item.type === 'ranged') {
-            slot = 'weapon';
+            // If primary weapon slot full, try secondary
+            if (char.equipment.weapon) {
+                slot = 'weapon2';
+                // If both full, replace primary
+                if (char.equipment.weapon2) {
+                    slot = 'weapon';
+                }
+            } else {
+                slot = 'weapon';
+            }
         } else if (item.type === 'armor') {
             slot = 'armor';
         } else if (item.type === 'accessory') {
@@ -3818,6 +3973,15 @@ class InventorySystem {
         char.inventory.push(item);
         CharacterSystem.recalcStats(char);
         return true;
+    }
+
+    // Swap primary and secondary weapons
+    static switchWeapons(char) {
+        const w1 = char.equipment.weapon;
+        const w2 = char.equipment.weapon2;
+        char.equipment.weapon = w2;
+        char.equipment.weapon2 = w1;
+        CharacterSystem.recalcStats(char);
     }
 
     static useItem(char, itemUid, game) {
@@ -10219,12 +10383,24 @@ class HUDManager {
                 combatBar.innerHTML = `
                     <span id="combat-status">COMBAT</span>
                     <span id="combat-ap-display">AP: 0</span>
+                    <div id="combat-weapon-panel">
+                        <button id="combat-weapon-btn" title="Switch Weapon (W)">WEAPON</button>
+                        <button id="combat-mode-btn" title="Attack Mode (Q)">MODE</button>
+                    </div>
                     <button id="combat-end-turn-btn">END TURN</button>
                 `;
                 document.getElementById('game-hud').appendChild(combatBar);
                 document.getElementById('combat-end-turn-btn').addEventListener('click', () => {
                     this.game.audio.playSfx('click');
                     this.game.combat.endTurn();
+                });
+                document.getElementById('combat-weapon-btn').addEventListener('click', () => {
+                    this.game.audio.playSfx('click');
+                    this.game.switchWeapon();
+                });
+                document.getElementById('combat-mode-btn').addEventListener('click', () => {
+                    this.game.audio.playSfx('click');
+                    this.game.cycleAttackMode();
                 });
             }
             combatBar.style.display = 'flex';
@@ -10235,6 +10411,19 @@ class HUDManager {
                 `AP: ${player.stats.ap}/${player.stats.maxAp}`;
             document.getElementById('combat-end-turn-btn').style.display =
                 isPlayerTurn ? 'block' : 'none';
+
+            // Update weapon display
+            const weapon = InventorySystem.getEquippedWeapon(player);
+            const weaponBtn = document.getElementById('combat-weapon-btn');
+            weaponBtn.textContent = weapon ? weapon.name : 'Unarmed';
+            weaponBtn.title = player.equipment.weapon2
+                ? `Switch to: ${player.equipment.weapon2.name} (W)`
+                : 'No secondary weapon (W)';
+
+            // Update attack mode display
+            const modeBtn = document.getElementById('combat-mode-btn');
+            const modeLabels = { normal: 'Normal', aimed: 'Aimed', burst: 'Burst' };
+            modeBtn.textContent = modeLabels[player.attackMode || 'normal'] || 'Normal';
         } else if (combatBar) {
             combatBar.style.display = 'none';
         }
@@ -10245,7 +10434,7 @@ class HUDManager {
         if (!player) return;
 
         // Equipped items
-        const slots = ['weapon', 'armor', 'accessory'];
+        const slots = ['weapon', 'weapon2', 'armor', 'accessory'];
         for (const slot of slots) {
             const el = document.querySelector(`.equip-slot[data-slot="${slot}"] span`);
             const item = player.equipment[slot];
@@ -10852,6 +11041,12 @@ class Game {
             case 't': this.setAction('talk'); break;
             case 'l': this.setAction('look'); break;
             case 's': this.toggleSneak(); break;
+            case 'w':
+                if (this.combat.active) this.switchWeapon();
+                break;
+            case 'q':
+                if (this.combat.active) this.cycleAttackMode();
+                break;
             case ' ':
                 if (this.combat.active) {
                     this.combat.endTurn();
@@ -10921,6 +11116,25 @@ class Game {
             }
         }
 
+        if (this.combat.active) {
+            // Combat movement — use isWalkableFor which excludes the mover
+            if (!this.isWalkableFor(gridX, gridY, this.player)) {
+                this.addMessage('That tile is blocked!', 'combat');
+                return;
+            }
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (dist > this.player.stats.ap) {
+                this.addMessage('Not enough AP to move there!', 'combat');
+                return;
+            }
+            this.selectedEntity = null;
+            this.combat.combatMove(this.player, gridX, gridY);
+            this.hud.update();
+            this.updateHighlights();
+            this.checkAutoEndTurn();
+            return;
+        }
+
         if (!this.isWalkable(gridX, gridY)) {
             // Check for transitions
             const transition = this.checkTransition(gridX, gridY);
@@ -10931,16 +11145,7 @@ class Game {
             return;
         }
 
-        if (this.combat.active) {
-            // Combat movement (costs AP)
-            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
-            if (dist <= this.player.stats.ap) {
-                this.combat.combatMove(this.player, gridX, gridY);
-                this.renderer.centerOn(this.player.x, this.player.y);
-                this.hud.update();
-                this.checkAutoEndTurn();
-            }
-        } else {
+        {
             // Free movement (pathfinding)
             const path = Utils.findPath(
                 this.player.x, this.player.y, gridX, gridY,
@@ -10991,8 +11196,8 @@ class Game {
                 this.player.facing = this.getFacing(dx, dy);
             }
 
-            // Smooth interpolation: 6 sub-frames per tile
-            const subFrames = 6;
+            // Smooth interpolation: 12 sub-frames per tile for slower, more natural movement
+            const subFrames = 12;
             let subStep = 0;
             const startX = this.player.x;
             const startY = this.player.y;
@@ -11042,8 +11247,8 @@ class Game {
                         return;
                     }
 
-                    // Small pause between tile steps for natural pace
-                    setTimeout(tweenStep, 30);
+                    // Pause between tile steps for natural pace
+                    setTimeout(tweenStep, 60);
                 }
             };
             requestAnimationFrame(tweenSub);
@@ -11110,6 +11315,8 @@ class Game {
     handleAttack(gridX, gridY) {
         const target = this.getEntityAt(gridX, gridY);
         if (!target) {
+            // Clicked empty tile — deselect
+            this.selectedEntity = null;
             this.addMessage('Nothing to attack there.', 'info');
             return;
         }
@@ -11139,7 +11346,20 @@ class Game {
         }
 
         if (this.state === 'playerTurn') {
+            // Two-click targeting: first click selects, second click attacks
+            if (this.selectedEntity !== target) {
+                // First click — highlight/select the target
+                this.selectedEntity = target;
+                const hitChance = this.combat.calculateHitChance(this.player, target, weapon);
+                const apCost = weapon ? (weapon.apCost || 4) : 3;
+                this.addMessage(`Target: ${target.name} | Hit: ${hitChance}% | AP: ${apCost} | Click again to attack`, 'combat');
+                this.hud.update();
+                return;
+            }
+
+            // Second click — perform the attack
             this.combat.attack(this.player, target, weapon);
+            this.selectedEntity = null;
             this.hud.update();
             this.checkAutoEndTurn();
         }
@@ -11681,6 +11901,39 @@ class Game {
 
     // ---- Combat ----
 
+    switchWeapon() {
+        InventorySystem.switchWeapons(this.player);
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        const name = weapon ? weapon.name : 'Unarmed';
+        this.addMessage(`Switched to: ${name}`, 'combat');
+        this.audio.playSfx('click');
+        this.updateHighlights();
+        this.hud.update();
+    }
+
+    cycleAttackMode() {
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        const modes = ['normal'];
+        // Aimed shot available for all weapons
+        modes.push('aimed');
+        // Burst only for certain ranged weapons
+        if (weapon && weapon.type === 'ranged' && weapon.burstCapable) {
+            modes.push('burst');
+        }
+        const currentIdx = modes.indexOf(this.player.attackMode || 'normal');
+        const nextIdx = (currentIdx + 1) % modes.length;
+        this.player.attackMode = modes[nextIdx];
+
+        const modeDescs = {
+            normal: 'Normal attack',
+            aimed: 'Aimed Shot (+20% AP, +15% hit, +50% crit)',
+            burst: 'Burst Fire (+3 AP, hits 1-3 times)'
+        };
+        this.addMessage(`Attack mode: ${modeDescs[this.player.attackMode]}`, 'combat');
+        this.audio.playSfx('click');
+        this.hud.update();
+    }
+
     checkAutoEndTurn() {
         if (!this.combat.active || this.state !== 'playerTurn') return;
         if (this.player.stats.ap <= 0) {
@@ -12153,7 +12406,7 @@ class Game {
                 let npcSub = 0;
                 const npcTween = () => {
                     npcSub++;
-                    const t = Math.min(1, npcSub / 8);
+                    const t = Math.min(1, npcSub / 14);
                     const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
                     ent.renderX = fromX + (nx - fromX) * ease;
                     ent.renderY = fromY + (ny - fromY) * ease;
