@@ -55,6 +55,74 @@ body {
     pointer-events: all;
 }
 
+/* Death Screen */
+#death-screen {
+    background: linear-gradient(180deg, #0a0000 0%, #1a0505 40%, #0a0000 100%);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 200;
+}
+.death-content { text-align: center; }
+.death-title {
+    font-family: 'Courier New', monospace;
+    font-size: 3em;
+    color: #8a2020;
+    text-shadow: 0 0 20px rgba(140, 30, 30, 0.5), 0 0 60px rgba(100, 10, 10, 0.3);
+    letter-spacing: 8px;
+    margin-bottom: 10px;
+    animation: deathPulse 3s ease-in-out infinite;
+}
+@keyframes deathPulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+.death-subtitle {
+    color: #6a4a3a;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+}
+.death-quote {
+    color: #5a4a3a;
+    font-family: 'Courier New', monospace;
+    font-style: italic;
+    font-size: 0.9em;
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+/* Intro Narrative Screen */
+#intro-screen {
+    background: #0a0800;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 150;
+    cursor: pointer;
+}
+.intro-content {
+    max-width: 600px;
+    color: #8a7a5a;
+    font-family: 'Courier New', monospace;
+    font-size: 1em;
+    line-height: 1.8;
+    text-align: center;
+    padding: 40px;
+}
+.intro-prompt {
+    color: #5a4a3a;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    margin-top: 30px;
+    animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
 /* Title Screen */
 #title-screen {
     background: linear-gradient(180deg, #1a0e00 0%, #3d2200 40%, #6b3a00 70%, #1a0e00 100%);
