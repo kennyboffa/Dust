@@ -4832,6 +4832,16 @@ class SpriteGenerator {
         const baseSkin = skinTones[skinIdx % skinTones.length];
         const baseHair = hairColors[hairIdx % hairColors.length];
 
+        // Armor visual overrides based on equipped armor
+        const armorId = v.armorId || null;
+        const armorVisuals = {
+            'tribal_garb':    { shirt:[110,85,55], pants:[65,50,32], boots:[30,20,10], armor: false, bare: true, armorColor: null },
+            'ragged_clothes': { shirt:[130,120,100], pants:[80,75,65], boots:[35,28,18], armor: false, bare: false, armorColor: null },
+            'leather_armor':  { shirt:[85,55,28], pants:[55,38,22], boots:[28,18,8], armor: true, bare: false, armorColor: [75,48,22] },
+            'metal_armor':    { shirt:[70,72,68], pants:[45,48,45], boots:[25,25,22], armor: true, bare: false, armorColor: [95,100,95] },
+        };
+        const armorOverride = armorId ? armorVisuals[armorId] : null;
+
         // Fallout 2 palette per type with variation support
         const palettes = {
             'player':  { skin: baseSkin, shirt:[100,78,42], pants:[55,42,25], boots:[30,20,10], hair: baseHair, belt:[42,32,14], accent:[120,100,48], armor: true, bare: false },
@@ -4843,6 +4853,18 @@ class SpriteGenerator {
             'mutant':  { skin:[62,105,25], shirt:[42,65,15], pants:[30,42,8], boots:[22,32,5], hair:[55,85,18], belt:[40,52,15], accent:[65,118,28], armor: false, bare: false },
         };
         const p = palettes[type] || palettes['villager'];
+
+        // Apply armor visual override for player
+        if (armorOverride && type === 'player') {
+            p.shirt = armorOverride.shirt;
+            p.pants = armorOverride.pants;
+            p.boots = armorOverride.boots;
+            p.armor = armorOverride.armor;
+            p.bare = armorOverride.bare;
+            if (armorOverride.armorColor) {
+                p._armorColor = armorOverride.armorColor;
+            }
+        }
         const isMutant = type === 'mutant';
         const sc = (isMutant ? 1.4 : 1) * bodySc;
 
@@ -5017,8 +5039,14 @@ class SpriteGenerator {
 
         // Armor/vest overlay
         if (p.armor && !p.bare) {
-            const vc = type === 'raider' ? [45,25,20] : type === 'guard' ? [58,55,38] : [70,60,35];
+            const vc = p._armorColor || (type === 'raider' ? [45,25,20] : type === 'guard' ? [58,55,38] : [70,60,35]);
             fillEllipse(cx, torsoY + bodyH / 2, bodyW / 2 - 1, bodyH / 2 - 1, vc, 6, -10);
+            // Metal armor shoulder plates
+            if (armorId === 'metal_armor') {
+                const plateColor = [110,115,108];
+                fillRect(cx - bodyW / 2 - 1, torsoY + 1, 4, 4, plateColor, 8, -6);
+                fillRect(cx + bodyW / 2 - 3, torsoY + 1, 4, 4, plateColor, 8, -6);
+            }
         }
 
         // Raider leather straps
@@ -6728,6 +6756,59 @@ class IsometricRenderer {
     darken(hex, amount) {
         const [r, g, b] = this.hexToRgb(hex);
         return this.rgbStr(r * (1 - amount), g * (1 - amount), b * (1 - amount));
+    }
+
+    // Regenerate player sprites with current armor appearance
+    regeneratePlayerSprites(armorId) {
+        const type = 'player';
+        this._humanoidSprites[type] = [];
+
+        const vrng = SpriteGenerator.seededRandom(type.length * 7919);
+        const variant = {
+            skinTone: Math.floor(vrng() * 5),
+            hairColor: Math.floor(vrng() * 6),
+            bodyScale: 0.92 + vrng() * 0.16,
+            gender: 'male',
+            seed: type.length * 10000,
+            armorId: armorId || null,
+        };
+
+        // Store for save/load consistency
+        this._playerArmorId = armorId;
+
+        const variantSet = {
+            south: [], north: [], east: [], west: [],
+            walk_south: [], walk_north: [], walk_east: [], walk_west: [],
+            attack_south: [], attack_north: [], attack_east: [], attack_west: [],
+        };
+
+        for (let f = 0; f < 4; f++) {
+            const south = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'idle', variant);
+            const north = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'idle', variant);
+            const east = SpriteGenerator.mirrorSprite(south);
+            variantSet.south.push(south);
+            variantSet.north.push(north);
+            variantSet.east.push(east);
+            variantSet.west.push(south);
+
+            const walkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'walk', variant);
+            const walkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'walk', variant);
+            const walkEast = SpriteGenerator.mirrorSprite(walkSouth);
+            variantSet.walk_south.push(walkSouth);
+            variantSet.walk_north.push(walkNorth);
+            variantSet.walk_east.push(walkEast);
+            variantSet.walk_west.push(walkSouth);
+
+            const atkSouth = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack', variant);
+            const atkNorth = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack', variant);
+            const atkEast = SpriteGenerator.mirrorSprite(atkSouth);
+            variantSet.attack_south.push(atkSouth);
+            variantSet.attack_north.push(atkNorth);
+            variantSet.attack_east.push(atkEast);
+            variantSet.attack_west.push(atkSouth);
+        }
+
+        this._humanoidSprites[type].push(variantSet);
     }
 
     worldToScreen(gx, gy) {
@@ -10976,6 +11057,7 @@ class Game {
                 const slot = el.dataset.slot;
                 if (this.player && this.player.equipment[slot]) {
                     InventorySystem.unequip(this.player, slot);
+                    if (slot === 'armor') this.updatePlayerArmorSprite();
                     this.hud.updateInventoryScreen();
                     this.addMessage(`Unequipped ${slot}.`, 'info');
                 }
@@ -11135,32 +11217,20 @@ class Game {
             return;
         }
 
-        if (!this.isWalkable(gridX, gridY)) {
-            // Check for transitions
-            const transition = this.checkTransition(gridX, gridY);
-            if (transition) {
-                this.transitionArea(transition);
-                return;
-            }
+        if (!this.isWalkable(gridX, gridY) && !this.checkTransition(gridX, gridY)) {
             return;
         }
 
         {
-            // Free movement (pathfinding)
+            // Free movement (pathfinding) — allow transition tiles as walkable
             const path = Utils.findPath(
                 this.player.x, this.player.y, gridX, gridY,
-                (x, y) => this.isWalkable(x, y),
+                (x, y) => this.isWalkable(x, y) || !!this.checkTransition(x, y),
                 40
             );
 
             if (path && path.length > 0) {
                 this.animateMovement(path);
-            }
-
-            // Check for transition at destination
-            const transition = this.checkTransition(gridX, gridY);
-            if (transition) {
-                this.transitionArea(transition);
             }
         }
     }
@@ -11475,6 +11545,7 @@ class Game {
         if (knife) InventorySystem.equip(this.player, knife.uid);
         const garb = this.player.inventory.find(i => i.id === 'tribal_garb');
         if (garb) InventorySystem.equip(this.player, garb.uid);
+        this.updatePlayerArmorSprite();
 
         // Generate areas
         this.areas = {
@@ -12012,9 +12083,16 @@ class Game {
 
     equipItem(itemUid) {
         InventorySystem.equip(this.player, itemUid);
+        this.updatePlayerArmorSprite();
         this.hud.updateInventoryScreen();
         this.hud.update();
         this.addMessage('Equipment changed.', 'info');
+    }
+
+    updatePlayerArmorSprite() {
+        const armor = this.player.equipment.armor;
+        const armorId = armor ? armor.id : null;
+        this.renderer.regeneratePlayerSprites(armorId);
     }
 
     dropItem(itemId) {
@@ -12351,6 +12429,7 @@ class Game {
 
             // Load the saved area
             this.loadArea(saveData.currentAreaId || 'village');
+            this.updatePlayerArmorSprite();
 
             this.hideScreen('title-screen');
             this.hideScreen('char-creation');

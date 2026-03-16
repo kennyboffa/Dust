@@ -111,6 +111,7 @@ class Game {
                 const slot = el.dataset.slot;
                 if (this.player && this.player.equipment[slot]) {
                     InventorySystem.unequip(this.player, slot);
+                    if (slot === 'armor') this.updatePlayerArmorSprite();
                     this.hud.updateInventoryScreen();
                     this.addMessage(`Unequipped ${slot}.`, 'info');
                 }
@@ -270,32 +271,20 @@ class Game {
             return;
         }
 
-        if (!this.isWalkable(gridX, gridY)) {
-            // Check for transitions
-            const transition = this.checkTransition(gridX, gridY);
-            if (transition) {
-                this.transitionArea(transition);
-                return;
-            }
+        if (!this.isWalkable(gridX, gridY) && !this.checkTransition(gridX, gridY)) {
             return;
         }
 
         {
-            // Free movement (pathfinding)
+            // Free movement (pathfinding) — allow transition tiles as walkable
             const path = Utils.findPath(
                 this.player.x, this.player.y, gridX, gridY,
-                (x, y) => this.isWalkable(x, y),
+                (x, y) => this.isWalkable(x, y) || !!this.checkTransition(x, y),
                 40
             );
 
             if (path && path.length > 0) {
                 this.animateMovement(path);
-            }
-
-            // Check for transition at destination
-            const transition = this.checkTransition(gridX, gridY);
-            if (transition) {
-                this.transitionArea(transition);
             }
         }
     }
@@ -610,6 +599,7 @@ class Game {
         if (knife) InventorySystem.equip(this.player, knife.uid);
         const garb = this.player.inventory.find(i => i.id === 'tribal_garb');
         if (garb) InventorySystem.equip(this.player, garb.uid);
+        this.updatePlayerArmorSprite();
 
         // Generate areas
         this.areas = {
@@ -1147,9 +1137,16 @@ class Game {
 
     equipItem(itemUid) {
         InventorySystem.equip(this.player, itemUid);
+        this.updatePlayerArmorSprite();
         this.hud.updateInventoryScreen();
         this.hud.update();
         this.addMessage('Equipment changed.', 'info');
+    }
+
+    updatePlayerArmorSprite() {
+        const armor = this.player.equipment.armor;
+        const armorId = armor ? armor.id : null;
+        this.renderer.regeneratePlayerSprites(armorId);
     }
 
     dropItem(itemId) {
@@ -1486,6 +1483,7 @@ class Game {
 
             // Load the saved area
             this.loadArea(saveData.currentAreaId || 'village');
+            this.updatePlayerArmorSprite();
 
             this.hideScreen('title-screen');
             this.hideScreen('char-creation');
