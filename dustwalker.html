@@ -4888,7 +4888,7 @@ class SpriteGenerator {
     // ---- HUMANOID SPRITE GENERATION (pixel-by-pixel with Fallout 2 pre-rendered look) ----
     // variant: { skinTone: 0-4, hairColor: 0-5, bodyScale: 0.9-1.1, gender: 'male'|'female', seed: int }
     static generateHumanoidSprite(type, frame, facing = 'south', animType = 'idle', variant = null) {
-        const w = 72, h = 96;
+        const w = 48, h = 48;
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
         const imgData = ctx.createImageData(w, h);
@@ -4951,7 +4951,7 @@ class SpriteGenerator {
             }
         }
         const isMutant = type === 'mutant';
-        const sc = (isMutant ? 1.4 : 1) * bodySc * 1.5; // 1.5x for higher resolution sprites
+        const sc = (isMutant ? 1.25 : 1) * bodySc; // no multiplier - half size sprites
 
         // ---- Pixel placement helpers ----
         const setPixel = (x, y, r, g, b, a) => {
@@ -5050,17 +5050,17 @@ class SpriteGenerator {
             }
         };
 
-        // Walk cycle animation
+        // Walk cycle animation (isometric - lateral sway + depth)
         const walkFrames = [
             { lx: 0, ly: 0, rx: 0, ry: 0, laOff: 0, raOff: 0 },
-            { lx: -2, ly: -1, rx: 2, ry: 1, laOff: 2, raOff: -2 },
+            { lx: -1, ly: -0.5, rx: 1, ry: 0.5, laOff: 1, raOff: -1 },
             { lx: 0, ly: 0, rx: 0, ry: 0, laOff: 0, raOff: 0 },
-            { lx: 2, ly: 1, rx: -2, ry: -1, laOff: -2, raOff: 2 },
+            { lx: 1, ly: 0.5, rx: -1, ry: -0.5, laOff: -1, raOff: 1 },
         ];
         const atkFrames = [
             { ext: 0, armShift: 0 },
-            { ext: -4, armShift: -3 },
-            { ext: 3, armShift: 4 },
+            { ext: -2, armShift: -2 },
+            { ext: 2, armShift: 2 },
             { ext: 0, armShift: 0 },
         ];
         const wk = walkFrames[frame % 4];
@@ -5068,311 +5068,298 @@ class SpriteGenerator {
         const walking = animType === 'walk';
         const attacking = animType === 'attack';
 
-        // Measurements - realistic adult proportions (~5.5 heads tall)
+        // ---- ISOMETRIC 3/4 TOP-DOWN BODY PROPORTIONS ----
+        // Viewed from ~35° above: head top visible, body foreshortened, legs short
         const shoulderMult = isFemale ? 0.88 : 1;
-        const hipMult = isFemale ? 1.05 : 0.9;
-        const bodyW = 11 * sc * shoulderMult, bodyH = (isFemale ? 11 : 12) * sc;
-        const legW = (isFemale ? 3 : 3.5) * sc, legH = (isFemale ? 14 : 15) * sc;
-        const armW = (isFemale ? 2.5 : 3) * sc, armH = (isFemale ? 12 : 13) * sc;
-        const headR = (isFemale ? 3.8 : 4) * sc;
-        const legY = baseY - legH;
-        const torsoY = legY - bodyH + 2;
-        const armY = torsoY + 1;
+        const hipMult = isFemale ? 1.0 : 0.9;
 
-        // ---- LEGS ----
+        // Isometric measurements - wide torso, short legs (foreshortened from above)
+        const headR = (isFemale ? 3.2 : 3.5) * sc;
+        const torsoW = 9 * sc * shoulderMult;   // wide horizontal spread
+        const torsoH = 5.5 * sc;                 // compressed vertically (foreshortened)
+        const legW = 2.2 * sc;
+        const legH = 4 * sc;                     // very short (seen from above)
+        const armW = 2 * sc;
+        const armH = 4.5 * sc;                   // foreshortened arms
+        const bootH = 1.8 * sc;
+
+        // Facing config for isometric rotation
+        // bodyDx: horizontal offset of body relative to head (directional lean)
+        // legSpread: how far apart legs are placed
+        const faceCfg = {
+            'south':     { bodyDx: 0, legSpreadX: 1, legSpreadY: 0.3, showFace: true, showBack: false, headTopScale: 1.0 },
+            'north':     { bodyDx: 0, legSpreadX: 1, legSpreadY: -0.2, showFace: false, showBack: true, headTopScale: 0.4 },
+            'east':      { bodyDx: 1.5 * sc, legSpreadX: 0.4, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.7 },
+            'west':      { bodyDx: -1.5 * sc, legSpreadX: 0.4, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.7 },
+            'southeast': { bodyDx: 0.8 * sc, legSpreadX: 0.7, legSpreadY: 0.4, showFace: true, showBack: false, headTopScale: 0.85 },
+            'southwest': { bodyDx: -0.8 * sc, legSpreadX: 0.7, legSpreadY: 0.4, showFace: true, showBack: false, headTopScale: 0.85 },
+            'northeast': { bodyDx: 0.8 * sc, legSpreadX: 0.7, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
+            'northwest': { bodyDx: -0.8 * sc, legSpreadX: 0.7, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
+        };
+        const fc = faceCfg[facing] || faceCfg['south'];
+        const bdx = fc.bodyDx;
+
+        // Vertical layout from bottom: boots -> legs -> torso -> neck -> head
+        const feetY = baseY;
+        const legTopY = feetY - legH - bootH;
+        const torsoTopY = legTopY - torsoH + 1;
+        const headCY = torsoTopY - headR * 0.8;
+
+        // Leg spacing (isometric: legs slightly offset in depth)
+        const legSpX = 2.2 * sc * hipMult * fc.legSpreadX;
+        const legSpY = 1.5 * sc * fc.legSpreadY;
+
+        // Walk offsets
         const llx = walking ? wk.lx * sc : 0;
         const lly = walking ? wk.ly * sc : 0;
         const rlx = walking ? wk.rx * sc : 0;
         const rly = walking ? wk.ry * sc : 0;
 
-        // Left leg
+        // ---- LEGS (short foreshortened stubs seen from above) ----
         const legColor = p.pants;
         const legDark = [legColor[0] - 8, legColor[1] - 8, legColor[2] - 8];
-        const legSpacing = 2.5 * sc * hipMult;
-        fillEllipse(cx - legSpacing + llx, legY + legH / 2 + lly, legW / 2, legH / 2, legColor, 6, -10);
-        outlineEllipse(cx - legSpacing + llx, legY + legH / 2 + lly, legW / 2, legH / 2, legColor);
-        // Right leg (slightly darker)
-        fillEllipse(cx + legSpacing + rlx, legY + legH / 2 + rly, legW / 2, legH / 2, legDark, 4, -12);
-        outlineEllipse(cx + legSpacing + rlx, legY + legH / 2 + rly, legW / 2, legH / 2, legDark);
+        // Left leg - wider than tall (isometric foreshortening)
+        fillEllipse(cx + bdx - legSpX + llx, legTopY + legH / 2 + lly - legSpY, legW * 0.6, legH / 2, legColor, 6, -10);
+        outlineEllipse(cx + bdx - legSpX + llx, legTopY + legH / 2 + lly - legSpY, legW * 0.6, legH / 2, legColor);
+        // Right leg
+        fillEllipse(cx + bdx + legSpX + rlx, legTopY + legH / 2 + rly + legSpY, legW * 0.6, legH / 2, legDark, 4, -12);
+        outlineEllipse(cx + bdx + legSpX + rlx, legTopY + legH / 2 + rly + legSpY, legW * 0.6, legH / 2, legDark);
 
-        // ---- BOOTS ----
-        const bootScale = (armorOverride && armorOverride.metalFull) ? 1.15 : 1;
-        fillEllipse(cx - legSpacing + llx, baseY - 2 + lly, (legW / 2 + 0.5) * bootScale, 2.5 * sc * bootScale, p.boots, 4, -8);
-        outlineEllipse(cx - legSpacing + llx, baseY - 2 + lly, (legW / 2 + 0.5) * bootScale, 2.5 * sc * bootScale, p.boots);
-        fillEllipse(cx + legSpacing + rlx, baseY - 2 + rly, (legW / 2 + 0.5) * bootScale, 2.5 * sc * bootScale, p.boots, 4, -8);
-        outlineEllipse(cx + legSpacing + rlx, baseY - 2 + rly, (legW / 2 + 0.5) * bootScale, 2.5 * sc * bootScale, p.boots);
+        // ---- BOOTS (small isometric ovals at feet) ----
+        const bootScale = (armorOverride && armorOverride.metalFull) ? 1.1 : 1;
+        fillEllipse(cx + bdx - legSpX + llx, feetY - 1 + lly - legSpY, (legW * 0.5 + 0.3) * bootScale, bootH * 0.6 * bootScale, p.boots, 4, -8);
+        outlineEllipse(cx + bdx - legSpX + llx, feetY - 1 + lly - legSpY, (legW * 0.5 + 0.3) * bootScale, bootH * 0.6 * bootScale, p.boots);
+        fillEllipse(cx + bdx + legSpX + rlx, feetY - 1 + rly + legSpY, (legW * 0.5 + 0.3) * bootScale, bootH * 0.6 * bootScale, p.boots, 4, -8);
+        outlineEllipse(cx + bdx + legSpX + rlx, feetY - 1 + rly + legSpY, (legW * 0.5 + 0.3) * bootScale, bootH * 0.6 * bootScale, p.boots);
         // Metal armor boot plates
         if (armorOverride && armorOverride.metalFull) {
             const bootPlate = [100,108,100];
-            fillRect(cx - legSpacing + llx - 1, baseY - 3 + lly, 3, 2, bootPlate, 6, -4);
-            fillRect(cx + legSpacing + rlx - 1, baseY - 3 + rly, 3, 2, bootPlate, 6, -4);
+            fillRect(cx + bdx - legSpX + llx - 1, feetY - 2 + lly - legSpY, 2, 1.5, bootPlate, 6, -4);
+            fillRect(cx + bdx + legSpX + rlx - 1, feetY - 2 + rly + legSpY, 2, 1.5, bootPlate, 6, -4);
         }
 
-        // ---- TORSO ----
+        // ---- TORSO (wide horizontal ellipse - isometric top-down foreshortening) ----
         const torsoColor = p.bare ? p.skin : p.shirt;
-        fillEllipse(cx, torsoY + bodyH / 2, bodyW / 2, bodyH / 2, torsoColor, 12, -15);
-        outlineEllipse(cx, torsoY + bodyH / 2, bodyW / 2, bodyH / 2, torsoColor);
+        // Main torso - wider than tall, seen from above
+        fillEllipse(cx + bdx, torsoTopY + torsoH / 2, torsoW / 2, torsoH / 2, torsoColor, 12, -15);
+        outlineEllipse(cx + bdx, torsoTopY + torsoH / 2, torsoW / 2, torsoH / 2, torsoColor);
+        // Shoulder ridge highlight (top of torso visible from above)
+        const shoulderHL = [Math.min(255, torsoColor[0] + 15), Math.min(255, torsoColor[1] + 12), Math.min(255, torsoColor[2] + 10)];
+        fillEllipse(cx + bdx, torsoTopY + torsoH * 0.25, torsoW / 2 - 1, torsoH * 0.18, shoulderHL, 8, -4);
 
         // Muscle definition for bare-chested (male only)
-        if (p.bare && facing !== 'north' && !isFemale) {
+        if (p.bare && fc.showFace && !isFemale) {
             const muscleDark = [p.skin[0] - 20, p.skin[1] - 20, p.skin[2] - 20];
-            // Pec line hint (scaled to narrower torso)
-            drawLine(cx - 3 * sc, torsoY + bodyH * 0.35, cx, torsoY + bodyH * 0.42, muscleDark, 1);
-            drawLine(cx, torsoY + bodyH * 0.42, cx + 3 * sc, torsoY + bodyH * 0.35, muscleDark, 1);
-            // Abs center line
-            drawLine(cx, torsoY + bodyH * 0.45, cx, torsoY + bodyH * 0.7, muscleDark, 1);
+            drawLine(cx + bdx - 2 * sc, torsoTopY + torsoH * 0.35, cx + bdx, torsoTopY + torsoH * 0.45, muscleDark, 1);
+            drawLine(cx + bdx, torsoTopY + torsoH * 0.45, cx + bdx + 2 * sc, torsoTopY + torsoH * 0.35, muscleDark, 1);
         }
 
-        // Female chest shape hint
-        if (p.bare && facing !== 'north' && isFemale) {
-            // Subtle shading - top of torso is wrapped cloth/bandage
+        // Female chest wrap hint
+        if (p.bare && fc.showFace && isFemale) {
             const wrapColor = [p.shirt[0] + 15, p.shirt[1] + 15, p.shirt[2] + 15];
-            fillEllipse(cx, torsoY + bodyH * 0.3, bodyW / 2 - 1, bodyH * 0.2, wrapColor, 8, -10);
+            fillEllipse(cx + bdx, torsoTopY + torsoH * 0.35, torsoW / 2 - 1, torsoH * 0.15, wrapColor, 8, -10);
         }
 
         // Armor/vest overlay
         if (p.armor && !p.bare) {
             const vc = p._armorColor || (type === 'raider' ? [45,25,20] : type === 'guard' ? [58,55,38] : [70,60,35]);
-            fillEllipse(cx, torsoY + bodyH / 2, bodyW / 2 - 1, bodyH / 2 - 1, vc, 6, -10);
+            fillEllipse(cx + bdx, torsoTopY + torsoH / 2, torsoW / 2 - 1, torsoH / 2 - 0.5, vc, 6, -10);
 
-            // Metal armor - full plating with shoulder pads, chest plate, shin guards
             if (armorOverride && armorOverride.metalFull) {
                 const plateColor = [140,148,140];
                 const plateDark = [90,95,88];
-                // Shoulder pauldrons (proportional to narrower body)
-                fillEllipse(cx - bodyW / 2 - 1, torsoY + 2, 3 * sc, 2.5 * sc, plateColor, 12, -8);
-                outlineEllipse(cx - bodyW / 2 - 1, torsoY + 2, 3 * sc, 2.5 * sc, plateDark);
-                fillEllipse(cx + bodyW / 2 + 1, torsoY + 2, 3 * sc, 2.5 * sc, plateColor, 12, -8);
-                outlineEllipse(cx + bodyW / 2 + 1, torsoY + 2, 3 * sc, 2.5 * sc, plateDark);
-                // Chest plate highlight
-                fillEllipse(cx, torsoY + bodyH * 0.4, bodyW / 3, bodyH / 4, plateColor, 10, -6);
+                // Shoulder pauldrons (wide, seen from above)
+                fillEllipse(cx + bdx - torsoW / 2 - 0.5, torsoTopY + 1.5, 2.5 * sc, 1.8 * sc, plateColor, 12, -8);
+                outlineEllipse(cx + bdx - torsoW / 2 - 0.5, torsoTopY + 1.5, 2.5 * sc, 1.8 * sc, plateDark);
+                fillEllipse(cx + bdx + torsoW / 2 + 0.5, torsoTopY + 1.5, 2.5 * sc, 1.8 * sc, plateColor, 12, -8);
+                outlineEllipse(cx + bdx + torsoW / 2 + 0.5, torsoTopY + 1.5, 2.5 * sc, 1.8 * sc, plateDark);
+                // Chest plate
+                fillEllipse(cx + bdx, torsoTopY + torsoH * 0.4, torsoW / 3, torsoH / 4, plateColor, 10, -6);
                 // Rivets
                 const rivetC = [170,175,168];
-                setPixel(cx - 2 * sc, torsoY + bodyH * 0.3, rivetC[0], rivetC[1], rivetC[2]);
-                setPixel(cx + 2 * sc, torsoY + bodyH * 0.3, rivetC[0], rivetC[1], rivetC[2]);
-                setPixel(cx - 1.5 * sc, torsoY + bodyH * 0.55, rivetC[0], rivetC[1], rivetC[2]);
-                setPixel(cx + 1.5 * sc, torsoY + bodyH * 0.55, rivetC[0], rivetC[1], rivetC[2]);
-                // Shin guards on legs
+                setPixel(cx + bdx - 2 * sc, torsoTopY + torsoH * 0.3, rivetC[0], rivetC[1], rivetC[2]);
+                setPixel(cx + bdx + 2 * sc, torsoTopY + torsoH * 0.3, rivetC[0], rivetC[1], rivetC[2]);
+                // Shin guards
                 const shinColor = [110,118,110];
-                fillRect(cx - legSpacing - legW * 0.3, legY + legH * 0.25, legW * 0.8, legH * 0.45, shinColor, 6, -8);
-                fillRect(cx + legSpacing - legW * 0.5, legY + legH * 0.25, legW * 0.8, legH * 0.45, shinColor, 6, -8);
+                fillRect(cx + bdx - legSpX - legW * 0.3, legTopY + legH * 0.15, legW * 0.6, legH * 0.4, shinColor, 6, -8);
+                fillRect(cx + bdx + legSpX - legW * 0.3, legTopY + legH * 0.15, legW * 0.6, legH * 0.4, shinColor, 6, -8);
             }
-            // Leather armor - arm guards and thicker vest with stitching
             else if (armorOverride && armorOverride.leatherArmGuards) {
                 const guardColor = [85,50,18];
                 const stitchColor = [60,35,10];
-                // Arm guards
-                fillRect(cx - bodyW / 2 - armW / 2, armY + armH * 0.2, armW + 1, armH * 0.35, guardColor, 6, -8);
-                fillRect(cx + bodyW / 2 - armW / 2 - 1, armY + armH * 0.2, armW + 1, armH * 0.35, guardColor, 6, -8);
-                // Stitching lines on vest
-                drawLine(cx - bodyW / 4, torsoY + 3, cx - bodyW / 4, torsoY + bodyH - 4, stitchColor, 1);
-                drawLine(cx + bodyW / 4, torsoY + 3, cx + bodyW / 4, torsoY + bodyH - 4, stitchColor, 1);
-                // Collar
-                fillRect(cx - bodyW / 3, torsoY + 1, bodyW * 0.66, 2, [100,60,25], 8, -4);
-            }
-            else if (armorId === 'metal_armor') {
-                const plateColor = [110,115,108];
-                fillRect(cx - bodyW / 2 - 1, torsoY + 1, 4, 4, plateColor, 8, -6);
-                fillRect(cx + bodyW / 2 - 3, torsoY + 1, 4, 4, plateColor, 8, -6);
+                fillRect(cx + bdx - torsoW / 2 - armW * 0.3, torsoTopY + armH * 0.15, armW * 0.8, armH * 0.3, guardColor, 6, -8);
+                fillRect(cx + bdx + torsoW / 2 - armW * 0.5, torsoTopY + armH * 0.15, armW * 0.8, armH * 0.3, guardColor, 6, -8);
+                drawLine(cx + bdx - torsoW / 4, torsoTopY + 2, cx + bdx - torsoW / 4, torsoTopY + torsoH - 2, stitchColor, 1);
+                drawLine(cx + bdx + torsoW / 4, torsoTopY + 2, cx + bdx + torsoW / 4, torsoTopY + torsoH - 2, stitchColor, 1);
             }
         }
 
-        // Tribal garb markings - war paint and bone ornaments
-        if (armorOverride && armorOverride.tribal && type === 'player' && facing !== 'north') {
+        // Tribal markings
+        if (armorOverride && armorOverride.tribal && type === 'player' && fc.showFace) {
             const paintColor = [180,50,30];
-            // War paint stripes on torso
-            drawLine(cx - 3 * sc, torsoY + bodyH * 0.3, cx + 2 * sc, torsoY + bodyH * 0.5, paintColor, 1);
-            drawLine(cx - 2 * sc, torsoY + bodyH * 0.35, cx + 3 * sc, torsoY + bodyH * 0.55, paintColor, 1);
-            // Bone necklace
+            drawLine(cx + bdx - 2 * sc, torsoTopY + torsoH * 0.3, cx + bdx + 1 * sc, torsoTopY + torsoH * 0.5, paintColor, 1);
             const boneColor = [200,190,170];
             for (let i = -2; i <= 2; i++) {
-                setPixel(cx + i * 2 * sc, torsoY + 2, boneColor[0], boneColor[1], boneColor[2]);
-                setPixel(cx + i * 2 * sc, torsoY + 3, boneColor[0] - 20, boneColor[1] - 20, boneColor[2] - 20);
+                setPixel(cx + bdx + i * 1.5 * sc, torsoTopY + 1.5, boneColor[0], boneColor[1], boneColor[2]);
             }
         }
 
-        // Ragged clothes patches
-        if (armorOverride && armorOverride.ragged && type === 'player' && facing !== 'north') {
+        // Ragged patches
+        if (armorOverride && armorOverride.ragged && type === 'player' && fc.showFace) {
             const patchColor = [110,95,70];
-            const patchDark = [85,75,55];
-            // Visible patches
-            fillRect(cx - bodyW / 4, torsoY + bodyH * 0.3, 3, 3, patchColor, 4, -6);
-            fillRect(cx + bodyW / 5, torsoY + bodyH * 0.5, 4, 3, patchDark, 4, -6);
-            // Tattered hem
-            const hemColor = [p.shirt[0] - 20, p.shirt[1] - 20, p.shirt[2] - 20];
-            for (let i = -3; i <= 3; i++) {
-                const hy = torsoY + bodyH - 1 + (i % 2 === 0 ? 1 : 0);
-                setPixel(cx + i * sc, hy, hemColor[0], hemColor[1], hemColor[2]);
-            }
+            fillRect(cx + bdx - torsoW / 4, torsoTopY + torsoH * 0.3, 2, 2, patchColor, 4, -6);
+            fillRect(cx + bdx + torsoW / 5, torsoTopY + torsoH * 0.5, 2, 2, [85,75,55], 4, -6);
         }
 
         // Raider leather straps
         if (type === 'raider') {
             const strapColor = [58, 26, 18];
-            drawLine(cx - bodyW / 2 + 2, torsoY + 3, cx + bodyW / 2 - 2, torsoY + bodyH - 3, strapColor, 1);
-            drawLine(cx + bodyW / 2 - 2, torsoY + 3, cx - bodyW / 2 + 2, torsoY + bodyH - 3, strapColor, 1);
+            drawLine(cx + bdx - torsoW / 2 + 1, torsoTopY + 2, cx + bdx + torsoW / 2 - 1, torsoTopY + torsoH - 2, strapColor, 1);
+            drawLine(cx + bdx + torsoW / 2 - 1, torsoTopY + 2, cx + bdx - torsoW / 2 + 1, torsoTopY + torsoH - 2, strapColor, 1);
         }
 
         // Belt
-        fillRect(cx - bodyW / 2 + 1, torsoY + bodyH - 3, bodyW - 2, 3, p.belt, 4, -6);
-        fillRect(cx - 1.5, torsoY + bodyH - 3, 3, 3, p.accent, 6, -4);
+        fillRect(cx + bdx - torsoW / 2 + 1, torsoTopY + torsoH - 2, torsoW - 2, 2, p.belt, 4, -6);
+        fillRect(cx + bdx - 1, torsoTopY + torsoH - 2, 2, 2, p.accent, 6, -4);
 
-        // ---- LEFT ARM ----
-        const lArmOff = walking ? wk.laOff * sc : (attacking ? (at.armShift < 0 ? 1 : 0) : 0);
-        const laX = cx - bodyW / 2 - armW / 2 + 0.5;
-        // Upper arm
+        // ---- ARMS (foreshortened stubs on sides of torso) ----
+        const armTopY = torsoTopY + 1;
+        const lArmOff = walking ? wk.laOff * sc * 0.5 : (attacking ? (at.armShift < 0 ? 0.5 : 0) : 0);
+        const rArmOff = walking ? wk.raOff * sc * 0.5 : 0;
+        const rArmExt = attacking ? at.ext * 0.5 : 0;
+
         const armSkin = p.bare ? p.skin : p.shirt;
-        fillEllipse(laX, armY + armH * 0.32 + lArmOff, armW / 2, armH * 0.35, armSkin, 10, -12);
-        outlineEllipse(laX, armY + armH * 0.32 + lArmOff, armW / 2, armH * 0.35, armSkin);
-        // Forearm
         const faSkin = [p.skin[0] - 8, p.skin[1] - 8, p.skin[2] - 8];
-        fillEllipse(laX, armY + armH * 0.68 + lArmOff, armW / 2 - 0.3, armH * 0.28, faSkin, 8, -10);
-        outlineEllipse(laX, armY + armH * 0.68 + lArmOff, armW / 2 - 0.3, armH * 0.28, faSkin);
-        // Hand
         const handSkin = [p.skin[0] - 5, p.skin[1] - 5, p.skin[2] - 5];
-        fillEllipse(laX, armY + armH + lArmOff, 1.5 * sc, 1.5 * sc, handSkin, 6, -8);
 
-        // ---- RIGHT ARM (weapon arm) ----
-        const rArmOff = walking ? wk.raOff * sc : 0;
-        const rArmExt = attacking ? at.ext : 0;
-        const raX = cx + bodyW / 2 + armW / 2 - 0.5;
-        // Upper arm
-        fillEllipse(raX, armY + armH * 0.32 + rArmOff + rArmExt, armW / 2, armH * 0.35, armSkin, 10, -12);
-        outlineEllipse(raX, armY + armH * 0.32 + rArmOff + rArmExt, armW / 2, armH * 0.35, armSkin);
-        // Forearm
-        fillEllipse(raX, armY + armH * 0.68 + rArmOff + rArmExt, armW / 2 - 0.3, armH * 0.28, faSkin, 8, -10);
-        outlineEllipse(raX, armY + armH * 0.68 + rArmOff + rArmExt, armW / 2 - 0.3, armH * 0.28, faSkin);
-        // Hand
-        const rHandY = armY + armH + rArmOff + rArmExt;
-        fillEllipse(raX, rHandY, 1.5 * sc, 1.5 * sc, handSkin, 6, -8);
+        // Left arm (foreshortened - wider than tall)
+        const laX = cx + bdx - torsoW / 2 - armW * 0.3;
+        fillEllipse(laX, armTopY + armH * 0.35 + lArmOff, armW * 0.45, armH * 0.3, armSkin, 8, -10);
+        outlineEllipse(laX, armTopY + armH * 0.35 + lArmOff, armW * 0.45, armH * 0.3, armSkin);
+        // Forearm + hand
+        fillEllipse(laX, armTopY + armH * 0.7 + lArmOff, armW * 0.35, armH * 0.22, faSkin, 6, -8);
+        fillEllipse(laX, armTopY + armH + lArmOff, 1 * sc, 1 * sc, handSkin, 5, -6);
 
-        // Weapon
+        // Right arm
+        const raX = cx + bdx + torsoW / 2 + armW * 0.3;
+        fillEllipse(raX, armTopY + armH * 0.35 + rArmOff + rArmExt, armW * 0.45, armH * 0.3, armSkin, 8, -10);
+        outlineEllipse(raX, armTopY + armH * 0.35 + rArmOff + rArmExt, armW * 0.45, armH * 0.3, armSkin);
+        fillEllipse(raX, armTopY + armH * 0.7 + rArmOff + rArmExt, armW * 0.35, armH * 0.22, faSkin, 6, -8);
+        const rHandY = armTopY + armH + rArmOff + rArmExt;
+        fillEllipse(raX, rHandY, 1 * sc, 1 * sc, handSkin, 5, -6);
+
+        // Weapon (small, isometric angle)
         if (type === 'player' || type === 'raider' || type === 'guard') {
             const wx = raX;
-            const wy = rHandY + 2 * sc;
+            const wy = rHandY + 1 * sc;
             if (type === 'player' || type === 'guard') {
-                // Knife/blade
                 const blade = [106, 106, 106];
-                const hilt = [42, 28, 12];
-                drawLine(wx, wy, wx, wy - 7, blade, 1);
-                fillRect(wx - 1, wy, 2, 3, hilt, 3, -4);
+                drawLine(wx, wy, wx + 1, wy - 4, blade, 1);
+                fillRect(wx - 0.5, wy, 1.5, 2, [42, 28, 12], 3, -4);
             } else {
-                // Club/pipe
-                const metal = [68, 68, 68];
-                const grip = [85, 85, 85];
-                drawLine(wx, wy - 9, wx, wy, metal, 1);
-                fillRect(wx - 1, wy, 2, 3, grip, 3, -4);
+                drawLine(wx, wy - 5, wx, wy, [68, 68, 68], 1);
+                fillRect(wx - 0.5, wy, 1.5, 2, [85, 85, 85], 3, -4);
             }
         }
 
         // Elder staff
         if (type === 'elder') {
-            const sx = cx - bodyW / 2 - armW;
-            drawLine(sx, baseY - 2, sx, torsoY - 14, [74, 58, 40], 2);
-            fillEllipse(sx, torsoY - 16, 2.5, 2.5, [119, 85, 170], 8, -6);
+            const sx = cx + bdx - torsoW / 2 - armW;
+            drawLine(sx, feetY - 1, sx, torsoTopY - 8, [74, 58, 40], 1);
+            fillEllipse(sx, torsoTopY - 9, 1.8, 1.8, [119, 85, 170], 8, -6);
         }
 
-        // Merchant pack
+        // Merchant pack (seen from above - oval on back/side)
         if (type === 'merchant') {
-            fillEllipse(cx - bodyW / 2 - 2, armY + armH * 0.4, 4, 3, [58, 40, 20], 5, -8);
-            outlineEllipse(cx - bodyW / 2 - 2, armY + armH * 0.4, 4, 3, [42, 24, 8]);
+            fillEllipse(cx + bdx - torsoW / 2 - 1, armTopY + armH * 0.3, 3, 2.5, [58, 40, 20], 5, -8);
+            outlineEllipse(cx + bdx - torsoW / 2 - 1, armTopY + armH * 0.3, 3, 2.5, [42, 24, 8]);
         }
 
-        // ---- NECK ----
-        fillRect(cx - 1.8 * sc, torsoY - 2, 3.6 * sc, 3, p.skin, 6, -8);
-        const neckOutline = [Math.max(0, p.skin[0] - 50), Math.max(0, p.skin[1] - 50), Math.max(0, p.skin[2] - 50)];
-        setPixel(cx - 1.8 * sc, torsoY - 1, neckOutline[0], neckOutline[1], neckOutline[2]);
-        setPixel(cx + 1.8 * sc, torsoY - 1, neckOutline[0], neckOutline[1], neckOutline[2]);
+        // ---- NECK (short, connecting torso to head) ----
+        fillRect(cx - 1.2 * sc, torsoTopY - 1.5, 2.4 * sc, 2, p.skin, 6, -8);
 
-        // ---- HEAD ----
-        // Slightly vertically compressed for isometric 3/4 view (we see more of the top)
-        const headY = torsoY - 2 - headR * 1.1;
-        fillEllipse(cx, headY, headR, headR * 0.95, p.skin, 14, -12);
-        outlineEllipse(cx, headY, headR, headR * 0.95, p.skin);
-        // Top of head visible (isometric foreshortening) - slight highlight
-        if (facing !== 'north') {
-            const topColor = [Math.min(255, p.skin[0] + 12), Math.min(255, p.skin[1] + 10), Math.min(255, p.skin[2] + 8)];
-            fillEllipse(cx, headY - headR * 0.35, headR * 0.6, headR * 0.3, topColor, 6, -4);
+        // ---- HEAD (isometric 3/4 top-down: crown/top of head prominently visible) ----
+        const headCYf = headCY;
+
+        // Head shape - vertically compressed (wider than tall, seen from above)
+        fillEllipse(cx, headCYf, headR, headR * 0.75, p.skin, 14, -12);
+        outlineEllipse(cx, headCYf, headR, headR * 0.75, p.skin);
+
+        // Crown of head (prominent top-down view - the key isometric indicator)
+        const headTopVis = fc.headTopScale;
+        if (headTopVis > 0.3) {
+            const topColor = [Math.min(255, p.skin[0] + 18), Math.min(255, p.skin[1] + 15), Math.min(255, p.skin[2] + 12)];
+            fillEllipse(cx, headCYf - headR * 0.2 * headTopVis, headR * 0.75 * headTopVis, headR * 0.4 * headTopVis, topColor, 8, -4);
         }
 
-        if (facing === 'north') {
+        if (fc.showBack) {
             // Back of head - hair covers all
             if (!isMutant) {
-                fillEllipse(cx, headY, headR + 0.3, headR * 0.9, p.hair, 8, -10);
-                outlineEllipse(cx, headY, headR + 0.3, headR * 0.9, p.hair);
-                // Female: longer hair at back
+                fillEllipse(cx, headCYf, headR + 0.3, headR * 0.7, p.hair, 8, -10);
+                outlineEllipse(cx, headCYf, headR + 0.3, headR * 0.7, p.hair);
                 if (isFemale) {
-                    fillEllipse(cx, headY + headR * 0.5, headR * 0.7, headR * 0.7, p.hair, 6, -10);
+                    fillEllipse(cx, headCYf + headR * 0.3, headR * 0.6, headR * 0.5, p.hair, 6, -10);
                 }
             }
-            // Ears
+            // Ears visible from behind
             const earSkin = [p.skin[0] - 5, p.skin[1] - 5, p.skin[2] - 5];
-            fillEllipse(cx - headR, headY, 1.2, 2, earSkin, 4, -6);
-            fillEllipse(cx + headR, headY, 1.2, 2, earSkin, 4, -6);
+            fillEllipse(cx - headR, headCYf, 1, 1.5, earSkin, 4, -6);
+            fillEllipse(cx + headR, headCYf, 1, 1.5, earSkin, 4, -6);
         } else {
-            // Front face - Hair
+            // Front/side face
             if (!isMutant) {
-                // Hair top - compact to match smaller head
-                for (let py = Math.floor(headY - headR * 0.5 - 2); py <= Math.floor(headY - 1); py++) {
+                // Hair crown (dominant feature from above - covers top dome of head)
+                for (let py = Math.floor(headCYf - headR * 0.6); py <= Math.floor(headCYf + headR * 0.1); py++) {
                     for (let px = Math.floor(cx - headR - 0.3); px <= Math.ceil(cx + headR + 0.3); px++) {
                         const dx = (px - cx) / (headR + 0.3);
-                        const topLine = headY - headR * 0.5;
-                        if (py >= topLine - 2 && dx * dx < 1) {
+                        const dy = (py - (headCYf - headR * 0.15)) / (headR * 0.55);
+                        if (dx * dx + dy * dy <= 1) {
                             ditheredPixel(px, py, p.hair, 8, -10);
                         }
                     }
                 }
-                // Sideburns
-                fillRect(cx - headR - 0.3, headY - 1.5, 1.5, isFemale ? 5 : 3.5, p.hair, 5, -8);
-                fillRect(cx + headR - 1, headY - 1.5, 1.5, isFemale ? 5 : 3.5, p.hair, 5, -8);
-                // Female: longer hair sides
+                // Sideburns (short, isometric)
+                fillRect(cx - headR - 0.3, headCYf - 0.5, 1, isFemale ? 3.5 : 2.5, p.hair, 5, -8);
+                fillRect(cx + headR - 0.5, headCYf - 0.5, 1, isFemale ? 3.5 : 2.5, p.hair, 5, -8);
                 if (isFemale) {
-                    fillRect(cx - headR - 0.5, headY + 1, 1.5, headR + 2, p.hair, 5, -8);
-                    fillRect(cx + headR - 0.5, headY + 1, 1.5, headR + 2, p.hair, 5, -8);
+                    fillRect(cx - headR - 0.5, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
+                    fillRect(cx + headR - 0.3, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
                 }
             }
-            // Eye sockets - just subtle shadow indentations, no visible eyes at this scale
+            // Face details (subtle at this scale - just shadow hints)
             const socketShadow = [Math.max(0, p.skin[0] - 22), Math.max(0, p.skin[1] - 22), Math.max(0, p.skin[2] - 22)];
-            setPixel(cx - 1.5 * sc, headY - 0.2, socketShadow[0], socketShadow[1], socketShadow[2], 140);
-            setPixel(cx + 1.5 * sc, headY - 0.2, socketShadow[0], socketShadow[1], socketShadow[2], 140);
-            // Nose shadow
+            setPixel(cx - 1.2 * sc, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
+            setPixel(cx + 1.2 * sc, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
+            // Nose
             const noseShadow = [Math.max(0, p.skin[0] - 18), Math.max(0, p.skin[1] - 18), Math.max(0, p.skin[2] - 18)];
-            setPixel(cx, headY + 0.8, noseShadow[0], noseShadow[1], noseShadow[2], 180);
-            setPixel(cx - 0.5, headY + 1.5, noseShadow[0], noseShadow[1], noseShadow[2], 100);
-            setPixel(cx + 0.5, headY + 1.5, noseShadow[0], noseShadow[1], noseShadow[2], 100);
-            // Mouth
+            setPixel(cx, headCYf + 1, noseShadow[0], noseShadow[1], noseShadow[2], 150);
+            // Mouth hint
             const mouthColor = [Math.max(0, p.skin[0] - 30), Math.max(0, p.skin[1] - 30), Math.max(0, p.skin[2] - 30)];
-            setPixel(cx - 0.5, headY + 2.5, mouthColor[0], mouthColor[1], mouthColor[2], 160);
-            setPixel(cx + 0.5, headY + 2.5, mouthColor[0], mouthColor[1], mouthColor[2], 160);
-            // Scars for raider
+            setPixel(cx, headCYf + 1.8, mouthColor[0], mouthColor[1], mouthColor[2], 120);
+            // Raider scar
             if (type === 'raider' && !isFemale) {
-                const scarColor = [100, 35, 30];
-                drawLine(cx + 1, headY - 2, cx + 3, headY + 2, scarColor, 1);
+                drawLine(cx + 0.5, headCYf - 1, cx + 2, headCYf + 1, [100, 35, 30], 1);
             }
         }
 
-        // Raider mohawk (male) or shaved-side hair (female)
+        // Raider mohawk
         if (type === 'raider') {
             if (isFemale) {
-                // Shaved sides with top tuft
-                for (let i = 0; i < 3; i++) {
-                    const mx = cx + (rng() - 0.5) * 3;
-                    fillRect(mx, headY - headR - 2 - i * 1.2, 2, 2, p.hair, 4, -6);
+                for (let i = 0; i < 2; i++) {
+                    fillRect(cx + (rng() - 0.5) * 2, headCYf - headR * 0.6 - 1 - i, 1.5, 1.5, p.hair, 4, -6);
                 }
             } else {
-                // Classic mohawk
-                for (let i = 0; i < 4; i++) {
-                    const mx = cx - 0.5 + (rng() - 0.5) * 2;
-                    fillRect(mx, headY - headR - 1 - i * 1.5, 1, 2, p.hair, 4, -6);
+                for (let i = 0; i < 3; i++) {
+                    fillRect(cx - 0.3 + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2, 1, 1.5, p.hair, 4, -6);
                 }
             }
         }
 
-        // Guard helmet
+        // Guard helmet (wider, seen from above)
         if (type === 'guard') {
             const helmetColor = [58, 56, 40];
-            fillEllipse(cx, headY - 0.5, headR + 1, headR * 0.6, helmetColor, 8, -10);
-            fillRect(cx - headR - 1, headY - 0.5, headR * 2 + 2, 1.5, helmetColor, 5, -6);
+            fillEllipse(cx, headCYf - 0.3, headR + 0.8, headR * 0.55, helmetColor, 8, -10);
+            fillRect(cx - headR - 0.5, headCYf, headR * 2 + 1, 1, helmetColor, 5, -6);
         }
 
         // Put pixel data to canvas
@@ -8192,8 +8179,8 @@ class IsometricRenderer {
         if (entityType !== 'chest' && entityType !== 'crate' && entityType !== 'bones') {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const isMutant = entityType === 'mutant';
-            const sw = (isSmall ? 7 : isMutant ? 10 : 7) * z;
-            const sh = (isSmall ? 2.5 : isMutant ? 4 : 3) * z;
+            const sw = (isSmall ? 7 : isMutant ? 8 : 5) * z;
+            const sh = (isSmall ? 2.5 : isMutant ? 3 : 2) * z;
             ctx.fillStyle = 'rgba(0,0,0,0.35)';
             ctx.beginPath();
             ctx.ellipse(screen.x + 1.5 * z, screen.y + z, sw, sh, 0.2, 0, Math.PI * 2);
@@ -8309,7 +8296,7 @@ class IsometricRenderer {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const barW = 24 * z;
             const barH = 3 * z;
-            const barY = screen.y - (isSmall ? 20 : 40) * z;
+            const barY = screen.y - (isSmall ? 20 : 26) * z;
 
             // Dark background with border
             ctx.fillStyle = 'rgba(0,0,0,0.8)';
@@ -8811,242 +8798,163 @@ class IsometricRenderer {
 
         // Shadow (already drawn in drawEntity, skip duplicate)
 
-        const baseY = y - 2 * z;
+        const baseY = y - 1 * z;
 
-        // --- LEGS --- (proportionate, taller)
-        const legW = 2.5 * z * sc;
-        const legH = 9 * z * sc;
-        // Left leg
+        // ---- ISOMETRIC 3/4 TOP-DOWN BODY (matching pre-rendered sprites) ----
+        // All proportions foreshortened: wide torso, short legs, prominent head top
+        const headR = 2.8 * z * sc;
+        const torsoW = 7 * z * sc;
+        const torsoH = 4 * z * sc;
+        const legH = 3 * z * sc;
+        const legW = 1.8 * z * sc;
+        const armW = 1.5 * z * sc;
+        const armH = 3 * z * sc;
+        const bootH = 1.5 * z * sc;
+
+        // Vertical layout from bottom
+        const feetY = baseY;
+        const legTopY = feetY - legH - bootH;
+        const torsoTopY = legTopY - torsoH + z;
+        const headCY = torsoTopY - headR * 0.8;
+
+        const legSpX = 2 * z * sc;
+
+        // --- LEGS (short isometric stubs) ---
         ctx.fillStyle = p.pants;
-        ctx.fillRect(x - 2.5 * z * sc, baseY - legH, legW, legH);
-        // Right leg
-        ctx.fillRect(x + 0.2 * z * sc, baseY - legH, legW, legH);
-
-        // --- BOOTS ---
-        ctx.fillStyle = p.boots;
-        const bootH = 2.5 * z * sc;
-        ctx.fillRect(x - 3 * z * sc, baseY - bootH, legW + z, bootH);
-        ctx.fillRect(x - 0.2 * z * sc, baseY - bootH, legW + z, bootH);
-        // Boot soles
-        ctx.fillStyle = '#111';
-        ctx.fillRect(x - 3 * z * sc, baseY - 0.8 * z, legW + z, 0.8 * z);
-        ctx.fillRect(x - 0.2 * z * sc, baseY - 0.8 * z, legW + z, 0.8 * z);
-
-        // --- TORSO ---
-        const bodyW = 8 * z * sc;
-        const bodyH = 10 * z * sc;
-        const torsoY = baseY - legH - bodyH + 1.5 * z;
-
-        ctx.fillStyle = p.shirt;
-        ctx.fillRect(x - bodyW / 2, torsoY + bob, bodyW, bodyH);
-        // Shirt detail - seam down center
-        ctx.strokeStyle = this.adjustColor(p.shirt, -15);
-        ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.moveTo(x, torsoY + bob);
-        ctx.lineTo(x, torsoY + bodyH + bob);
-        ctx.stroke();
-        // Collar
-        ctx.fillStyle = this.adjustColor(p.shirt, 15);
-        ctx.fillRect(x - 2.5 * z * sc, torsoY + bob, 5 * z * sc, 1.5 * z);
-        // Pockets
-        if (type !== 'mutant') {
-            ctx.strokeStyle = this.adjustColor(p.shirt, -10);
-            ctx.lineWidth = 0.5;
-            ctx.strokeRect(x - bodyW/2 + 1.5*z, torsoY + 5*z + bob, 3*z, 3*z);
-            ctx.strokeRect(x + bodyW/2 - 4.5*z, torsoY + 5*z + bob, 3*z, 3*z);
-        }
+        ctx.ellipse(x - legSpX, legTopY + legH / 2, legW * 0.5, legH / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = this.adjustColor(p.pants, -8);
+        ctx.beginPath();
+        ctx.ellipse(x + legSpX, legTopY + legH / 2, legW * 0.5, legH / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // --- BOOTS (small ovals) ---
+        ctx.fillStyle = p.boots;
+        ctx.beginPath();
+        ctx.ellipse(x - legSpX, feetY - bootH * 0.5, legW * 0.5, bootH * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(x + legSpX, feetY - bootH * 0.5, legW * 0.5, bootH * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // --- TORSO (wide horizontal ellipse - foreshortened from above) ---
+        ctx.fillStyle = p.shirt;
+        ctx.beginPath();
+        ctx.ellipse(x, torsoTopY + torsoH / 2, torsoW / 2, torsoH / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Shoulder highlight
+        ctx.fillStyle = this.adjustColor(p.shirt, 12);
+        ctx.beginPath();
+        ctx.ellipse(x, torsoTopY + torsoH * 0.25, torsoW / 2 - z, torsoH * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
 
         // --- BELT ---
         ctx.fillStyle = p.belt;
-        ctx.fillRect(x - bodyW / 2, torsoY + bodyH - 2 * z + bob, bodyW, 2.5 * z);
-        // Buckle
+        ctx.fillRect(x - torsoW / 2 + z, torsoTopY + torsoH - 1.5 * z, torsoW - 2 * z, 1.5 * z);
         ctx.fillStyle = p.accent;
-        ctx.fillRect(x - 1.5 * z, torsoY + bodyH - 2 * z + bob, 3 * z, 2.5 * z);
+        ctx.fillRect(x - z * 0.8, torsoTopY + torsoH - 1.5 * z, 1.6 * z, 1.5 * z);
 
-        // --- ARMS ---
-        const armW = 2.2 * z * sc;
-        const armH = 9 * z * sc;
-        const armY = torsoY + 1.5 * z + bob;
-        // Left arm
+        // --- ARMS (short foreshortened stubs) ---
         ctx.fillStyle = p.shirt;
-        ctx.fillRect(x - bodyW / 2 - armW, armY, armW, armH);
-        // Right arm
-        ctx.fillRect(x + bodyW / 2, armY, armW, armH);
-        // Rolled sleeves
-        ctx.fillStyle = this.adjustColor(p.shirt, 10);
-        ctx.fillRect(x - bodyW / 2 - armW, armY, armW, 2 * z);
-        ctx.fillRect(x + bodyW / 2, armY, armW, 2 * z);
-        // Hands (skin)
+        ctx.beginPath();
+        ctx.ellipse(x - torsoW / 2 - armW * 0.2, torsoTopY + armH * 0.4, armW * 0.4, armH * 0.3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(x + torsoW / 2 + armW * 0.2, torsoTopY + armH * 0.4, armW * 0.4, armH * 0.3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Hands
         ctx.fillStyle = p.skin;
-        const handH = 2 * z * sc;
-        ctx.fillRect(x - bodyW / 2 - armW, armY + armH, armW, handH);
-        ctx.fillRect(x + bodyW / 2, armY + armH, armW, handH);
+        ctx.beginPath();
+        ctx.arc(x - torsoW / 2 - armW * 0.2, torsoTopY + armH * 0.8, z * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + torsoW / 2 + armW * 0.2, torsoTopY + armH * 0.8, z * 0.7, 0, Math.PI * 2);
+        ctx.fill();
 
         // --- WEAPON ---
         if (type === 'player' || type === 'raider' || type === 'guard') {
-            // Knife/blade
-            ctx.fillStyle = '#777';
-            const wx = x + bodyW / 2 + armW / 2;
-            const wy = armY + armH + handH;
+            const wx = x + torsoW / 2 + armW * 0.2;
+            const wy = torsoTopY + armH;
+            ctx.strokeStyle = '#777';
+            ctx.lineWidth = z * 0.5;
             ctx.beginPath();
-            ctx.moveTo(wx - 0.5 * z, wy);
-            ctx.lineTo(wx, wy - 8 * z);
-            ctx.lineTo(wx + z, wy);
-            ctx.closePath();
-            ctx.fill();
-            // Blade shine
-            ctx.fillStyle = '#999';
-            ctx.beginPath();
-            ctx.moveTo(wx, wy - 7 * z);
-            ctx.lineTo(wx + 0.5 * z, wy - 2 * z);
-            ctx.lineTo(wx, wy - 2 * z);
-            ctx.closePath();
-            ctx.fill();
-            // Handle
-            ctx.fillStyle = '#3A2A1A';
-            ctx.fillRect(wx - 0.8 * z, wy, 1.6 * z, 3 * z);
-            // Guard
-            ctx.fillStyle = '#555';
-            ctx.fillRect(wx - 1.5 * z, wy - 0.5 * z, 3 * z, z);
+            ctx.moveTo(wx, wy);
+            ctx.lineTo(wx + z * 0.5, wy - 3 * z);
+            ctx.stroke();
         }
 
         // Elder staff
         if (type === 'elder') {
-            const sx = x - bodyW / 2 - armW - 2 * z;
+            const sx = x - torsoW / 2 - armW - z;
             ctx.strokeStyle = '#5A4A3A';
-            ctx.lineWidth = 2 * z;
+            ctx.lineWidth = 1.2 * z;
             ctx.beginPath();
-            ctx.moveTo(sx, baseY);
-            ctx.lineTo(sx, torsoY - 14 * z + bob);
+            ctx.moveTo(sx, feetY);
+            ctx.lineTo(sx, torsoTopY - 6 * z);
             ctx.stroke();
-            // Staff head wrap
-            ctx.fillStyle = '#664488';
-            ctx.fillRect(sx - 1.5 * z, torsoY - 14 * z + bob, 3 * z, 4 * z);
-            // Crystal on top
             ctx.fillStyle = '#9977CC';
             ctx.beginPath();
-            ctx.moveTo(sx, torsoY - 18 * z + bob);
-            ctx.lineTo(sx + 2 * z, torsoY - 14 * z + bob);
-            ctx.lineTo(sx - 2 * z, torsoY - 14 * z + bob);
-            ctx.closePath();
-            ctx.fill();
-            // Glow
-            const glow = 0.1 + Math.sin(t * 0.04) * 0.06;
-            ctx.fillStyle = this.rgbStr(150, 120, 220, glow);
-            ctx.beginPath();
-            ctx.arc(sx, torsoY - 16 * z + bob, 5 * z, 0, Math.PI * 2);
+            ctx.arc(sx, torsoTopY - 7 * z, 1.5 * z, 0, Math.PI * 2);
             ctx.fill();
         }
 
         // Merchant pack
         if (type === 'merchant') {
             ctx.fillStyle = '#5A4020';
-            const px = x - bodyW / 2 - armW - 2 * z;
             ctx.beginPath();
-            ctx.ellipse(px, armY + armH * 0.5 + bob, 4.5 * z, 3.5 * z, 0, 0, Math.PI * 2);
+            ctx.ellipse(x - torsoW / 2 - z, torsoTopY + torsoH * 0.3, 3 * z, 2 * z, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#3A2010';
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-            // Strap
-            ctx.strokeStyle = '#4A3020';
-            ctx.lineWidth = 1.5 * z;
-            ctx.beginPath();
-            ctx.moveTo(px + 3 * z, armY + armH * 0.3 + bob);
-            ctx.lineTo(x - bodyW / 2, torsoY + 3 * z + bob);
+            ctx.lineWidth = 0.6;
             ctx.stroke();
         }
 
-        // --- NECK --- (thinner)
+        // --- NECK ---
         ctx.fillStyle = p.skin;
-        const neckY = torsoY - 0.5 * z + bob;
-        ctx.fillRect(x - 1.2 * z * sc, neckY, 2.4 * z * sc, 2.5 * z);
+        ctx.fillRect(x - z * sc, torsoTopY - z, 2 * z * sc, 1.5 * z);
 
-        // --- HEAD --- (smaller, proportionate)
-        const headR = 3.8 * z * sc;
-        const headY = neckY - headR * 1.2;
-
-        // Head shape (slightly compressed vertically for isometric view)
+        // --- HEAD (isometric - wider than tall, crown visible from above) ---
         ctx.fillStyle = p.skin;
         ctx.beginPath();
-        ctx.ellipse(x, headY, headR, headR * 0.95, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, headCY, headR, headR * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Crown highlight (top-down view)
+        ctx.fillStyle = this.adjustColor(p.skin, 15);
+        ctx.beginPath();
+        ctx.ellipse(x, headCY - headR * 0.2, headR * 0.6, headR * 0.3, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Hair
+        // Hair (dominant crown coverage from above)
         if (!isMutant) {
             ctx.fillStyle = p.hair;
             ctx.beginPath();
-            ctx.ellipse(x, headY - 1.2 * z, headR + 0.3 * z, headR * 0.6, 0, Math.PI, Math.PI * 2);
-            ctx.fill();
-            // Sideburns
-            ctx.fillRect(x - headR - 0.2 * z, headY - 1.5 * z, 1.3 * z, 3.5 * z);
-            ctx.fillRect(x + headR - 1 * z, headY - 1.5 * z, 1.3 * z, 3.5 * z);
-        }
-
-        // Stubble/beard area (gritty)
-        if (type === 'player' || type === 'raider' || type === 'guard') {
-            ctx.fillStyle = this.rgbStr(0, 0, 0, 0.06);
-            ctx.beginPath();
-            ctx.ellipse(x, headY + 2 * z, headR * 0.7, headR * 0.5, 0, 0, Math.PI);
+            ctx.ellipse(x, headCY - headR * 0.15, headR + 0.2 * z, headR * 0.5, 0, Math.PI, Math.PI * 2);
             ctx.fill();
         }
 
-        // Eye sockets - subtle shadow only
-        ctx.fillStyle = this.adjustColor(p.skin, -20);
-        ctx.fillRect(x - 1.8 * z * sc, headY - 0.5 * z, 1 * z, 0.8 * z);
-        ctx.fillRect(x + 0.8 * z * sc, headY - 0.5 * z, 1 * z, 0.8 * z);
-        // Pupils
-        ctx.fillStyle = '#111';
-        ctx.beginPath();
-        ctx.arc(x - 1.8 * z * sc, headY - 0.3 * z, 0.35 * z, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x + 2.2 * z * sc, headY - 0.3 * z, 0.35 * z, 0, Math.PI * 2);
-        ctx.fill();
-        // Eyebrows
-        ctx.strokeStyle = p.hair;
-        ctx.lineWidth = 1 * z;
-        ctx.beginPath();
-        ctx.moveTo(x - 3 * z * sc, headY - 2 * z);
-        ctx.lineTo(x - 0.5 * z * sc, headY - 2.2 * z);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x + 0.5 * z * sc, headY - 2.2 * z);
-        ctx.lineTo(x + 3 * z * sc, headY - 2 * z);
-        ctx.stroke();
+        // Face hints (minimal at this scale)
+        if (facing !== 'north') {
+            ctx.fillStyle = this.adjustColor(p.skin, -25);
+            ctx.fillRect(x - z * sc, headCY + z * 0.2, 0.6 * z, 0.5 * z);
+            ctx.fillRect(x + 0.5 * z * sc, headCY + z * 0.2, 0.6 * z, 0.5 * z);
+        }
 
-        // Mouth
-        ctx.strokeStyle = this.adjustColor(p.skin, -40);
-        ctx.lineWidth = 0.6 * z;
-        ctx.beginPath();
-        ctx.moveTo(x - 1.5 * z * sc, headY + 2.5 * z);
-        ctx.lineTo(x + 1.5 * z * sc, headY + 2.5 * z);
-        ctx.stroke();
-
-        // Scars (raiders, mutants)
+        // Scars
         if (type === 'raider') {
             ctx.strokeStyle = '#884444';
-            ctx.lineWidth = 0.6 * z;
+            ctx.lineWidth = 0.4 * z;
             ctx.beginPath();
-            ctx.moveTo(x + z, headY - 2 * z);
-            ctx.lineTo(x + 3 * z, headY + 2 * z);
-            ctx.stroke();
-        }
-        if (isMutant) {
-            ctx.strokeStyle = '#3A6A00';
-            ctx.lineWidth = 0.8 * z;
-            ctx.beginPath();
-            ctx.moveTo(x - 2 * z, headY - z);
-            ctx.lineTo(x - 4 * z, headY + 3 * z);
+            ctx.moveTo(x + z * 0.5, headCY - z);
+            ctx.lineTo(x + z * 2, headCY + z);
             ctx.stroke();
         }
 
         // Head outline
         ctx.strokeStyle = this.adjustColor(p.skin, -30);
-        ctx.lineWidth = 0.5;
+        ctx.lineWidth = 0.4;
         ctx.beginPath();
-        ctx.ellipse(x, headY, headR, headR * 1.1, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, headCY, headR, headR * 0.7, 0, 0, Math.PI * 2);
         ctx.stroke();
     }
 
@@ -9061,9 +8969,9 @@ class IsometricRenderer {
         ctx.textAlign = 'center';
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 3 * z;
-        ctx.strokeText(text, screen.x, screen.y - 30 * z + offsetY);
+        ctx.strokeText(text, screen.x, screen.y - 22 * z + offsetY);
         ctx.fillStyle = color;
-        ctx.fillText(text, screen.x, screen.y - 30 * z + offsetY);
+        ctx.fillText(text, screen.x, screen.y - 22 * z + offsetY);
     }
 
     // ---- TRANSITIONS ----
@@ -9332,7 +9240,7 @@ class IsometricRenderer {
                     const z = this.camera.zoom;
                     ctx.fillStyle = `rgba(180, 30, 20, ${pulse})`;
                     ctx.beginPath();
-                    ctx.ellipse(screen.x, screen.y - 15 * z, 14 * z, 22 * z, 0, 0, Math.PI * 2);
+                    ctx.ellipse(screen.x, screen.y - 10 * z, 10 * z, 14 * z, 0, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
@@ -9341,8 +9249,8 @@ class IsometricRenderer {
                     const screen = this.worldToScreen(ex, ey);
                     const ctx = this.ctx;
                     const z = this.camera.zoom;
-                    const labelX = screen.x + 18 * z;
-                    const labelY = screen.y - 30 * z;
+                    const labelX = screen.x + 14 * z;
+                    const labelY = screen.y - 22 * z;
                     // Background pill
                     const text = `${gameState.hitChance}%`;
                     ctx.font = `bold ${9 * z}px 'Courier New'`;
