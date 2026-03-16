@@ -12582,6 +12582,11 @@ class Game {
 
         // Load starting area
         this.loadArea('village');
+        if (this.areas.village.playerStart) {
+            this.player.x = this.areas.village.playerStart.x;
+            this.player.y = this.areas.village.playerStart.y;
+            this.renderer.centerOn(this.player.x, this.player.y);
+        }
 
         this.hideScreen('title-screen');
         this.hideScreen('char-creation');
