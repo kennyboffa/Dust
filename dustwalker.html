@@ -5102,13 +5102,16 @@ class SpriteGenerator {
         const htw = tw / 2, hth = th / 2;
         // Slight overscan to eliminate seams between adjacent tiles
         const overscan = 1.5;
+        // Wall tiles are half a tile thick (narrower diamond)
+        const isWallTile = (type === 'wall' || type === 'wall_top');
+        const wallNarrow = isWallTile ? 0.5 : 1.0;
 
         // Draw iso diamond fill
         const drawDiamond = (color) => {
             ctx.beginPath();
-            ctx.moveTo(cx, cy - hth - overscan);
+            ctx.moveTo(cx, cy - hth * wallNarrow - overscan);
             ctx.lineTo(cx + htw + overscan, cy);
-            ctx.lineTo(cx, cy + hth + overscan);
+            ctx.lineTo(cx, cy + hth * wallNarrow + overscan);
             ctx.lineTo(cx - htw - overscan, cy);
             ctx.closePath();
             ctx.fillStyle = color;
@@ -5144,9 +5147,9 @@ class SpriteGenerator {
         // Clip to diamond for texture work (with overscan)
         ctx.save();
         ctx.beginPath();
-        ctx.moveTo(cx, cy - hth - overscan);
+        ctx.moveTo(cx, cy - hth * wallNarrow - overscan);
         ctx.lineTo(cx + htw + overscan, cy);
-        ctx.lineTo(cx, cy + hth + overscan);
+        ctx.lineTo(cx, cy + hth * wallNarrow + overscan);
         ctx.lineTo(cx - htw - overscan, cy);
         ctx.closePath();
         ctx.clip();
@@ -5337,7 +5340,7 @@ class SpriteGenerator {
     // ---- HUMANOID SPRITE GENERATION (pixel-by-pixel with Fallout 2 pre-rendered look) ----
     // variant: { skinTone: 0-4, hairColor: 0-5, bodyScale: 0.9-1.1, gender: 'male'|'female', seed: int }
     static generateHumanoidSprite(type, frame, facing = 'south', animType = 'idle', variant = null) {
-        const w = 72, h = 72;
+        const w = 72, h = 82; // taller canvas for 15% height increase
         const c = this.createCanvas(w, h);
         const ctx = c.getContext('2d');
         const imgData = ctx.createImageData(w, h);
@@ -5537,28 +5540,29 @@ class SpriteGenerator {
         const shoulderMult = isFemale ? 0.88 : 1;
         const hipMult = isFemale ? 1.0 : 0.9;
 
-        // Isometric measurements - wide torso, short legs (foreshortened from above)
+        // Isometric measurements - wide torso, legs/arms taller for better proportions
         const headR = (isFemale ? 3.2 : 3.5) * sc;
         const torsoW = 9 * sc * shoulderMult;   // wide horizontal spread
-        const torsoH = 5.5 * sc;                 // compressed vertically (foreshortened)
+        const torsoH = 6.3 * sc;                 // 15% taller torso
         const legW = 2.2 * sc;
-        const legH = 4 * sc;                     // very short (seen from above)
+        const legH = 4.6 * sc;                   // 15% taller legs
         const armW = 2 * sc;
-        const armH = 4.5 * sc;                   // foreshortened arms
-        const bootH = 1.8 * sc;
+        const armH = 5.2 * sc;                   // 15% taller arms
+        const bootH = 2.1 * sc;                  // 15% taller boots
 
         // Facing config for isometric rotation
+        // All directions use a 3/4 angle offset - characters never face the camera straight on
         // bodyDx: horizontal offset of body relative to head (directional lean)
         // legSpread: how far apart legs are placed
         const faceCfg = {
-            'south':     { bodyDx: 0, legSpreadX: 1, legSpreadY: 0.3, showFace: true, showBack: false, headTopScale: 1.0 },
-            'north':     { bodyDx: 0, legSpreadX: 1, legSpreadY: -0.2, showFace: false, showBack: true, headTopScale: 0.4 },
-            'east':      { bodyDx: 1.5 * sc, legSpreadX: 0.4, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.7 },
-            'west':      { bodyDx: -1.5 * sc, legSpreadX: 0.4, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.7 },
-            'southeast': { bodyDx: 0.8 * sc, legSpreadX: 0.7, legSpreadY: 0.4, showFace: true, showBack: false, headTopScale: 0.85 },
-            'southwest': { bodyDx: -0.8 * sc, legSpreadX: 0.7, legSpreadY: 0.4, showFace: true, showBack: false, headTopScale: 0.85 },
-            'northeast': { bodyDx: 0.8 * sc, legSpreadX: 0.7, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
-            'northwest': { bodyDx: -0.8 * sc, legSpreadX: 0.7, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
+            'south':     { bodyDx: 0.6 * sc, legSpreadX: 0.85, legSpreadY: 0.35, showFace: true, showBack: false, headTopScale: 0.9 },
+            'north':     { bodyDx: -0.6 * sc, legSpreadX: 0.85, legSpreadY: -0.15, showFace: false, showBack: true, headTopScale: 0.45 },
+            'east':      { bodyDx: 1.5 * sc, legSpreadX: 0.35, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.65 },
+            'west':      { bodyDx: -1.5 * sc, legSpreadX: 0.35, legSpreadY: 0.5, showFace: true, showBack: false, headTopScale: 0.65 },
+            'southeast': { bodyDx: 1.1 * sc, legSpreadX: 0.6, legSpreadY: 0.45, showFace: true, showBack: false, headTopScale: 0.8 },
+            'southwest': { bodyDx: -1.1 * sc, legSpreadX: 0.6, legSpreadY: 0.45, showFace: true, showBack: false, headTopScale: 0.8 },
+            'northeast': { bodyDx: 1.1 * sc, legSpreadX: 0.6, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
+            'northwest': { bodyDx: -1.1 * sc, legSpreadX: 0.6, legSpreadY: -0.1, showFace: false, showBack: true, headTopScale: 0.5 },
         };
         const fc = faceCfg[facing] || faceCfg['south'];
         const bdx = fc.bodyDx;
@@ -5740,20 +5744,27 @@ class SpriteGenerator {
         }
 
         // ---- NECK (short, connecting torso to head) ----
-        fillRect(cx - 1.2 * sc, torsoTopY - 1.5, 2.4 * sc, 2, p.skin, 6, -8);
+        // Neck bridges head center to body offset for isometric angle
+        const neckX = cx + bdx * 0.3;
+        fillRect(neckX - 1.2 * sc, torsoTopY - 1.5, 2.4 * sc, 2, p.skin, 6, -8);
 
         // ---- HEAD (isometric 3/4 top-down: crown/top of head prominently visible) ----
+        // Head is offset slightly toward body direction for natural 3/4 look
+        const headOffX = bdx * 0.15;
         const headCYf = headCY;
 
         // Head shape - vertically compressed (wider than tall, seen from above)
-        fillEllipse(cx, headCYf, headR, headR * 0.75, p.skin, 14, -12);
-        outlineEllipse(cx, headCYf, headR, headR * 0.75, p.skin);
+        fillEllipse(cx + headOffX, headCYf, headR, headR * 0.75, p.skin, 14, -12);
+        outlineEllipse(cx + headOffX, headCYf, headR, headR * 0.75, p.skin);
+
+        // Head X position (offset for isometric 3/4 view)
+        const hx = cx + headOffX;
 
         // Crown of head (prominent top-down view - the key isometric indicator)
         const headTopVis = fc.headTopScale;
         if (headTopVis > 0.3) {
             const topColor = [Math.min(255, p.skin[0] + 18), Math.min(255, p.skin[1] + 15), Math.min(255, p.skin[2] + 12)];
-            fillEllipse(cx, headCYf - headR * 0.2 * headTopVis, headR * 0.75 * headTopVis, headR * 0.4 * headTopVis, topColor, 8, -4);
+            fillEllipse(hx, headCYf - headR * 0.2 * headTopVis, headR * 0.75 * headTopVis, headR * 0.4 * headTopVis, topColor, 8, -4);
         }
 
         const hairstyle = v.hairstyle !== undefined ? v.hairstyle : (type === 'raider' ? 2 : 0);
@@ -5764,37 +5775,37 @@ class SpriteGenerator {
         if (fc.showBack) {
             // Back of head - hair covers all
             if (!isMutant && !isBald) {
-                fillEllipse(cx, headCYf, headR + 0.3, headR * 0.7, p.hair, 8, -10);
-                outlineEllipse(cx, headCYf, headR + 0.3, headR * 0.7, p.hair);
+                fillEllipse(hx, headCYf, headR + 0.3, headR * 0.7, p.hair, 8, -10);
+                outlineEllipse(hx, headCYf, headR + 0.3, headR * 0.7, p.hair);
                 if (isLongHair || isFemale) {
-                    fillEllipse(cx, headCYf + headR * 0.3, headR * 0.6, headR * 0.5, p.hair, 6, -10);
+                    fillEllipse(hx, headCYf + headR * 0.3, headR * 0.6, headR * 0.5, p.hair, 6, -10);
                     // Long hair extends further down
-                    fillRect(cx - headR * 0.4, headCYf + headR * 0.5, headR * 0.8, headR * 0.6, p.hair, 5, -8);
+                    fillRect(hx - headR * 0.4, headCYf + headR * 0.5, headR * 0.8, headR * 0.6, p.hair, 5, -8);
                 }
                 if (isMohawk) {
                     // Mohawk ridge visible from back
                     for (let i = 0; i < 3; i++) {
-                        fillRect(cx - 0.3, headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
+                        fillRect(hx - 0.3, headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
                     }
                 }
             }
             // Ears visible from behind
             const earSkin = [p.skin[0] - 5, p.skin[1] - 5, p.skin[2] - 5];
-            fillEllipse(cx - headR, headCYf, 1, 1.5, earSkin, 4, -6);
-            fillEllipse(cx + headR, headCYf, 1, 1.5, earSkin, 4, -6);
+            fillEllipse(hx - headR, headCYf, 1, 1.5, earSkin, 4, -6);
+            fillEllipse(hx + headR, headCYf, 1, 1.5, earSkin, 4, -6);
         } else {
             // Front/side face
             if (!isMutant && !isBald) {
                 if (isMohawk) {
                     // Mohawk - narrow strip on top
                     for (let i = 0; i < 3; i++) {
-                        fillRect(cx - 0.5 * sc + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
+                        fillRect(hx - 0.5 * sc + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2 * sc, 1 * sc, 1.5 * sc, p.hair, 4, -6);
                     }
                 } else {
                     // Hair crown (dominant feature from above - covers top dome of head)
                     for (let py = Math.floor(headCYf - headR * 0.6); py <= Math.floor(headCYf + headR * 0.1); py++) {
-                        for (let px = Math.floor(cx - headR - 0.3); px <= Math.ceil(cx + headR + 0.3); px++) {
-                            const dx = (px - cx) / (headR + 0.3);
+                        for (let px = Math.floor(hx - headR - 0.3); px <= Math.ceil(hx + headR + 0.3); px++) {
+                            const dx = (px - hx) / (headR + 0.3);
                             const dy = (py - (headCYf - headR * 0.15)) / (headR * 0.55);
                             if (dx * dx + dy * dy <= 1) {
                                 ditheredPixel(px, py, p.hair, 8, -10);
@@ -5803,27 +5814,29 @@ class SpriteGenerator {
                     }
                     // Sideburns
                     const sideLength = isLongHair ? 4.5 : (isFemale ? 3.5 : 2.5);
-                    fillRect(cx - headR - 0.3, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
-                    fillRect(cx + headR - 0.5, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
+                    fillRect(hx - headR - 0.3, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
+                    fillRect(hx + headR - 0.5, headCYf - 0.5, 1, sideLength, p.hair, 5, -8);
                     if (isLongHair || isFemale) {
-                        fillRect(cx - headR - 0.5, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
-                        fillRect(cx + headR - 0.3, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
+                        fillRect(hx - headR - 0.5, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
+                        fillRect(hx + headR - 0.3, headCYf + 1, 1, headR + 1, p.hair, 5, -8);
                     }
                 }
             }
             // Face details (subtle at this scale - just shadow hints)
+            // Eyes offset to one side for 3/4 isometric view
             const socketShadow = [Math.max(0, p.skin[0] - 22), Math.max(0, p.skin[1] - 22), Math.max(0, p.skin[2] - 22)];
-            setPixel(cx - 1.2 * sc, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
-            setPixel(cx + 1.2 * sc, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
-            // Nose
+            const eyeShift = bdx > 0 ? 0.3 : bdx < 0 ? -0.3 : 0;
+            setPixel(hx - 1.2 * sc + eyeShift, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
+            setPixel(hx + 1.2 * sc + eyeShift, headCYf + 0.3, socketShadow[0], socketShadow[1], socketShadow[2], 120);
+            // Nose (offset toward facing direction)
             const noseShadow = [Math.max(0, p.skin[0] - 18), Math.max(0, p.skin[1] - 18), Math.max(0, p.skin[2] - 18)];
-            setPixel(cx, headCYf + 1, noseShadow[0], noseShadow[1], noseShadow[2], 150);
+            setPixel(hx + eyeShift * 0.5, headCYf + 1, noseShadow[0], noseShadow[1], noseShadow[2], 150);
             // Mouth hint
             const mouthColor = [Math.max(0, p.skin[0] - 30), Math.max(0, p.skin[1] - 30), Math.max(0, p.skin[2] - 30)];
-            setPixel(cx, headCYf + 1.8, mouthColor[0], mouthColor[1], mouthColor[2], 120);
+            setPixel(hx + eyeShift * 0.3, headCYf + 1.8, mouthColor[0], mouthColor[1], mouthColor[2], 120);
             // Raider scar
             if (type === 'raider' && !isFemale) {
-                drawLine(cx + 0.5, headCYf - 1, cx + 2, headCYf + 1, [100, 35, 30], 1);
+                drawLine(hx + 0.5, headCYf - 1, hx + 2, headCYf + 1, [100, 35, 30], 1);
             }
         }
 
@@ -5831,11 +5844,11 @@ class SpriteGenerator {
         if (type === 'raider' && !isMohawk) {
             if (isFemale) {
                 for (let i = 0; i < 2; i++) {
-                    fillRect(cx + (rng() - 0.5) * 2, headCYf - headR * 0.6 - 1 - i, 1.5, 1.5, p.hair, 4, -6);
+                    fillRect(hx + (rng() - 0.5) * 2, headCYf - headR * 0.6 - 1 - i, 1.5, 1.5, p.hair, 4, -6);
                 }
             } else {
                 for (let i = 0; i < 3; i++) {
-                    fillRect(cx - 0.3 + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2, 1, 1.5, p.hair, 4, -6);
+                    fillRect(hx - 0.3 + (rng() - 0.5), headCYf - headR * 0.6 - i * 1.2, 1, 1.5, p.hair, 4, -6);
                 }
             }
         }
@@ -5843,8 +5856,8 @@ class SpriteGenerator {
         // Guard helmet (wider, seen from above)
         if (type === 'guard') {
             const helmetColor = [58, 56, 40];
-            fillEllipse(cx, headCYf - 0.3, headR + 0.8, headR * 0.55, helmetColor, 8, -10);
-            fillRect(cx - headR - 0.5, headCYf, headR * 2 + 1, 1, helmetColor, 5, -6);
+            fillEllipse(hx, headCYf - 0.3, headR + 0.8, headR * 0.55, helmetColor, 8, -10);
+            fillRect(hx - headR - 0.5, headCYf, headR * 2 + 1, 1, helmetColor, 5, -6);
         }
 
         // Put pixel data to canvas
@@ -7921,12 +7934,15 @@ class IsometricRenderer {
     drawWallSides(ctx, screen, tw, th, hOffset, z, gx, gy, tileType, colors, height, n) {
         const isStone = tileType === 'cave_wall' || tileType === 'cave_rock';
         const brickH = 4 * z;
+        // Wall tiles use half-thickness (narrower in depth axis)
+        const isWall = (tileType === 'wall' || tileType === 'wall_top');
+        const wallTh = isWall ? th * 0.5 : th;
 
         // ---- LEFT FACE ----
         ctx.beginPath();
         ctx.moveTo(screen.x - tw, screen.y - hOffset);
-        ctx.lineTo(screen.x, screen.y + th - hOffset);
-        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
+        ctx.lineTo(screen.x, screen.y + wallTh);
         ctx.lineTo(screen.x - tw, screen.y);
         ctx.closePath();
         ctx.fillStyle = colors.left;
@@ -7936,7 +7952,7 @@ class IsometricRenderer {
         ctx.clip();
         // Brick/stone mortar
         for (let i = 0; i < height * 4; i++) {
-            const by = screen.y + th - i * brickH;
+            const by = screen.y + wallTh - i * brickH;
             const offset = (i % 2) * 6 * z;
             const mortarDark = -12 - this.noise(gx * 3 + i, gy) * 10;
             ctx.strokeStyle = this.adjustColor(colors.left, mortarDark);
@@ -7964,7 +7980,7 @@ class IsometricRenderer {
         }
         // Heavy weathering stains (water damage, rust)
         ctx.fillStyle = `rgba(0,0,0,${0.08 + n * 0.1})`;
-        ctx.fillRect(screen.x - tw, screen.y + th - 10 * z, tw, 10 * z);
+        ctx.fillRect(screen.x - tw, screen.y + wallTh - 10 * z, tw, 10 * z);
         // Rust streak
         if (this.noise(gx * 7, gy * 11) > 0.6) {
             ctx.fillStyle = `rgba(80,40,15,${0.06 + n * 0.05})`;
@@ -7989,8 +8005,8 @@ class IsometricRenderer {
         ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.moveTo(screen.x - tw, screen.y - hOffset);
-        ctx.lineTo(screen.x, screen.y + th - hOffset);
-        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
+        ctx.lineTo(screen.x, screen.y + wallTh);
         ctx.lineTo(screen.x - tw, screen.y);
         ctx.closePath();
         ctx.stroke();
@@ -7998,8 +8014,8 @@ class IsometricRenderer {
         // ---- RIGHT FACE (darker, in shadow) ----
         ctx.beginPath();
         ctx.moveTo(screen.x + tw, screen.y - hOffset);
-        ctx.lineTo(screen.x, screen.y + th - hOffset);
-        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
+        ctx.lineTo(screen.x, screen.y + wallTh);
         ctx.lineTo(screen.x + tw, screen.y);
         ctx.closePath();
         ctx.fillStyle = this.adjustColor(colors.right, -5); // slightly darker shadow side
@@ -8008,20 +8024,20 @@ class IsometricRenderer {
         ctx.save();
         ctx.clip();
         for (let i = 0; i < height * 4; i++) {
-            const by = screen.y + th - i * brickH;
+            const by2 = screen.y + wallTh - i * brickH;
             const offset = (i % 2) * 6 * z;
             ctx.strokeStyle = this.adjustColor(colors.right, -12 - this.noise(gx + i * 7, gy * 3) * 10);
             ctx.lineWidth = 0.6;
             ctx.beginPath();
-            ctx.moveTo(screen.x, by);
-            ctx.lineTo(screen.x + tw, by);
+            ctx.moveTo(screen.x, by2);
+            ctx.lineTo(screen.x + tw, by2);
             ctx.stroke();
             if (!isStone) {
                 for (let j = 0; j < 4; j++) {
                     const bx = screen.x + offset + j * 8 * z;
                     ctx.beginPath();
-                    ctx.moveTo(bx, by);
-                    ctx.lineTo(bx, by - brickH);
+                    ctx.moveTo(bx, by2);
+                    ctx.lineTo(bx, by2 - brickH);
                     ctx.stroke();
                 }
             }
@@ -8030,12 +8046,12 @@ class IsometricRenderer {
                 ctx.fillStyle = this.adjustColor(colors.right, -18);
                 const dw = (2 + this.noise(gx + i, gy * 2) * 3) * z;
                 const dx = screen.x + tw * 0.2 + this.noise(gx, gy + i * 2) * tw * 0.4;
-                ctx.fillRect(dx, by - brickH, dw, brickH);
+                ctx.fillRect(dx, by2 - brickH, dw, brickH);
             }
         }
         // Shadow side is darker
         ctx.fillStyle = `rgba(0,0,0,${0.06 + n * 0.08})`;
-        ctx.fillRect(screen.x, screen.y + th - 8 * z, tw, 8 * z);
+        ctx.fillRect(screen.x, screen.y + wallTh - 8 * z, tw, 8 * z);
         // Window frame (on taller walls)
         if (height >= 2 && this.noise(gx * 11, gy * 7) > 0.5) {
             const wy = screen.y - hOffset * 0.45;
@@ -8071,8 +8087,8 @@ class IsometricRenderer {
         ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.moveTo(screen.x + tw, screen.y - hOffset);
-        ctx.lineTo(screen.x, screen.y + th - hOffset);
-        ctx.lineTo(screen.x, screen.y + th);
+        ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
+        ctx.lineTo(screen.x, screen.y + wallTh);
         ctx.lineTo(screen.x + tw, screen.y);
         ctx.closePath();
         ctx.stroke();
@@ -10429,10 +10445,10 @@ function createVillageArea() {
         row.split('').map(c => tileKey[c.trim()] || 'sand')
     );
 
-    // Heights - only walls are raised (half-tile thick)
+    // Heights - only walls are raised
     const heights = mapRaw.map(row =>
         row.split('').map(c => {
-            if (c === 'w') return 1;
+            if (c === 'w') return 2;
             return 0;
         })
     );
@@ -10982,7 +10998,7 @@ function createOasisArea() {
     );
 
     const heights = mapRaw.map(row =>
-        row.split('').map(c => c === 'w' ? 1 : c === 'S' ? 1 : 0)
+        row.split('').map(c => c === 'w' ? 2 : c === 'S' ? 1 : 0)
     );
 
     const blocked = new Set(['wall', 'water', 'void']);
@@ -11166,7 +11182,7 @@ function createBunkerArea() {
     );
 
     const heights = mapRaw.map(row =>
-        row.split('').map(c => c === 'w' ? 1 : 0)
+        row.split('').map(c => c === 'w' ? 2 : 0)
     );
 
     const blocked = new Set(['wall', 'void']);
