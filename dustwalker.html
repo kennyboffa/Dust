@@ -478,12 +478,12 @@ body {
     position: absolute;
     bottom: 70px;
     left: 10px;
-    width: 400px;
-    max-height: 150px;
+    width: 280px;
+    max-height: 100px;
     overflow-y: auto;
     background: rgba(10, 6, 0, 0.75);
     border: 1px solid #4a3a2044;
-    padding: 6px 8px;
+    padding: 4px 6px;
     pointer-events: all;
     scrollbar-width: thin;
     scrollbar-color: #4a3a20 #0a0600;
@@ -501,16 +501,9 @@ body {
 .msg-skill { color: #9a6ac4; }
 .msg-dialogue { color: #c4c4c4; }
 
-/* Survival Status Bars */
+/* Survival Status Bars — now integrated into lower-left portrait */
 #survival-panel {
-    position: absolute;
-    bottom: 75px;
-    right: 10px;
-    background: rgba(10, 6, 0, 0.8);
-    border: 1px solid #4a3a2066;
-    padding: 6px 8px;
-    pointer-events: all;
-    min-width: 120px;
+    display: none;
 }
 #survival-panel .survival-label {
     font-size: 10px;
@@ -948,7 +941,7 @@ body {
     gap: 6px;
 }
 
-#combat-weapon-btn, #combat-mode-btn {
+#combat-weapon-btn, #combat-mode-btn, #combat-reload-btn {
     font-family: 'Special Elite', 'Courier New', monospace;
     font-size: 12px;
     font-weight: bold;
@@ -965,7 +958,7 @@ body {
     white-space: nowrap;
 }
 
-#combat-weapon-btn:hover, #combat-mode-btn:hover {
+#combat-weapon-btn:hover, #combat-mode-btn:hover, #combat-reload-btn:hover {
     background: #7a4a2a;
     border-color: #ffcc44;
     color: #ffcc44;
@@ -1327,23 +1320,10 @@ canvas {
 
 /* Status Panel (top right) */
 #status-panel {
-    position: fixed;
-    top: 8px;
-    right: 8px;
-    background: rgba(20, 15, 8, 0.85);
-    border: 1px solid #4a3a20;
-    border-radius: 4px;
-    padding: 8px 12px;
-    min-width: 140px;
-    z-index: 100;
-    font-size: 12px;
+    display: none;
 }
 #status-name {
-    color: #c8a848;
-    font-weight: bold;
-    margin-bottom: 4px;
-    text-align: center;
-    font-size: 11px;
+    display: none;
 }
 .status-bar-container {
     margin: 2px 0;
@@ -1412,42 +1392,50 @@ canvas {
 
                             <div class="stats-section" style="margin-top:12px">
                                 <h3>Appearance</h3>
-                                <div class="stat-row">
-                                    <span class="stat-name">Gender</span>
-                                    <select id="char-gender" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                    </select>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-name">Skin Color</span>
-                                    <select id="char-skin" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
-                                        <option value="0">Light</option>
-                                        <option value="1">Fair</option>
-                                        <option value="2">Medium</option>
-                                        <option value="3">Tan</option>
-                                        <option value="4">Dark</option>
-                                    </select>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-name">Hair Color</span>
-                                    <select id="char-hair-color" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
-                                        <option value="0">Black</option>
-                                        <option value="1">Brown</option>
-                                        <option value="2">Dark</option>
-                                        <option value="3">Grey</option>
-                                        <option value="4">Auburn</option>
-                                        <option value="5">Red</option>
-                                    </select>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-name">Hairstyle</span>
-                                    <select id="char-hairstyle" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
-                                        <option value="0">Short</option>
-                                        <option value="1">Long</option>
-                                        <option value="2">Mohawk</option>
-                                        <option value="3">Bald</option>
-                                    </select>
+                                <div style="display:flex;gap:12px;align-items:flex-start">
+                                    <div style="flex:1">
+                                        <div class="stat-row">
+                                            <span class="stat-name">Gender</span>
+                                            <select id="char-gender" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                            </select>
+                                        </div>
+                                        <div class="stat-row">
+                                            <span class="stat-name">Skin Color</span>
+                                            <select id="char-skin" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
+                                                <option value="0">Light</option>
+                                                <option value="1">Fair</option>
+                                                <option value="2">Medium</option>
+                                                <option value="3">Tan</option>
+                                                <option value="4">Dark</option>
+                                            </select>
+                                        </div>
+                                        <div class="stat-row">
+                                            <span class="stat-name">Hair Color</span>
+                                            <select id="char-hair-color" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
+                                                <option value="0">Black</option>
+                                                <option value="1">Brown</option>
+                                                <option value="2">Dark</option>
+                                                <option value="3">Grey</option>
+                                                <option value="4">Auburn</option>
+                                                <option value="5">Red</option>
+                                            </select>
+                                        </div>
+                                        <div class="stat-row">
+                                            <span class="stat-name">Hairstyle</span>
+                                            <select id="char-hairstyle" style="background:#0a0600;color:#c4943a;border:1px solid #4a3a20;padding:4px 8px;font-family:inherit">
+                                                <option value="0">Short</option>
+                                                <option value="1">Long</option>
+                                                <option value="2">Mohawk</option>
+                                                <option value="3">Bald</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex;flex-direction:column;align-items:center">
+                                        <canvas id="char-preview" width="128" height="128" style="border:1px solid #4a3a20;background:#0a0600;image-rendering:pixelated"></canvas>
+                                        <span style="font-size:10px;color:#8a7a50;margin-top:4px">Preview</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1506,6 +1494,17 @@ canvas {
                         </div>
                         <div class="bar-container">
                             <div id="ap-bar" class="stat-bar ap"><span>AP</span></div>
+                        </div>
+                        <div id="portrait-survival" style="display:flex;gap:2px;margin-top:3px">
+                            <div style="flex:1;height:6px;background:#0a0600;border:1px solid #3a2a10;position:relative" title="Hunger">
+                                <div id="portrait-hunger" style="height:100%;background:#8a6a20;width:100%;transition:width 0.3s"></div>
+                            </div>
+                            <div style="flex:1;height:6px;background:#0a0600;border:1px solid #3a2a10;position:relative" title="Thirst">
+                                <div id="portrait-thirst" style="height:100%;background:#2060a0;width:100%;transition:width 0.3s"></div>
+                            </div>
+                            <div style="flex:1;height:6px;background:#0a0600;border:1px solid #3a2a10;position:relative" title="Sleep">
+                                <div id="portrait-sleep" style="height:100%;background:#506090;width:100%;transition:width 0.3s"></div>
+                            </div>
                         </div>
                     </div>
                     <div id="hud-actions">
@@ -1911,18 +1910,21 @@ const ItemDatabase = {
         id: 'pipe_pistol', name: 'Pipe Pistol', type: 'ranged',
         damage: '1d8', range: 8, apCost: 4, skill: 'smallGuns',
         weight: 3, value: 100, ammoType: '9mm', burstCapable: true,
+        magSize: 8, currentAmmo: 8, reloadCost: 2,
         desc: 'A crude but functional pistol cobbled together from scrap.',
     },
     hunting_rifle: {
         id: 'hunting_rifle', name: 'Hunting Rifle', type: 'ranged',
         damage: '2d6+2', range: 12, apCost: 5, skill: 'smallGuns',
         weight: 7, value: 300, ammoType: '.308',
+        magSize: 5, currentAmmo: 5, reloadCost: 3,
         desc: 'A pre-war hunting rifle. Accurate at long range.',
     },
     sawed_off: {
         id: 'sawed_off', name: 'Sawed-Off Shotgun', type: 'ranged',
         damage: '3d4', range: 3, apCost: 4, skill: 'smallGuns',
         weight: 5, value: 200, ammoType: '12ga',
+        magSize: 2, currentAmmo: 2, reloadCost: 3,
         desc: 'A sawed-off double barrel. Deadly at close range.',
     },
 
@@ -2136,6 +2138,24 @@ const ItemDatabase = {
         perception: 1,
         weight: 0.5, value: 60,
         desc: 'Tinted goggles that sharpen your vision. +1 PER when equipped.',
+    },
+    simple_backpack: {
+        id: 'simple_backpack', name: 'Simple Backpack', type: 'accessory',
+        carryBonus: 0.2,
+        weight: 1, value: 40,
+        desc: 'A basic cloth backpack. Increases carry weight by 20%.',
+    },
+    backpack: {
+        id: 'backpack', name: 'Backpack', type: 'accessory',
+        carryBonus: 0.4,
+        weight: 2, value: 120,
+        desc: 'A sturdy leather backpack with multiple pockets. Increases carry weight by 40%.',
+    },
+    large_backpack: {
+        id: 'large_backpack', name: 'Large Backpack', type: 'accessory',
+        carryBonus: 0.6,
+        weight: 3, value: 250,
+        desc: 'A large military-style rucksack. Increases carry weight by 60%. Extremely rare.',
     },
 };
 
@@ -2783,6 +2803,7 @@ const DialogueDatabase = {
                                 { ...ItemDatabase.dried_rations, value: 15, quantity: 5 },
                                 { ...ItemDatabase.cooked_meat, value: 25, quantity: 3 },
                                 { ...ItemDatabase.bedroll, value: 30, quantity: 1 },
+                                { ...ItemDatabase.simple_backpack, value: 40, quantity: 1 },
                             ];
                         }
                         if (merchant) setTimeout(() => game.hud.showBarterScreen(merchant), 100);
@@ -3075,6 +3096,7 @@ const DialogueDatabase = {
                             trader.shopItems = [
                                 { ...ItemDatabase.stimpak, value: 40, quantity: 2 },
                                 { ...ItemDatabase.healing_powder, value: 15, quantity: 4 },
+                                { ...ItemDatabase.backpack, value: 120, quantity: 1 },
                             ];
                         }
                         if (trader) setTimeout(() => game.hud.showBarterScreen(trader), 100);
@@ -3220,6 +3242,7 @@ class CharacterSystem {
                 accessory: null
             },
             attackMode: 'normal', // 'normal', 'aimed', 'burst'
+            weaponCategory: 'unarmed', // updated when equipping weapons
 
             inventory: [],
             maxCarryWeight: 0,
@@ -3248,7 +3271,12 @@ class CharacterSystem {
         // Derived stats
         char.stats.maxHp = 15 + s.strength + (s.endurance * 2) + (char.level * (2 + Math.floor(s.endurance / 2)));
         char.stats.maxAp = 5 + Math.floor(s.agility / 2);
-        char.maxCarryWeight = 25 + s.strength * 25;
+        char.maxCarryWeight = 20 + s.strength * 10;
+        // Backpack bonus
+        if (char.equipment && char.equipment.accessory) {
+            const acc = char.equipment.accessory;
+            if (acc.carryBonus) char.maxCarryWeight = Math.floor(char.maxCarryWeight * (1 + acc.carryBonus));
+        }
 
         // Combat stats
         char.stats.meleeDmg = Math.max(1, s.strength - 5);
@@ -3378,6 +3406,7 @@ class CharacterSystem {
             aiType: 'npc_defender',
             schedule: template.schedule || null,
             flags: template.flags || {},
+            weaponCategory: template.weaponCategory || (isGuard ? 'melee' : 'unarmed'),
         };
         return npc;
     }
@@ -3416,6 +3445,7 @@ class CharacterSystem {
             loot: template.loot || [],
             attackRange: template.attackRange || 1,
             moveSpeed: template.moveSpeed || 1,
+            weaponCategory: template.weaponCategory || ((template.attackRange || 1) > 1 ? 'ranged' : (template.skills && template.skills.melee > (template.skills.unarmed || 0) ? 'melee' : 'unarmed')),
         };
         return enemy;
     }
@@ -3614,6 +3644,24 @@ class CombatSystem {
             burstHits = Utils.randInt(1, 3);
         }
 
+        // Check ammo for ranged weapons
+        if (weapon && weapon.type === 'ranged' && weapon.magSize) {
+            const shotsNeeded = burstHits;
+            if ((weapon.currentAmmo || 0) < 1) {
+                if (attacker.type === 'player') {
+                    this.game.addMessage('Weapon empty! Reload first. (R)', 'combat');
+                } else {
+                    // AI auto-reload
+                    this.aiReload(attacker, weapon);
+                }
+                return { success: false, reason: 'no_ammo' };
+            }
+            // Consume ammo (consume what's available up to burstHits)
+            const consumed = Math.min(weapon.currentAmmo || 0, shotsNeeded);
+            weapon.currentAmmo = (weapon.currentAmmo || 0) - consumed;
+            burstHits = consumed; // can only hit as many times as ammo available
+        }
+
         // Face the defender
         const adx = defender.x - attacker.x;
         const ady = defender.y - attacker.y;
@@ -3756,6 +3804,48 @@ class CombatSystem {
         return { success: true, hit: anyHit, damage: totalDamage, killed, critical: anyCrit, dodged: anyDodged };
     }
 
+    // AI auto-reload for enemies
+    aiReload(entity, weapon) {
+        if (!weapon || !weapon.magSize) return;
+        // AI has unlimited ammo but still costs AP
+        const cost = weapon.reloadCost || 2;
+        if (CharacterSystem.useAP(entity, cost)) {
+            weapon.currentAmmo = weapon.magSize;
+        }
+    }
+
+    // Player reload
+    reloadWeapon(entity) {
+        const weapon = entity.equipment ? InventorySystem.getEquippedWeapon(entity) : null;
+        if (!weapon || !weapon.magSize) {
+            this.game.addMessage('No firearm to reload.', 'combat');
+            return false;
+        }
+        if (weapon.currentAmmo >= weapon.magSize) {
+            this.game.addMessage('Weapon already fully loaded.', 'info');
+            return false;
+        }
+        // Find matching ammo in inventory
+        const ammoItem = entity.inventory.find(i => i.type === 'ammo' && i.ammoType === weapon.ammoType);
+        if (!ammoItem) {
+            this.game.addMessage(`No ${weapon.ammoType} ammo!`, 'combat');
+            return false;
+        }
+        const cost = weapon.reloadCost || 2;
+        if (!CharacterSystem.useAP(entity, cost)) {
+            this.game.addMessage('Not enough AP to reload!', 'combat');
+            return false;
+        }
+        const needed = weapon.magSize - (weapon.currentAmmo || 0);
+        const available = ammoItem.quantity || 1;
+        const loaded = Math.min(needed, available);
+        weapon.currentAmmo = (weapon.currentAmmo || 0) + loaded;
+        InventorySystem.removeItem(entity, ammoItem.uid || ammoItem.id, loaded);
+        this.game.addMessage(`Reloaded ${weapon.name} (${weapon.currentAmmo}/${weapon.magSize}) [${cost} AP]`, 'combat');
+        this.game.audio.playSfx('click');
+        return true;
+    }
+
     onEntityKilled(killer, victim) {
         this.game.addMessage(`${victim.name} is dead.`, 'combat');
         this.game.audio.playSfx('death');
@@ -3820,8 +3910,10 @@ class CombatSystem {
             }
         }
 
-        // Remove from entities
-        this.game.removeEntity(victim);
+        // Mark as dead — body stays visible until player leaves area
+        victim.dead = true;
+        victim.animState = 'death';
+        victim.stats.hp = 0;
     }
 
     endCombat() {
@@ -5510,12 +5602,35 @@ class SpriteGenerator {
             { lx: 0, ly: 0, rx: 0, ry: 0, laOff: 0, raOff: 0 },
             { lx: 1, ly: 0.5, rx: -1, ry: -0.5, laOff: -1, raOff: 1 },
         ];
-        const atkFrames = [
-            { ext: 0, armShift: 0 },
-            { ext: -2, armShift: -2 },
-            { ext: 2, armShift: 2 },
-            { ext: 0, armShift: 0 },
-        ];
+        // Weapon-category-dependent attack frames
+        const weaponCat = v.weaponCategory || 'melee';
+        const atkFramesByWeapon = {
+            'unarmed': [
+                { ext: 0, armShift: 0, lArmExt: 0 },
+                { ext: 3, armShift: 2, lArmExt: 2 },   // Both fists forward
+                { ext: 4, armShift: 3, lArmExt: 3 },
+                { ext: 1, armShift: 0, lArmExt: 1 },
+            ],
+            'melee': [
+                { ext: 0, armShift: 0, lArmExt: 0 },
+                { ext: -3, armShift: -3, lArmExt: 0 },  // Wind up
+                { ext: 4, armShift: 4, lArmExt: 0 },    // Slash down
+                { ext: 1, armShift: 1, lArmExt: 0 },
+            ],
+            'ranged': [
+                { ext: 0, armShift: 0, lArmExt: 0 },
+                { ext: 2, armShift: 1, lArmExt: 1 },    // Aim
+                { ext: 3, armShift: -1, lArmExt: 2 },   // Recoil
+                { ext: 1, armShift: 0, lArmExt: 0 },
+            ],
+            'spear': [
+                { ext: 0, armShift: 0, lArmExt: 0 },
+                { ext: -2, armShift: -2, lArmExt: -1 },  // Pull back
+                { ext: 5, armShift: 4, lArmExt: 2 },     // Thrust forward
+                { ext: 2, armShift: 1, lArmExt: 0 },
+            ],
+        };
+        const atkFrames = (atkFramesByWeapon[weaponCat] || atkFramesByWeapon['melee']);
         // Dodge animation: lean sideways and crouch
         const dodgeFrames = [
             { shiftX: 0, shiftY: 0, crouch: 0 },
@@ -5692,7 +5807,7 @@ class SpriteGenerator {
 
         // ---- ARMS (foreshortened stubs on sides of torso) ----
         const armTopY = torsoTopY + 1;
-        const lArmOff = walking ? wk.laOff * sc * 0.5 : (attacking ? (at.armShift < 0 ? 0.5 : 0) : 0);
+        const lArmOff = walking ? wk.laOff * sc * 0.5 : (attacking ? (at.lArmExt || 0) * 0.5 : 0);
         const rArmOff = walking ? wk.raOff * sc * 0.5 : 0;
         const rArmExt = attacking ? at.ext * 0.5 : 0;
 
@@ -5716,17 +5831,35 @@ class SpriteGenerator {
         const rHandY = armTopY + armH + rArmOff + rArmExt;
         fillEllipse(raX, rHandY, 1 * sc, 1 * sc, handSkin, 5, -6);
 
-        // Weapon (small, isometric angle)
-        if (type === 'player' || type === 'raider' || type === 'guard') {
+        // Weapon (small, isometric angle) — weapon-category aware
+        const drawWeaponCat = weaponCat;
+        const hasWeapon = type === 'player' || type === 'raider' || type === 'guard';
+        if (hasWeapon && drawWeaponCat !== 'unarmed') {
             const wx = raX;
             const wy = rHandY + 1 * sc;
-            if (type === 'player' || type === 'guard') {
+            if (drawWeaponCat === 'ranged') {
+                // Gun: barrel + grip
+                drawLine(wx, wy - 5, wx, wy - 1, [68, 68, 68], 1);
+                fillRect(wx - 0.5, wy - 1, 1.5, 2.5, [85, 85, 85], 3, -4);
+                // Muzzle flash during attack frame 2
+                if (attacking && frame % 4 === 2) {
+                    fillEllipse(wx, wy - 6.5, 2 * sc, 1.5 * sc, [255, 200, 50], 20, -5);
+                    fillEllipse(wx, wy - 7, 1 * sc, 0.8 * sc, [255, 255, 180], 15, -3);
+                }
+            } else if (drawWeaponCat === 'spear') {
+                // Spear: long shaft + point
+                drawLine(wx, wy + 2, wx + 1, wy - 7, [74, 58, 40], 1);
+                const spearTip = [140, 140, 135];
+                drawLine(wx + 1, wy - 7, wx + 1.5, wy - 9, spearTip, 1);
+            } else {
+                // Melee: sword/knife blade + hilt
                 const blade = [106, 106, 106];
                 drawLine(wx, wy, wx + 1, wy - 4, blade, 1);
                 fillRect(wx - 0.5, wy, 1.5, 2, [42, 28, 12], 3, -4);
-            } else {
-                drawLine(wx, wy - 5, wx, wy, [68, 68, 68], 1);
-                fillRect(wx - 0.5, wy, 1.5, 2, [85, 85, 85], 3, -4);
+                // Slash arc during attack frame 2
+                if (attacking && frame % 4 === 2) {
+                    drawLine(wx - 2, wy - 5, wx + 3, wy - 2, [180, 180, 175], 1);
+                }
             }
         }
 
@@ -6180,6 +6313,55 @@ class SpriteGenerator {
         }
 
         return this.weatherSprite(c, 0.9);
+    }
+
+    // ---- DEATH SPRITE GENERATION ----
+    static generateHumanoidDeathSprite(type, variant) {
+        // Generate idle frame then rotate 90° to show character lying down
+        const idle = this.generateHumanoidSprite(type, 0, 'south', 'idle', variant);
+        const w = 82, h = 50;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+
+        // Blood pool beneath body
+        ctx.fillStyle = 'rgba(80, 15, 10, 0.25)';
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h - 10, 22, 7, 0.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(60, 10, 5, 0.15)';
+        ctx.beginPath();
+        ctx.ellipse(w / 2 + 5, h - 8, 12, 4, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw character rotated 90° (lying on side)
+        ctx.globalAlpha = 0.8;
+        ctx.translate(w / 2, h / 2 - 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.drawImage(idle, -idle.width / 2, -idle.height / 2);
+
+        return this.weatherSprite(c, 0.6);
+    }
+
+    static generateCreatureDeathSprite(type) {
+        // Generate normal creature then flip upside down (legs up = dead)
+        const alive = this.generateCreatureSprite(type, 0);
+        const w = alive.width, h = alive.height;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+
+        // Blood pool
+        ctx.fillStyle = 'rgba(80, 15, 10, 0.2)';
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h - 12, 18, 6, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw creature flipped vertically
+        ctx.globalAlpha = 0.75;
+        ctx.translate(w / 2, h / 2);
+        ctx.scale(1, -1);
+        ctx.drawImage(alive, -w / 2, -h / 2);
+
+        return this.weatherSprite(c, 0.6);
     }
 
     // ---- CONTAINER SPRITES ----
@@ -7533,12 +7715,19 @@ class IsometricRenderer {
                     walk_southeast: [], walk_northeast: [], walk_southwest: [], walk_northwest: [],
                     attack_south: [], attack_north: [], attack_east: [], attack_west: [],
                     attack_southeast: [], attack_northeast: [], attack_southwest: [], attack_northwest: [],
+                    attack_ranged_south: [], attack_ranged_north: [], attack_ranged_east: [], attack_ranged_west: [],
+                    attack_ranged_southeast: [], attack_ranged_northeast: [], attack_ranged_southwest: [], attack_ranged_northwest: [],
+                    attack_unarmed_south: [], attack_unarmed_north: [], attack_unarmed_east: [], attack_unarmed_west: [],
+                    attack_unarmed_southeast: [], attack_unarmed_northeast: [], attack_unarmed_southwest: [], attack_unarmed_northwest: [],
                     dodge_south: [], dodge_north: [], dodge_east: [], dodge_west: [],
                     dodge_southeast: [], dodge_northeast: [], dodge_southwest: [], dodge_northwest: [],
+                    death: null, // single death sprite per variant
                 };
 
                 // Build variant params - randomized skin, hair, scale, gender
                 const vrng = SpriteGenerator.seededRandom(type.length * 7919 + vi * 3571);
+                // Default weapon category per type
+                const defaultWeaponCat = { player: 'melee', guard: 'melee', raider: 'ranged', mutant: 'unarmed', villager: 'unarmed', merchant: 'unarmed', elder: 'unarmed' };
                 const variant = {
                     skinTone: type === 'mutant' ? 0 : Math.floor(vrng() * 5),
                     hairColor: Math.floor(vrng() * 6),
@@ -7547,6 +7736,7 @@ class IsometricRenderer {
                     gender: (type === 'player' || type === 'elder' || type === 'mutant' || vi === 0) ? 'male'
                         : (vi >= numVariants / 2 ? 'female' : 'male'),
                     seed: type.length * 10000 + vi * 1337,
+                    weaponCategory: defaultWeaponCat[type] || 'melee',
                 };
 
                 for (let f = 0; f < 4; f++) {
@@ -7598,17 +7788,36 @@ class IsometricRenderer {
                     variantSet.dodge_southwest.push(dodgeSouth);
                     variantSet.dodge_northeast.push(SpriteGenerator.mirrorSprite(dodgeNorth));
                     variantSet.dodge_northwest.push(dodgeNorth);
+
+                    // Weapon-specific attack sprites (ranged + unarmed variants)
+                    for (const wcat of ['ranged', 'unarmed']) {
+                        const wVariant = Object.assign({}, variant, { weaponCategory: wcat });
+                        const wAtkS = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack', wVariant);
+                        const wAtkN = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack', wVariant);
+                        const wAtkE = SpriteGenerator.mirrorSprite(wAtkS);
+                        variantSet[`attack_${wcat}_south`].push(wAtkS);
+                        variantSet[`attack_${wcat}_north`].push(wAtkN);
+                        variantSet[`attack_${wcat}_east`].push(wAtkE);
+                        variantSet[`attack_${wcat}_west`].push(wAtkS);
+                        variantSet[`attack_${wcat}_southeast`].push(wAtkE);
+                        variantSet[`attack_${wcat}_southwest`].push(wAtkS);
+                        variantSet[`attack_${wcat}_northeast`].push(SpriteGenerator.mirrorSprite(wAtkN));
+                        variantSet[`attack_${wcat}_northwest`].push(wAtkN);
+                    }
                 }
+
+                // Death sprite (one per variant)
+                variantSet.death = SpriteGenerator.generateHumanoidDeathSprite(type, variant);
 
                 this._humanoidSprites[type].push(variantSet);
             }
         }
 
-        // Creature sprites: 4 animation frames x 2 directions (east = mirrored)
+        // Creature sprites: 4 animation frames x 2 directions (east = mirrored) + death sprite
         const creatureTypes = ['rat', 'scorpion', 'cave_spider'];
         this._creatureSprites = {};
         for (const type of creatureTypes) {
-            this._creatureSprites[type] = { south: [], north: [], east: [], west: [], southeast: [], northeast: [], southwest: [], northwest: [] };
+            this._creatureSprites[type] = { south: [], north: [], east: [], west: [], southeast: [], northeast: [], southwest: [], northwest: [], death: null };
             for (let f = 0; f < 4; f++) {
                 const sprite = SpriteGenerator.generateCreatureSprite(type, f);
                 const mirrored = SpriteGenerator.mirrorSprite(sprite);
@@ -7621,6 +7830,8 @@ class IsometricRenderer {
                 this._creatureSprites[type].northeast.push(mirrored);
                 this._creatureSprites[type].northwest.push(sprite);
             }
+            // Death sprite for creature
+            this._creatureSprites[type].death = SpriteGenerator.generateCreatureDeathSprite(type);
         }
 
         // Container sprites
@@ -7739,6 +7950,8 @@ class IsometricRenderer {
         // Store for save/load consistency
         this._playerArmorId = armorId;
 
+        variant.weaponCategory = 'melee'; // default for initial generation
+
         const variantSet = {
             south: [], north: [], east: [], west: [],
             southeast: [], northeast: [], southwest: [], northwest: [],
@@ -7746,8 +7959,13 @@ class IsometricRenderer {
             walk_southeast: [], walk_northeast: [], walk_southwest: [], walk_northwest: [],
             attack_south: [], attack_north: [], attack_east: [], attack_west: [],
             attack_southeast: [], attack_northeast: [], attack_southwest: [], attack_northwest: [],
+            attack_ranged_south: [], attack_ranged_north: [], attack_ranged_east: [], attack_ranged_west: [],
+            attack_ranged_southeast: [], attack_ranged_northeast: [], attack_ranged_southwest: [], attack_ranged_northwest: [],
+            attack_unarmed_south: [], attack_unarmed_north: [], attack_unarmed_east: [], attack_unarmed_west: [],
+            attack_unarmed_southeast: [], attack_unarmed_northeast: [], attack_unarmed_southwest: [], attack_unarmed_northwest: [],
             dodge_south: [], dodge_north: [], dodge_east: [], dodge_west: [],
             dodge_southeast: [], dodge_northeast: [], dodge_southwest: [], dodge_northwest: [],
+            death: null,
         };
 
         for (let f = 0; f < 4; f++) {
@@ -7798,7 +8016,26 @@ class IsometricRenderer {
             variantSet.dodge_southwest.push(dodgeSouth);
             variantSet.dodge_northeast.push(SpriteGenerator.mirrorSprite(dodgeNorth));
             variantSet.dodge_northwest.push(dodgeNorth);
+
+            // Weapon-specific attack sprites (ranged + unarmed)
+            for (const wcat of ['ranged', 'unarmed']) {
+                const wVariant = Object.assign({}, variant, { weaponCategory: wcat });
+                const wAtkS = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack', wVariant);
+                const wAtkN = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack', wVariant);
+                const wAtkE = SpriteGenerator.mirrorSprite(wAtkS);
+                variantSet[`attack_${wcat}_south`].push(wAtkS);
+                variantSet[`attack_${wcat}_north`].push(wAtkN);
+                variantSet[`attack_${wcat}_east`].push(wAtkE);
+                variantSet[`attack_${wcat}_west`].push(wAtkS);
+                variantSet[`attack_${wcat}_southeast`].push(wAtkE);
+                variantSet[`attack_${wcat}_southwest`].push(wAtkS);
+                variantSet[`attack_${wcat}_northeast`].push(SpriteGenerator.mirrorSprite(wAtkN));
+                variantSet[`attack_${wcat}_northwest`].push(wAtkN);
+            }
         }
+
+        // Death sprite
+        variantSet.death = SpriteGenerator.generateHumanoidDeathSprite(type, variant);
 
         this._humanoidSprites[type].push(variantSet);
     }
@@ -7857,7 +8094,7 @@ class IsometricRenderer {
 
     // ---- TILE RENDERING (Fallout 2 style with pre-rendered sprites) ----
 
-    drawTile(gx, gy, tileType, height = 0) {
+    drawTile(gx, gy, tileType, height = 0, hideLeft = false, hideRight = false) {
         const colors = this.tileColors[tileType] || this.tileColors['dirt'];
         const screen = this.worldToScreen(gx, gy);
         const tw = this.tileWidth * this.camera.zoom / 2;
@@ -7927,18 +8164,19 @@ class IsometricRenderer {
 
         // Wall sides
         if (height > 0) {
-            this.drawWallSides(ctx, screen, tw, th, hOffset, z, gx, gy, tileType, colors, height, n);
+            this.drawWallSides(ctx, screen, tw, th, hOffset, z, gx, gy, tileType, colors, height, n, hideLeft, hideRight);
         }
     }
 
-    drawWallSides(ctx, screen, tw, th, hOffset, z, gx, gy, tileType, colors, height, n) {
+    drawWallSides(ctx, screen, tw, th, hOffset, z, gx, gy, tileType, colors, height, n, hideLeft = false, hideRight = false) {
         const isStone = tileType === 'cave_wall' || tileType === 'cave_rock';
         const brickH = 4 * z;
         // Wall tiles use half-thickness (narrower in depth axis)
         const isWall = (tileType === 'wall' || tileType === 'wall_top');
         const wallTh = isWall ? th * 0.5 : th;
 
-        // ---- LEFT FACE ----
+        // ---- LEFT FACE ---- (skip if adjacent wall hides it)
+        if (!hideLeft) {
         ctx.beginPath();
         ctx.moveTo(screen.x - tw, screen.y - hOffset);
         ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
@@ -8010,8 +8248,10 @@ class IsometricRenderer {
         ctx.lineTo(screen.x - tw, screen.y);
         ctx.closePath();
         ctx.stroke();
+        } // end hideLeft
 
-        // ---- RIGHT FACE (darker, in shadow) ----
+        // ---- RIGHT FACE (darker, in shadow) ---- (skip if adjacent wall hides it)
+        if (!hideRight) {
         ctx.beginPath();
         ctx.moveTo(screen.x + tw, screen.y - hOffset);
         ctx.lineTo(screen.x, screen.y + wallTh - hOffset);
@@ -8092,6 +8332,7 @@ class IsometricRenderer {
         ctx.lineTo(screen.x + tw, screen.y);
         ctx.closePath();
         ctx.stroke();
+        } // end hideRight
 
         // Exposed rebar on damaged walls
         if (height >= 2 && this.noise3(gx, gy) > 0.7) {
@@ -8727,8 +8968,8 @@ class IsometricRenderer {
         const ctx = this.ctx;
         const z = this.camera.zoom;
 
-        // Entity shadow (isometric ground-plane ellipse)
-        if (entityType !== 'chest' && entityType !== 'crate' && entityType !== 'bones') {
+        // Entity shadow (isometric ground-plane ellipse) — skip for dead entities (death sprite has blood pool)
+        if (entityType !== 'chest' && entityType !== 'crate' && entityType !== 'bones' && animState !== 'death') {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const isMutant = entityType === 'mutant';
             const sw = (isSmall ? 7 : isMutant ? 8 : 5) * z;
@@ -8805,6 +9046,17 @@ class IsometricRenderer {
         }
 
         if (['rat', 'scorpion', 'cave_spider'].includes(entityType)) {
+            // Death sprite for creatures
+            if (animState === 'death') {
+                const spriteSet = this._creatureSprites[entityType];
+                if (spriteSet && spriteSet.death) {
+                    const sprite = spriteSet.death;
+                    const sw = sprite.width * z;
+                    const sh = sprite.height * z;
+                    ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh + 10 * z, sw, sh);
+                }
+                return;
+            }
             // Use pre-rendered creature sprite (directional)
             const spriteSet = this._creatureSprites[entityType];
             if (spriteSet && spriteSet[facing]) {
@@ -8822,12 +9074,28 @@ class IsometricRenderer {
             if (spriteVariants && spriteVariants.length > 0) {
                 const vi = variantIndex % spriteVariants.length;
                 const spriteSet = spriteVariants[vi];
+
+                // Death sprite for humanoids
+                if (animState === 'death' && spriteSet.death) {
+                    const sprite = spriteSet.death;
+                    const sw = sprite.width * z;
+                    const sh = sprite.height * z;
+                    ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh / 2, sw, sh);
+                    return;
+                }
+
                 // Pick the right animation set: walk_south, attack_south, or south (idle)
                 let spriteKey = facing;
                 if (animState === 'walk' && spriteSet['walk_' + facing]) {
                     spriteKey = 'walk_' + facing;
-                } else if (animState === 'attack' && spriteSet['attack_' + facing]) {
-                    spriteKey = 'attack_' + facing;
+                } else if (animState === 'attack') {
+                    // Check for weapon-specific attack sprites
+                    const weaponCat = this._currentAttackWeaponCat || 'melee';
+                    if (weaponCat !== 'melee' && spriteSet[`attack_${weaponCat}_${facing}`]) {
+                        spriteKey = `attack_${weaponCat}_${facing}`;
+                    } else if (spriteSet['attack_' + facing]) {
+                        spriteKey = 'attack_' + facing;
+                    }
                 } else if (animState === 'dodge' && spriteSet['dodge_' + facing]) {
                     spriteKey = 'dodge_' + facing;
                 }
@@ -8845,7 +9113,8 @@ class IsometricRenderer {
             }
         }
 
-        // HP bar - only visible during combat (Fallout 2 style)
+        // HP bar - only visible during combat (Fallout 2 style), skip for dead entities
+        if (animState === 'death') return;
         if (inCombat && hp !== null && maxHp !== null && (hp < maxHp || entityType !== 'player')) {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const barW = 24 * z;
@@ -9815,7 +10084,16 @@ class IsometricRenderer {
                 const tile = map[y][x];
                 if (tile === 'void') continue;
                 const h = heights ? (heights[y] ? heights[y][x] || 0 : 0) : 0;
-                renderList.push({ type: 'tile', x, y, depth: x + y, tileType: tile, height: h });
+                // For walls, check if neighbors are also walls to hide shared faces
+                let hideLeft = false, hideRight = false;
+                if (h > 0) {
+                    // In iso: left face faces toward decreasing x, right face faces toward increasing y
+                    const hLeft = (x > 0 && heights && heights[y]) ? (heights[y][x - 1] || 0) : 0;
+                    const hRight = (y + 1 < map.length && heights && heights[y + 1]) ? (heights[y + 1][x] || 0) : 0;
+                    if (hLeft >= h) hideLeft = true;
+                    if (hRight >= h) hideRight = true;
+                }
+                renderList.push({ type: 'tile', x, y, depth: x + y, tileType: tile, height: h, hideLeft, hideRight });
             }
         }
 
@@ -9829,16 +10107,18 @@ class IsometricRenderer {
 
         for (const item of renderList) {
             if (item.type === 'tile') {
-                this.drawTile(item.x, item.y, item.tileType, item.height);
+                this.drawTile(item.x, item.y, item.tileType, item.height, item.hideLeft, item.hideRight);
             } else {
                 const ent = item.entity;
                 const ex = ent.renderX !== undefined ? ent.renderX : ent.x;
                 const ey = ent.renderY !== undefined ? ent.renderY : ent.y;
+                // Determine weapon category for attack sprite selection
+                this._currentAttackWeaponCat = ent.weaponCategory || 'melee';
                 this.drawEntity(ex, ey, ent.spriteType || ent.type, ent.facing || 'south',
                     ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null, ent.animState || 'idle', gameState.inCombat, ent.variantIndex || 0);
 
-                // Red glow on enemies in combat
-                if (gameState.inCombat && ent.type === 'enemy') {
+                // Red glow on enemies in combat (skip dead)
+                if (gameState.inCombat && ent.type === 'enemy' && !ent.dead) {
                     const screen = this.worldToScreen(ex, ey);
                     const pulse = 0.08 + Math.sin(this.time * 0.06) * 0.04;
                     const ctx = this.ctx;
@@ -11280,6 +11560,7 @@ function createBunkerArea() {
             { ...ItemDatabase.bottle_caps, quantity: 200 },
             { ...ItemDatabase.ammo_308, quantity: 20 },
             { ...ItemDatabase.mentats, quantity: 2 },
+            { ...ItemDatabase.large_backpack, quantity: 1 },
         ],
         'chest'
     );
@@ -11557,6 +11838,14 @@ class HUDManager {
             if (hungerBar) hungerBar.style.background = player.survival.hunger <= 20 ? '#c44a3a' : player.survival.hunger <= 50 ? '#b08020' : '#8a6a20';
             if (thirstBar) thirstBar.style.background = player.survival.thirst <= 20 ? '#c44a3a' : player.survival.thirst <= 50 ? '#4070a0' : '#2060a0';
             if (sleepBar) sleepBar.style.background = player.survival.sleep <= 20 ? '#c44a3a' : player.survival.sleep <= 50 ? '#607090' : '#506090';
+
+            // Also update portrait survival bars
+            const pH = document.getElementById('portrait-hunger');
+            const pT = document.getElementById('portrait-thirst');
+            const pS = document.getElementById('portrait-sleep');
+            if (pH) { pH.style.width = player.survival.hunger + '%'; pH.style.background = player.survival.hunger <= 20 ? '#c44a3a' : '#8a6a20'; }
+            if (pT) { pT.style.width = player.survival.thirst + '%'; pT.style.background = player.survival.thirst <= 20 ? '#c44a3a' : '#2060a0'; }
+            if (pS) { pS.style.width = player.survival.sleep + '%'; pS.style.background = player.survival.sleep <= 20 ? '#c44a3a' : '#506090'; }
         }
 
         // Combat indicator
@@ -11575,7 +11864,9 @@ class HUDManager {
                     <div id="combat-weapon-panel">
                         <button id="combat-weapon-btn" title="Switch Weapon (W)">WEAPON</button>
                         <button id="combat-mode-btn" title="Attack Mode (Q)">MODE</button>
+                        <button id="combat-reload-btn" title="Reload (R)" style="display:none">RELOAD</button>
                     </div>
+                    <span id="combat-ammo-display" style="color:#cc8;font-size:11px;display:none"></span>
                     <button id="combat-end-turn-btn">END TURN</button>
                 `;
                 document.getElementById('game-hud').appendChild(combatBar);
@@ -11590,6 +11881,9 @@ class HUDManager {
                 document.getElementById('combat-mode-btn').addEventListener('click', () => {
                     this.game.audio.playSfx('click');
                     this.game.cycleAttackMode();
+                });
+                document.getElementById('combat-reload-btn').addEventListener('click', () => {
+                    this.game.reloadWeapon();
                 });
             }
             combatBar.style.display = 'flex';
@@ -11608,6 +11902,21 @@ class HUDManager {
             weaponBtn.title = player.equipment.weapon2
                 ? `Switch to: ${player.equipment.weapon2.name} (W)`
                 : 'No secondary weapon (W)';
+
+            // Reload button & ammo display
+            const reloadBtn = document.getElementById('combat-reload-btn');
+            const ammoDisp = document.getElementById('combat-ammo-display');
+            if (weapon && weapon.magSize) {
+                reloadBtn.style.display = 'inline-block';
+                ammoDisp.style.display = 'inline';
+                ammoDisp.textContent = `${weapon.currentAmmo || 0}/${weapon.magSize}`;
+                if ((weapon.currentAmmo || 0) === 0) ammoDisp.style.color = '#c44';
+                else if ((weapon.currentAmmo || 0) <= Math.ceil(weapon.magSize / 3)) ammoDisp.style.color = '#ca8';
+                else ammoDisp.style.color = '#cc8';
+            } else {
+                reloadBtn.style.display = 'none';
+                ammoDisp.style.display = 'none';
+            }
 
             // Update attack mode display
             const modeBtn = document.getElementById('combat-mode-btn');
@@ -11979,6 +12288,34 @@ class ScreenManager {
         document.getElementById('btn-back-title').addEventListener('click', () => {
             this.game.showScreen('title-screen');
         });
+
+        // Character preview
+        const updatePreview = () => {
+            const canvas = document.getElementById('char-preview');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const variant = {
+                gender: document.getElementById('char-gender').value,
+                skinTone: parseInt(document.getElementById('char-skin').value),
+                hairColor: parseInt(document.getElementById('char-hair-color').value),
+                hairstyle: parseInt(document.getElementById('char-hairstyle').value),
+            };
+            try {
+                const sprite = SpriteGenerator.generateHumanoidSprite('player', 0, 'south', 'idle', variant);
+                // Draw scaled up to fill 128x128 preview
+                ctx.imageSmoothingEnabled = false;
+                const scale = Math.min(canvas.width / sprite.width, canvas.height / sprite.height) * 0.85;
+                const sw = sprite.width * scale;
+                const sh = sprite.height * scale;
+                ctx.drawImage(sprite, (canvas.width - sw) / 2, (canvas.height - sh) / 2, sw, sh);
+            } catch (e) { /* ignore preview errors */ }
+        };
+        ['char-gender', 'char-skin', 'char-hair-color', 'char-hairstyle'].forEach(id => {
+            document.getElementById(id).addEventListener('change', updatePreview);
+        });
+        // Initial preview render
+        setTimeout(updatePreview, 100);
     }
 
     setupLevelUpScreen() {
@@ -12283,7 +12620,7 @@ class Game {
         document.getElementById('setting-fontsize').addEventListener('change', (e) => {
             this.settings.fontSize = e.target.value;
             const sizes = { small: '11px', medium: '13px', large: '16px' };
-            document.getElementById('message-log').style.fontSize = sizes[e.target.value] || '13px';
+            document.getElementById('message-log-content').style.fontSize = sizes[e.target.value] || '13px';
         });
         document.getElementById('setting-movespeed').addEventListener('change', (e) => {
             this.settings.moveSpeed = e.target.value;
@@ -12385,6 +12722,9 @@ class Game {
             case 'q':
                 if (this.combat.active) this.cycleAttackMode();
                 break;
+            case 'r':
+                if (this.combat.active) this.reloadWeapon();
+                break;
             case ' ':
                 if (this.combat.active) {
                     this.combat.endTurn();
@@ -12436,7 +12776,7 @@ class Game {
                 return;
             }
 
-            if (target.type === 'npc' && target.dialogueId && dist <= 2) {
+            if (target.type === 'npc' && target.dialogueId && dist <= 2 && !this.combat.active) {
                 this.dialogue.startDialogue(target);
                 return;
             }
@@ -12455,6 +12795,12 @@ class Game {
         }
 
         if (this.combat.active) {
+            // In combat, if clicking on an enemy in move mode, auto-attack instead
+            const combatTarget = this.getEntityAt(gridX, gridY);
+            if (combatTarget && (combatTarget.isHostile || combatTarget.type === 'enemy')) {
+                this.handleAttack(gridX, gridY);
+                return;
+            }
             // Combat movement — use isWalkableFor which excludes the mover
             if (!this.isWalkableFor(gridX, gridY, this.player)) {
                 this.addMessage('That tile is blocked!', 'combat');
@@ -12465,11 +12811,21 @@ class Game {
                 this.addMessage('Not enough AP to move there!', 'combat');
                 return;
             }
-            this.selectedEntity = null;
-            this.combat.combatMove(this.player, gridX, gridY);
-            this.hud.update();
-            this.updateHighlights();
-            this.checkAutoEndTurn();
+            // Confirm move: first click highlights, second click on same tile moves
+            if (this._combatMoveTarget && this._combatMoveTarget.x === gridX && this._combatMoveTarget.y === gridY) {
+                // Second click — confirm move
+                this._combatMoveTarget = null;
+                this.selectedEntity = null;
+                this.combat.combatMove(this.player, gridX, gridY);
+                this.hud.update();
+                this.updateHighlights();
+                this.checkAutoEndTurn();
+            } else {
+                // First click — highlight destination
+                this._combatMoveTarget = { x: gridX, y: gridY };
+                this.addMessage(`Move to (${gridX},${gridY})? Cost: ${dist} AP. Click again to confirm.`, 'combat');
+                this.renderer.drawTileHighlight(gridX, gridY, 'rgba(60, 140, 60, 0.2)', 'rgba(80, 160, 80, 0.5)');
+            }
             return;
         }
 
@@ -12542,8 +12898,8 @@ class Game {
                 this.player.facing = this.getFacing(dx, dy);
             }
 
-            // Smooth interpolation: 15 sub-frames per tile (25% slower for natural movement)
-            const subFrames = 15;
+            // Smooth interpolation: sub-frames per tile adjusted by speed setting
+            const subFrames = Math.round(15 / (this._moveSpeedMultiplier || 1.0));
             let subStep = 0;
             const startX = this.player.x;
             const startY = this.player.y;
@@ -12580,7 +12936,13 @@ class Game {
                     if (tr) {
                         this.player.animState = 'idle';
                         this._isMoving = false;
-                        this.showTransitionPrompt(tr);
+                        if (this.combat.active) {
+                            // During combat, auto-transition (flee)
+                            this.addMessage('You flee the combat!', 'combat');
+                            this.transitionArea(tr);
+                        } else {
+                            this.showTransitionPrompt(tr);
+                        }
                         return;
                     }
 
@@ -12688,8 +13050,26 @@ class Game {
         }
 
         if (!this.combat.active) {
-            // Start combat
-            this.startCombatWith([target]);
+            // Firearms aggro: pull in nearby enemies when using ranged weapons
+            if (weapon && weapon.type === 'ranged') {
+                const aggroSet = new Set();
+                aggroSet.add(target);
+                // All enemies within 10 tiles of the fired-upon target
+                for (const e of this.entities) {
+                    if (e === this.player || e.dead || e === target) continue;
+                    if (e.type !== 'enemy' && !(e.type === 'npc' && e.isHostile)) continue;
+                    if (Utils.gridDistance(e.x, e.y, target.x, target.y) <= 10) aggroSet.add(e);
+                }
+                // All enemies within 10 tiles of the player
+                for (const e of this.entities) {
+                    if (e === this.player || e.dead) continue;
+                    if (e.type !== 'enemy' && !(e.type === 'npc' && e.isHostile)) continue;
+                    if (Utils.gridDistance(e.x, e.y, this.player.x, this.player.y) <= 10) aggroSet.add(e);
+                }
+                this.startCombatWith([...aggroSet]);
+            } else {
+                this.startCombatWith([target]);
+            }
         }
 
         if (this.state === 'playerTurn') {
@@ -12715,6 +13095,10 @@ class Game {
     }
 
     handleTalk(gridX, gridY) {
+        if (this.combat.active) {
+            this.addMessage('Can\'t talk during combat!', 'info');
+            return;
+        }
         const target = this.getEntityAt(gridX, gridY);
         if (!target) {
             this.addMessage('No one to talk to there.', 'info');
@@ -12943,7 +13327,7 @@ class Game {
         // Save current area state
         if (this.currentArea) {
             this.areaStates[this.currentArea.id] = {
-                entities: this.entities.filter(e => e.type !== 'player').map(e => Utils.deepClone(e))
+                entities: this.entities.filter(e => e.type !== 'player' && !e.dead).map(e => Utils.deepClone(e))
             };
         }
 
@@ -13163,9 +13547,10 @@ class Game {
         const targetArea = this.areas[targetAreaId];
         if (!targetArea) return;
 
-        // End combat if active
+        // Block fast travel during combat
         if (this.combat.active) {
-            this.combat.endCombat();
+            this.addMessage('Cannot fast travel during combat!', 'combat');
+            return;
         }
 
         // Check for random encounter based on outdoorsman skill
@@ -13306,7 +13691,7 @@ class Game {
     }
 
     getEntityAt(x, y) {
-        return this.entities.find(e => e.x === x && e.y === y && e !== this.player);
+        return this.entities.find(e => e.x === x && e.y === y && e !== this.player && !e.dead);
     }
 
     getEntitiesInArea() {
@@ -13341,7 +13726,7 @@ class Game {
         if (!tile) return false;
         if (this.currentArea.blocked.has(tile)) return false;
         for (const e of this.entities) {
-            if (e === entity) continue;
+            if (e === entity || e.dead) continue;
             if (e.x === x && e.y === y) {
                 if (e.type === 'enemy' || e.type === 'npc' || e.type === 'player') return false;
                 if (e.type === 'environment' && e.blocking) return false;
@@ -13354,6 +13739,7 @@ class Game {
 
     switchWeapon() {
         InventorySystem.switchWeapons(this.player);
+        this.updatePlayerWeaponCategory();
         const weapon = InventorySystem.getEquippedWeapon(this.player);
         const name = weapon ? weapon.name : 'Unarmed';
         this.addMessage(`Switched to: ${name}`, 'combat');
@@ -13361,6 +13747,15 @@ class Game {
         this.updateHighlights();
         this._recalcSelectedHitChance();
         this.hud.update();
+    }
+
+    reloadWeapon() {
+        if (!this.combat.active || this.state !== 'playerTurn') return;
+        const result = this.combat.reloadWeapon(this.player);
+        if (result) {
+            this.hud.update();
+            this.checkAutoEndTurn();
+        }
     }
 
     cycleAttackMode() {
@@ -13481,9 +13876,23 @@ class Game {
     equipItem(itemUid) {
         InventorySystem.equip(this.player, itemUid);
         this.updatePlayerArmorSprite();
+        this.updatePlayerWeaponCategory();
         this.hud.updateInventoryScreen();
         this.hud.update();
         this.addMessage('Equipment changed.', 'info');
+    }
+
+    updatePlayerWeaponCategory() {
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        if (!weapon) {
+            this.player.weaponCategory = 'unarmed';
+        } else if (weapon.type === 'ranged') {
+            this.player.weaponCategory = 'ranged';
+        } else if (weapon.id === 'spear') {
+            this.player.weaponCategory = 'spear';
+        } else {
+            this.player.weaponCategory = 'melee';
+        }
     }
 
     updatePlayerArmorSprite() {
@@ -13846,7 +14255,7 @@ class Game {
         // Save current area state first
         if (this.currentArea) {
             this.areaStates[this.currentArea.id] = {
-                entities: this.entities.filter(e => e.type !== 'player').map(e => {
+                entities: this.entities.filter(e => e.type !== 'player' && !e.dead).map(e => {
                     const clone = Utils.deepClone(e);
                     // Remove functions from entities for serialization
                     return clone;
