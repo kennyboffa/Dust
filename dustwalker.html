@@ -3220,6 +3220,7 @@ class CharacterSystem {
                 accessory: null
             },
             attackMode: 'normal', // 'normal', 'aimed', 'burst'
+            weaponCategory: 'unarmed', // updated when equipping weapons
 
             inventory: [],
             maxCarryWeight: 0,
@@ -3378,6 +3379,7 @@ class CharacterSystem {
             aiType: 'npc_defender',
             schedule: template.schedule || null,
             flags: template.flags || {},
+            weaponCategory: template.weaponCategory || (isGuard ? 'melee' : 'unarmed'),
         };
         return npc;
     }
@@ -3416,6 +3418,7 @@ class CharacterSystem {
             loot: template.loot || [],
             attackRange: template.attackRange || 1,
             moveSpeed: template.moveSpeed || 1,
+            weaponCategory: template.weaponCategory || ((template.attackRange || 1) > 1 ? 'ranged' : (template.skills && template.skills.melee > (template.skills.unarmed || 0) ? 'melee' : 'unarmed')),
         };
         return enemy;
     }
@@ -3820,8 +3823,10 @@ class CombatSystem {
             }
         }
 
-        // Remove from entities
-        this.game.removeEntity(victim);
+        // Mark as dead — body stays visible until player leaves area
+        victim.dead = true;
+        victim.animState = 'death';
+        victim.stats.hp = 0;
     }
 
     endCombat() {
@@ -5510,12 +5515,35 @@ class SpriteGenerator {
             { lx: 0, ly: 0, rx: 0, ry: 0, laOff: 0, raOff: 0 },
             { lx: 1, ly: 0.5, rx: -1, ry: -0.5, laOff: -1, raOff: 1 },
         ];
-        const atkFrames = [
-            { ext: 0, armShift: 0 },
-            { ext: -2, armShift: -2 },
-            { ext: 2, armShift: 2 },
-            { ext: 0, armShift: 0 },
-        ];
+        // Weapon-category-dependent attack frames
+        const weaponCat = v.weaponCategory || 'melee';
+        const atkFramesByWeapon = {
+            'unarmed': [
+                { ext: 0, armShift: 0, lArmExt: 0 },
+                { ext: 3, armShift: 2, lArmExt: 2 },   // Both fists forward
+                { ext: 4, armShift: 3, lArmExt: 3 },
+                { ext: 1, armShift: 0, lArmExt: 1 },
+            ],
+            'melee': [
+                { ext: 0, armShift: 0, lArmExt: 0 },
+                { ext: -3, armShift: -3, lArmExt: 0 },  // Wind up
+                { ext: 4, armShift: 4, lArmExt: 0 },    // Slash down
+                { ext: 1, armShift: 1, lArmExt: 0 },
+            ],
+            'ranged': [
+                { ext: 0, armShift: 0, lArmExt: 0 },
+                { ext: 2, armShift: 1, lArmExt: 1 },    // Aim
+                { ext: 3, armShift: -1, lArmExt: 2 },   // Recoil
+                { ext: 1, armShift: 0, lArmExt: 0 },
+            ],
+            'spear': [
+                { ext: 0, armShift: 0, lArmExt: 0 },
+                { ext: -2, armShift: -2, lArmExt: -1 },  // Pull back
+                { ext: 5, armShift: 4, lArmExt: 2 },     // Thrust forward
+                { ext: 2, armShift: 1, lArmExt: 0 },
+            ],
+        };
+        const atkFrames = (atkFramesByWeapon[weaponCat] || atkFramesByWeapon['melee']);
         // Dodge animation: lean sideways and crouch
         const dodgeFrames = [
             { shiftX: 0, shiftY: 0, crouch: 0 },
@@ -5692,7 +5720,7 @@ class SpriteGenerator {
 
         // ---- ARMS (foreshortened stubs on sides of torso) ----
         const armTopY = torsoTopY + 1;
-        const lArmOff = walking ? wk.laOff * sc * 0.5 : (attacking ? (at.armShift < 0 ? 0.5 : 0) : 0);
+        const lArmOff = walking ? wk.laOff * sc * 0.5 : (attacking ? (at.lArmExt || 0) * 0.5 : 0);
         const rArmOff = walking ? wk.raOff * sc * 0.5 : 0;
         const rArmExt = attacking ? at.ext * 0.5 : 0;
 
@@ -5716,17 +5744,35 @@ class SpriteGenerator {
         const rHandY = armTopY + armH + rArmOff + rArmExt;
         fillEllipse(raX, rHandY, 1 * sc, 1 * sc, handSkin, 5, -6);
 
-        // Weapon (small, isometric angle)
-        if (type === 'player' || type === 'raider' || type === 'guard') {
+        // Weapon (small, isometric angle) — weapon-category aware
+        const drawWeaponCat = weaponCat;
+        const hasWeapon = type === 'player' || type === 'raider' || type === 'guard';
+        if (hasWeapon && drawWeaponCat !== 'unarmed') {
             const wx = raX;
             const wy = rHandY + 1 * sc;
-            if (type === 'player' || type === 'guard') {
+            if (drawWeaponCat === 'ranged') {
+                // Gun: barrel + grip
+                drawLine(wx, wy - 5, wx, wy - 1, [68, 68, 68], 1);
+                fillRect(wx - 0.5, wy - 1, 1.5, 2.5, [85, 85, 85], 3, -4);
+                // Muzzle flash during attack frame 2
+                if (attacking && frame % 4 === 2) {
+                    fillEllipse(wx, wy - 6.5, 2 * sc, 1.5 * sc, [255, 200, 50], 20, -5);
+                    fillEllipse(wx, wy - 7, 1 * sc, 0.8 * sc, [255, 255, 180], 15, -3);
+                }
+            } else if (drawWeaponCat === 'spear') {
+                // Spear: long shaft + point
+                drawLine(wx, wy + 2, wx + 1, wy - 7, [74, 58, 40], 1);
+                const spearTip = [140, 140, 135];
+                drawLine(wx + 1, wy - 7, wx + 1.5, wy - 9, spearTip, 1);
+            } else {
+                // Melee: sword/knife blade + hilt
                 const blade = [106, 106, 106];
                 drawLine(wx, wy, wx + 1, wy - 4, blade, 1);
                 fillRect(wx - 0.5, wy, 1.5, 2, [42, 28, 12], 3, -4);
-            } else {
-                drawLine(wx, wy - 5, wx, wy, [68, 68, 68], 1);
-                fillRect(wx - 0.5, wy, 1.5, 2, [85, 85, 85], 3, -4);
+                // Slash arc during attack frame 2
+                if (attacking && frame % 4 === 2) {
+                    drawLine(wx - 2, wy - 5, wx + 3, wy - 2, [180, 180, 175], 1);
+                }
             }
         }
 
@@ -6180,6 +6226,55 @@ class SpriteGenerator {
         }
 
         return this.weatherSprite(c, 0.9);
+    }
+
+    // ---- DEATH SPRITE GENERATION ----
+    static generateHumanoidDeathSprite(type, variant) {
+        // Generate idle frame then rotate 90° to show character lying down
+        const idle = this.generateHumanoidSprite(type, 0, 'south', 'idle', variant);
+        const w = 82, h = 50;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+
+        // Blood pool beneath body
+        ctx.fillStyle = 'rgba(80, 15, 10, 0.25)';
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h - 10, 22, 7, 0.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(60, 10, 5, 0.15)';
+        ctx.beginPath();
+        ctx.ellipse(w / 2 + 5, h - 8, 12, 4, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw character rotated 90° (lying on side)
+        ctx.globalAlpha = 0.8;
+        ctx.translate(w / 2, h / 2 - 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.drawImage(idle, -idle.width / 2, -idle.height / 2);
+
+        return this.weatherSprite(c, 0.6);
+    }
+
+    static generateCreatureDeathSprite(type) {
+        // Generate normal creature then flip upside down (legs up = dead)
+        const alive = this.generateCreatureSprite(type, 0);
+        const w = alive.width, h = alive.height;
+        const c = this.createCanvas(w, h);
+        const ctx = c.getContext('2d');
+
+        // Blood pool
+        ctx.fillStyle = 'rgba(80, 15, 10, 0.2)';
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h - 12, 18, 6, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw creature flipped vertically
+        ctx.globalAlpha = 0.75;
+        ctx.translate(w / 2, h / 2);
+        ctx.scale(1, -1);
+        ctx.drawImage(alive, -w / 2, -h / 2);
+
+        return this.weatherSprite(c, 0.6);
     }
 
     // ---- CONTAINER SPRITES ----
@@ -7533,12 +7628,19 @@ class IsometricRenderer {
                     walk_southeast: [], walk_northeast: [], walk_southwest: [], walk_northwest: [],
                     attack_south: [], attack_north: [], attack_east: [], attack_west: [],
                     attack_southeast: [], attack_northeast: [], attack_southwest: [], attack_northwest: [],
+                    attack_ranged_south: [], attack_ranged_north: [], attack_ranged_east: [], attack_ranged_west: [],
+                    attack_ranged_southeast: [], attack_ranged_northeast: [], attack_ranged_southwest: [], attack_ranged_northwest: [],
+                    attack_unarmed_south: [], attack_unarmed_north: [], attack_unarmed_east: [], attack_unarmed_west: [],
+                    attack_unarmed_southeast: [], attack_unarmed_northeast: [], attack_unarmed_southwest: [], attack_unarmed_northwest: [],
                     dodge_south: [], dodge_north: [], dodge_east: [], dodge_west: [],
                     dodge_southeast: [], dodge_northeast: [], dodge_southwest: [], dodge_northwest: [],
+                    death: null, // single death sprite per variant
                 };
 
                 // Build variant params - randomized skin, hair, scale, gender
                 const vrng = SpriteGenerator.seededRandom(type.length * 7919 + vi * 3571);
+                // Default weapon category per type
+                const defaultWeaponCat = { player: 'melee', guard: 'melee', raider: 'ranged', mutant: 'unarmed', villager: 'unarmed', merchant: 'unarmed', elder: 'unarmed' };
                 const variant = {
                     skinTone: type === 'mutant' ? 0 : Math.floor(vrng() * 5),
                     hairColor: Math.floor(vrng() * 6),
@@ -7547,6 +7649,7 @@ class IsometricRenderer {
                     gender: (type === 'player' || type === 'elder' || type === 'mutant' || vi === 0) ? 'male'
                         : (vi >= numVariants / 2 ? 'female' : 'male'),
                     seed: type.length * 10000 + vi * 1337,
+                    weaponCategory: defaultWeaponCat[type] || 'melee',
                 };
 
                 for (let f = 0; f < 4; f++) {
@@ -7598,17 +7701,36 @@ class IsometricRenderer {
                     variantSet.dodge_southwest.push(dodgeSouth);
                     variantSet.dodge_northeast.push(SpriteGenerator.mirrorSprite(dodgeNorth));
                     variantSet.dodge_northwest.push(dodgeNorth);
+
+                    // Weapon-specific attack sprites (ranged + unarmed variants)
+                    for (const wcat of ['ranged', 'unarmed']) {
+                        const wVariant = Object.assign({}, variant, { weaponCategory: wcat });
+                        const wAtkS = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack', wVariant);
+                        const wAtkN = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack', wVariant);
+                        const wAtkE = SpriteGenerator.mirrorSprite(wAtkS);
+                        variantSet[`attack_${wcat}_south`].push(wAtkS);
+                        variantSet[`attack_${wcat}_north`].push(wAtkN);
+                        variantSet[`attack_${wcat}_east`].push(wAtkE);
+                        variantSet[`attack_${wcat}_west`].push(wAtkS);
+                        variantSet[`attack_${wcat}_southeast`].push(wAtkE);
+                        variantSet[`attack_${wcat}_southwest`].push(wAtkS);
+                        variantSet[`attack_${wcat}_northeast`].push(SpriteGenerator.mirrorSprite(wAtkN));
+                        variantSet[`attack_${wcat}_northwest`].push(wAtkN);
+                    }
                 }
+
+                // Death sprite (one per variant)
+                variantSet.death = SpriteGenerator.generateHumanoidDeathSprite(type, variant);
 
                 this._humanoidSprites[type].push(variantSet);
             }
         }
 
-        // Creature sprites: 4 animation frames x 2 directions (east = mirrored)
+        // Creature sprites: 4 animation frames x 2 directions (east = mirrored) + death sprite
         const creatureTypes = ['rat', 'scorpion', 'cave_spider'];
         this._creatureSprites = {};
         for (const type of creatureTypes) {
-            this._creatureSprites[type] = { south: [], north: [], east: [], west: [], southeast: [], northeast: [], southwest: [], northwest: [] };
+            this._creatureSprites[type] = { south: [], north: [], east: [], west: [], southeast: [], northeast: [], southwest: [], northwest: [], death: null };
             for (let f = 0; f < 4; f++) {
                 const sprite = SpriteGenerator.generateCreatureSprite(type, f);
                 const mirrored = SpriteGenerator.mirrorSprite(sprite);
@@ -7621,6 +7743,8 @@ class IsometricRenderer {
                 this._creatureSprites[type].northeast.push(mirrored);
                 this._creatureSprites[type].northwest.push(sprite);
             }
+            // Death sprite for creature
+            this._creatureSprites[type].death = SpriteGenerator.generateCreatureDeathSprite(type);
         }
 
         // Container sprites
@@ -7739,6 +7863,8 @@ class IsometricRenderer {
         // Store for save/load consistency
         this._playerArmorId = armorId;
 
+        variant.weaponCategory = 'melee'; // default for initial generation
+
         const variantSet = {
             south: [], north: [], east: [], west: [],
             southeast: [], northeast: [], southwest: [], northwest: [],
@@ -7746,8 +7872,13 @@ class IsometricRenderer {
             walk_southeast: [], walk_northeast: [], walk_southwest: [], walk_northwest: [],
             attack_south: [], attack_north: [], attack_east: [], attack_west: [],
             attack_southeast: [], attack_northeast: [], attack_southwest: [], attack_northwest: [],
+            attack_ranged_south: [], attack_ranged_north: [], attack_ranged_east: [], attack_ranged_west: [],
+            attack_ranged_southeast: [], attack_ranged_northeast: [], attack_ranged_southwest: [], attack_ranged_northwest: [],
+            attack_unarmed_south: [], attack_unarmed_north: [], attack_unarmed_east: [], attack_unarmed_west: [],
+            attack_unarmed_southeast: [], attack_unarmed_northeast: [], attack_unarmed_southwest: [], attack_unarmed_northwest: [],
             dodge_south: [], dodge_north: [], dodge_east: [], dodge_west: [],
             dodge_southeast: [], dodge_northeast: [], dodge_southwest: [], dodge_northwest: [],
+            death: null,
         };
 
         for (let f = 0; f < 4; f++) {
@@ -7798,7 +7929,26 @@ class IsometricRenderer {
             variantSet.dodge_southwest.push(dodgeSouth);
             variantSet.dodge_northeast.push(SpriteGenerator.mirrorSprite(dodgeNorth));
             variantSet.dodge_northwest.push(dodgeNorth);
+
+            // Weapon-specific attack sprites (ranged + unarmed)
+            for (const wcat of ['ranged', 'unarmed']) {
+                const wVariant = Object.assign({}, variant, { weaponCategory: wcat });
+                const wAtkS = SpriteGenerator.generateHumanoidSprite(type, f, 'south', 'attack', wVariant);
+                const wAtkN = SpriteGenerator.generateHumanoidSprite(type, f, 'north', 'attack', wVariant);
+                const wAtkE = SpriteGenerator.mirrorSprite(wAtkS);
+                variantSet[`attack_${wcat}_south`].push(wAtkS);
+                variantSet[`attack_${wcat}_north`].push(wAtkN);
+                variantSet[`attack_${wcat}_east`].push(wAtkE);
+                variantSet[`attack_${wcat}_west`].push(wAtkS);
+                variantSet[`attack_${wcat}_southeast`].push(wAtkE);
+                variantSet[`attack_${wcat}_southwest`].push(wAtkS);
+                variantSet[`attack_${wcat}_northeast`].push(SpriteGenerator.mirrorSprite(wAtkN));
+                variantSet[`attack_${wcat}_northwest`].push(wAtkN);
+            }
         }
+
+        // Death sprite
+        variantSet.death = SpriteGenerator.generateHumanoidDeathSprite(type, variant);
 
         this._humanoidSprites[type].push(variantSet);
     }
@@ -8727,8 +8877,8 @@ class IsometricRenderer {
         const ctx = this.ctx;
         const z = this.camera.zoom;
 
-        // Entity shadow (isometric ground-plane ellipse)
-        if (entityType !== 'chest' && entityType !== 'crate' && entityType !== 'bones') {
+        // Entity shadow (isometric ground-plane ellipse) — skip for dead entities (death sprite has blood pool)
+        if (entityType !== 'chest' && entityType !== 'crate' && entityType !== 'bones' && animState !== 'death') {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const isMutant = entityType === 'mutant';
             const sw = (isSmall ? 7 : isMutant ? 8 : 5) * z;
@@ -8805,6 +8955,17 @@ class IsometricRenderer {
         }
 
         if (['rat', 'scorpion', 'cave_spider'].includes(entityType)) {
+            // Death sprite for creatures
+            if (animState === 'death') {
+                const spriteSet = this._creatureSprites[entityType];
+                if (spriteSet && spriteSet.death) {
+                    const sprite = spriteSet.death;
+                    const sw = sprite.width * z;
+                    const sh = sprite.height * z;
+                    ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh + 10 * z, sw, sh);
+                }
+                return;
+            }
             // Use pre-rendered creature sprite (directional)
             const spriteSet = this._creatureSprites[entityType];
             if (spriteSet && spriteSet[facing]) {
@@ -8822,12 +8983,28 @@ class IsometricRenderer {
             if (spriteVariants && spriteVariants.length > 0) {
                 const vi = variantIndex % spriteVariants.length;
                 const spriteSet = spriteVariants[vi];
+
+                // Death sprite for humanoids
+                if (animState === 'death' && spriteSet.death) {
+                    const sprite = spriteSet.death;
+                    const sw = sprite.width * z;
+                    const sh = sprite.height * z;
+                    ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh / 2, sw, sh);
+                    return;
+                }
+
                 // Pick the right animation set: walk_south, attack_south, or south (idle)
                 let spriteKey = facing;
                 if (animState === 'walk' && spriteSet['walk_' + facing]) {
                     spriteKey = 'walk_' + facing;
-                } else if (animState === 'attack' && spriteSet['attack_' + facing]) {
-                    spriteKey = 'attack_' + facing;
+                } else if (animState === 'attack') {
+                    // Check for weapon-specific attack sprites
+                    const weaponCat = this._currentAttackWeaponCat || 'melee';
+                    if (weaponCat !== 'melee' && spriteSet[`attack_${weaponCat}_${facing}`]) {
+                        spriteKey = `attack_${weaponCat}_${facing}`;
+                    } else if (spriteSet['attack_' + facing]) {
+                        spriteKey = 'attack_' + facing;
+                    }
                 } else if (animState === 'dodge' && spriteSet['dodge_' + facing]) {
                     spriteKey = 'dodge_' + facing;
                 }
@@ -8845,7 +9022,8 @@ class IsometricRenderer {
             }
         }
 
-        // HP bar - only visible during combat (Fallout 2 style)
+        // HP bar - only visible during combat (Fallout 2 style), skip for dead entities
+        if (animState === 'death') return;
         if (inCombat && hp !== null && maxHp !== null && (hp < maxHp || entityType !== 'player')) {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const barW = 24 * z;
@@ -9834,11 +10012,13 @@ class IsometricRenderer {
                 const ent = item.entity;
                 const ex = ent.renderX !== undefined ? ent.renderX : ent.x;
                 const ey = ent.renderY !== undefined ? ent.renderY : ent.y;
+                // Determine weapon category for attack sprite selection
+                this._currentAttackWeaponCat = ent.weaponCategory || 'melee';
                 this.drawEntity(ex, ey, ent.spriteType || ent.type, ent.facing || 'south',
                     ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null, ent.animState || 'idle', gameState.inCombat, ent.variantIndex || 0);
 
-                // Red glow on enemies in combat
-                if (gameState.inCombat && ent.type === 'enemy') {
+                // Red glow on enemies in combat (skip dead)
+                if (gameState.inCombat && ent.type === 'enemy' && !ent.dead) {
                     const screen = this.worldToScreen(ex, ey);
                     const pulse = 0.08 + Math.sin(this.time * 0.06) * 0.04;
                     const ctx = this.ctx;
@@ -12943,7 +13123,7 @@ class Game {
         // Save current area state
         if (this.currentArea) {
             this.areaStates[this.currentArea.id] = {
-                entities: this.entities.filter(e => e.type !== 'player').map(e => Utils.deepClone(e))
+                entities: this.entities.filter(e => e.type !== 'player' && !e.dead).map(e => Utils.deepClone(e))
             };
         }
 
@@ -13306,7 +13486,7 @@ class Game {
     }
 
     getEntityAt(x, y) {
-        return this.entities.find(e => e.x === x && e.y === y && e !== this.player);
+        return this.entities.find(e => e.x === x && e.y === y && e !== this.player && !e.dead);
     }
 
     getEntitiesInArea() {
@@ -13341,7 +13521,7 @@ class Game {
         if (!tile) return false;
         if (this.currentArea.blocked.has(tile)) return false;
         for (const e of this.entities) {
-            if (e === entity) continue;
+            if (e === entity || e.dead) continue;
             if (e.x === x && e.y === y) {
                 if (e.type === 'enemy' || e.type === 'npc' || e.type === 'player') return false;
                 if (e.type === 'environment' && e.blocking) return false;
@@ -13354,6 +13534,7 @@ class Game {
 
     switchWeapon() {
         InventorySystem.switchWeapons(this.player);
+        this.updatePlayerWeaponCategory();
         const weapon = InventorySystem.getEquippedWeapon(this.player);
         const name = weapon ? weapon.name : 'Unarmed';
         this.addMessage(`Switched to: ${name}`, 'combat');
@@ -13481,9 +13662,23 @@ class Game {
     equipItem(itemUid) {
         InventorySystem.equip(this.player, itemUid);
         this.updatePlayerArmorSprite();
+        this.updatePlayerWeaponCategory();
         this.hud.updateInventoryScreen();
         this.hud.update();
         this.addMessage('Equipment changed.', 'info');
+    }
+
+    updatePlayerWeaponCategory() {
+        const weapon = InventorySystem.getEquippedWeapon(this.player);
+        if (!weapon) {
+            this.player.weaponCategory = 'unarmed';
+        } else if (weapon.type === 'ranged') {
+            this.player.weaponCategory = 'ranged';
+        } else if (weapon.id === 'spear') {
+            this.player.weaponCategory = 'spear';
+        } else {
+            this.player.weaponCategory = 'melee';
+        }
     }
 
     updatePlayerArmorSprite() {
@@ -13846,7 +14041,7 @@ class Game {
         // Save current area state first
         if (this.currentArea) {
             this.areaStates[this.currentArea.id] = {
-                entities: this.entities.filter(e => e.type !== 'player').map(e => {
+                entities: this.entities.filter(e => e.type !== 'player' && !e.dead).map(e => {
                     const clone = Utils.deepClone(e);
                     // Remove functions from entities for serialization
                     return clone;
