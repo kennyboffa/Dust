@@ -7879,11 +7879,12 @@ class IsometricRenderer {
             try {
             console.log('Player sprite sheet loaded:', img.width, 'x', img.height);
             const cellW = 256, cellH = 384;
-            // Scale to fit within procedural humanoid canvas (72x82), maintain aspect ratio, bottom-align
+            // Match procedural humanoid canvas (72x82)
             const canvasW = 72, canvasH = 82;
-            const fitScale = Math.min(canvasW / cellW, canvasH / cellH);
-            const fitW = Math.round(cellW * fitScale);
-            const fitH = Math.round(cellH * fitScale);
+            // Scale character to match procedural humanoid proportions
+            const charScale = 0.65;
+            const fitH = Math.round(canvasH * charScale);
+            const fitW = Math.round(fitH * cellW / cellH);
 
             // Row layout: 0=SW, 1=NE, 2=NW, 3=SE
             const rowDirs = ['southwest', 'northeast', 'northwest', 'southeast'];
@@ -7894,25 +7895,27 @@ class IsometricRenderer {
                 const dir = rowDirs[row];
                 cells[dir] = [];
                 for (let col = 0; col < 4; col++) {
-                    // Extract and remove background at intermediate size
                     const extracted = this._extractSpriteCell(img, col * cellW, row * cellH, cellW, cellH, fitW, fitH);
-                    // Center horizontally, bottom-align into 72x82 canvas
+                    // Center horizontally, place near bottom (matching procedural baseY = h-4)
                     const finalCanvas = document.createElement('canvas');
                     finalCanvas.width = canvasW;
                     finalCanvas.height = canvasH;
                     const fctx = finalCanvas.getContext('2d');
-                    fctx.drawImage(extracted, Math.round((canvasW - fitW) / 2), canvasH - fitH);
+                    fctx.drawImage(extracted, Math.round((canvasW - fitW) / 2), canvasH - fitH - 2);
                     cells[dir].push(finalCanvas);
                 }
             }
 
             // Map 4 sprite directions to all 8 game directions
-            // Each cardinal uses a unique diagonal to maximize visual distinction
+            // Procedural south has bodyDx=+0.6 (faces right) -> SE (face right)
+            // Procedural north has bodyDx=-0.6 (faces left, back) -> NW (back left)
+            // Procedural west has bodyDx=-1.5 (faces left) -> SW (face left)
+            // Procedural east has bodyDx=+1.5 (faces right) -> SE (face right)
             const dirMap = {
-                south: 'southwest',
-                north: 'northeast',
+                south: 'southeast',
+                north: 'northwest',
                 east: 'southeast',
-                west: 'northwest',
+                west: 'southwest',
                 southwest: 'southwest',
                 southeast: 'southeast',
                 northwest: 'northwest',
