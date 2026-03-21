@@ -7912,19 +7912,19 @@ class IsometricRenderer {
             }
 
             // Map 4 sprite directions to all 8 game directions
-            // Match procedural grouping: only south+north generated, rest derived
-            // Procedural: south/west/southwest -> south sprite (face visible)
-            // Procedural: east/southeast -> mirror(south) (face visible, flipped)
-            // Procedural: north/northwest -> north sprite (back visible)
-            // Procedural: northeast -> mirror(north) (back visible, flipped)
+            // Isometric: screenX = (gx-gy)*tw/2, screenY = (gx+gy)*th/2
+            // Grid cardinal → screen diagonal:
+            //   south(dy+1)=screenSW, north(dy-1)=screenNE, east(dx+1)=screenSE, west(dx-1)=screenNW
+            // Grid diagonal → screen cardinal:
+            //   SE(+1,+1)=screenS, NE(+1,-1)=screenE, SW(-1,+1)=screenW, NW(-1,-1)=screenN
             // Sheet rows: 0=SW(face-left), 1=NE(back-right), 2=NW(back-left), 3=SE(face-right)
             const dirMap = {
                 south: 'southwest',
-                west: 'southwest',
-                southwest: 'southwest',
+                north: 'northeast',
                 east: 'southeast',
+                west: 'northwest',
+                southwest: 'southwest',
                 southeast: 'southeast',
-                north: 'northwest',
                 northwest: 'northwest',
                 northeast: 'northeast'
             };
