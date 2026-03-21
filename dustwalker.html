@@ -7888,6 +7888,11 @@ class IsometricRenderer {
             // Row layout: 0=SW, 1=NE, 2=NW, 3=SE
             const rowDirs = ['southwest', 'northeast', 'northwest', 'southeast'];
 
+            // Character feet are at ~91% of cell height in the source sheet
+            const feetProportion = 0.91;
+            const feetInSprite = Math.round(fitH * feetProportion);
+            const targetFeetY = canvasH - 4; // match procedural baseY = h-4
+
             // Slice each cell from the sheet
             const cells = {};
             for (let row = 0; row < 4; row++) {
@@ -7895,42 +7900,31 @@ class IsometricRenderer {
                 cells[dir] = [];
                 for (let col = 0; col < 4; col++) {
                     const extracted = this._extractSpriteCell(img, col * cellW, row * cellH, cellW, cellH, fitW, fitH);
-                    // Find actual sprite bottom (last row with non-transparent pixels)
-                    const eCtx = extracted.getContext('2d');
-                    const eData = eCtx.getImageData(0, 0, fitW, fitH).data;
-                    let actualBottom = fitH;
-                    for (let y = fitH - 1; y >= 0; y--) {
-                        let hasContent = false;
-                        for (let x = 0; x < fitW; x++) {
-                            if (eData[(y * fitW + x) * 4 + 3] > 10) { hasContent = true; break; }
-                        }
-                        if (hasContent) { actualBottom = y + 1; break; }
-                    }
-                    // Align actual sprite bottom with procedural baseY (canvas pixel 78 = h-4)
-                    const targetFeetY = canvasH - 4;
-                    const yPos = targetFeetY - actualBottom;
                     const finalCanvas = document.createElement('canvas');
                     finalCanvas.width = canvasW;
                     finalCanvas.height = canvasH;
                     const fctx = finalCanvas.getContext('2d');
+                    // Align sprite feet with procedural feet position
+                    const yPos = targetFeetY - feetInSprite;
                     fctx.drawImage(extracted, Math.round((canvasW - fitW) / 2), yPos);
                     cells[dir].push(finalCanvas);
                 }
             }
 
             // Map 4 sprite directions to all 8 game directions
-            // Isometric projection: gridX-gridY for screenX, gridX+gridY for screenY
-            // Grid south (dy+1) = screen lower-left = screen SW -> sprite SW (Row 0)
-            // Grid north (dy-1) = screen upper-right = screen NE -> sprite NE (Row 1)
-            // Grid east (dx+1) = screen lower-right = screen SE -> sprite SE (Row 3)
-            // Grid west (dx-1) = screen upper-left = screen NW -> sprite NW (Row 2)
+            // Match procedural grouping: only south+north generated, rest derived
+            // Procedural: south/west/southwest -> south sprite (face visible)
+            // Procedural: east/southeast -> mirror(south) (face visible, flipped)
+            // Procedural: north/northwest -> north sprite (back visible)
+            // Procedural: northeast -> mirror(north) (back visible, flipped)
+            // Sheet rows: 0=SW(face-left), 1=NE(back-right), 2=NW(back-left), 3=SE(face-right)
             const dirMap = {
                 south: 'southwest',
-                north: 'northeast',
-                east: 'southeast',
-                west: 'northwest',
+                west: 'southwest',
                 southwest: 'southwest',
+                east: 'southeast',
                 southeast: 'southeast',
+                north: 'northwest',
                 northwest: 'northwest',
                 northeast: 'northeast'
             };
