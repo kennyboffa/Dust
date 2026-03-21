@@ -7887,15 +7887,15 @@ class IsometricRenderer {
 
             const targetFeetY = canvasH - 4; // match procedural baseY = h-4
 
-            // Auto-detect row directions by analyzing pixel center-of-mass
-            // and brightness to determine facing for each row
+            // Auto-detect row directions and feet positions from pixel data
             const rowInfo = [];
             for (let row = 0; row < 4; row++) {
+                // Analyze first frame for direction detection
                 const extracted = this._extractSpriteCell(img, 0, row * cellH, cellW, cellH, fitW, fitH);
                 const ectx = extracted.getContext('2d');
                 const edata = ectx.getImageData(0, 0, fitW, fitH).data;
 
-                // Horizontal center of mass to detect left vs right lean
+                // 1) Horizontal center of mass → left vs right lean
                 let totalA = 0, weightX = 0;
                 for (let y = 0; y < fitH; y++) {
                     for (let x = 0; x < fitW; x++) {
@@ -7904,69 +7904,96 @@ class IsometricRenderer {
                     }
                 }
                 const comX = totalA > 0 ? weightX / totalA : fitW / 2;
-                const leansRight = comX > fitW / 2;
 
-                // Upper-body brightness to detect front (brighter face) vs back
-                let upperBright = 0, upperN = 0;
+                // 2) Color variance in upper body → front (face=high variance) vs back (uniform=low)
                 const headEnd = Math.floor(fitH * 0.4);
+                let sumR = 0, sumG = 0, sumB = 0, sumR2 = 0, sumG2 = 0, sumB2 = 0, upperN = 0;
                 for (let y = 0; y < headEnd; y++) {
                     for (let x = 0; x < fitW; x++) {
                         const idx = (y * fitW + x) * 4;
                         if (edata[idx + 3] > 20) {
-                            upperBright += (edata[idx] + edata[idx + 1] + edata[idx + 2]) / 3;
+                            const r = edata[idx], g = edata[idx+1], b = edata[idx+2];
+                            sumR += r; sumG += g; sumB += b;
+                            sumR2 += r*r; sumG2 += g*g; sumB2 += b*b;
                             upperN++;
                         }
                     }
                 }
-                const avgBright = upperN > 0 ? upperBright / upperN : 0;
-
-                // Find feet position (lowest non-transparent pixel in center columns)
-                let feetY = fitH - 1;
-                const margin = Math.floor(fitW * 0.2);
-                for (let y = fitH - 1; y >= 0; y--) {
-                    let found = false;
-                    for (let x = margin; x < fitW - margin; x++) {
-                        if (edata[(y * fitW + x) * 4 + 3] > 30) { found = true; break; }
-                    }
-                    if (found) { feetY = y; break; }
+                let colorVariance = 0;
+                if (upperN > 1) {
+                    const varR = (sumR2 - sumR*sumR/upperN) / (upperN - 1);
+                    const varG = (sumG2 - sumG*sumG/upperN) / (upperN - 1);
+                    const varB = (sumB2 - sumB*sumB/upperN) / (upperN - 1);
+                    colorVariance = varR + varG + varB;
                 }
 
-                rowInfo.push({ row, leansRight, avgBright, feetY });
+                // 3) Skin-tone pixel count in upper region (faces have more skin)
+                let skinPixels = 0;
+                for (let y = 0; y < headEnd; y++) {
+                    for (let x = 0; x < fitW; x++) {
+                        const idx = (y * fitW + x) * 4;
+                        if (edata[idx + 3] > 20) {
+                            const r = edata[idx], g = edata[idx+1], b = edata[idx+2];
+                            // Broad skin tone detection
+                            if (r > 120 && g > 70 && b > 50 && r > g && g > b * 0.7 && r - b > 20) {
+                                skinPixels++;
+                            }
+                        }
+                    }
+                }
+
+                // 4) Feet position: scan ALL 4 frames, use the LOWEST foot across all
+                let maxFeetY = 0;
+                const margin = Math.floor(fitW * 0.15);
+                for (let col = 0; col < 4; col++) {
+                    const fr = col === 0 ? extracted : this._extractSpriteCell(img, col * cellW, row * cellH, cellW, cellH, fitW, fitH);
+                    const fctx2 = fr.getContext('2d');
+                    const fdata = fctx2.getImageData(0, 0, fitW, fitH).data;
+                    for (let y = fitH - 1; y >= 0; y--) {
+                        let found = false;
+                        for (let x = margin; x < fitW - margin; x++) {
+                            if (fdata[(y * fitW + x) * 4 + 3] > 30) { found = true; break; }
+                        }
+                        if (found) { if (y > maxFeetY) maxFeetY = y; break; }
+                    }
+                }
+
+                // Combined front score (higher = more likely front-facing)
+                const frontScore = colorVariance / 100 + skinPixels * 2;
+
+                rowInfo.push({ row, comX, frontScore, feetY: maxFeetY, colorVariance, skinPixels });
             }
 
-            // Classify: left-leaning rows are SW/NW, right-leaning are SE/NE
-            // Within each pair, brighter upper = front (SW/SE), darker = back (NW/NE)
-            const leftRows = rowInfo.filter(r => !r.leansRight).sort((a, b) => b.avgBright - a.avgBright);
-            const rightRows = rowInfo.filter(r => r.leansRight).sort((a, b) => b.avgBright - a.avgBright);
+            // Classify rows into directions
+            // Sort by horizontal position to split left vs right
+            const midX = fitW / 2;
+            const leftRows = rowInfo.filter(r => r.comX <= midX).sort((a, b) => b.frontScore - a.frontScore);
+            const rightRows = rowInfo.filter(r => r.comX > midX).sort((a, b) => b.frontScore - a.frontScore);
+
+            // Handle edge case: if all lean same way, use comX ranking to split
+            if (leftRows.length < 2 || rightRows.length < 2) {
+                const sorted = [...rowInfo].sort((a, b) => a.comX - b.comX);
+                leftRows.length = 0;
+                rightRows.length = 0;
+                leftRows.push(sorted[0], sorted[1]);
+                rightRows.push(sorted[2], sorted[3]);
+                leftRows.sort((a, b) => b.frontScore - a.frontScore);
+                rightRows.sort((a, b) => b.frontScore - a.frontScore);
+            }
 
             const detectedDirs = {};
-            if (leftRows.length >= 2) {
-                detectedDirs[leftRows[0].row] = 'southwest';  // front-left
-                detectedDirs[leftRows[1].row] = 'northwest';  // back-left
-            } else if (leftRows.length === 1) {
-                detectedDirs[leftRows[0].row] = 'southwest';
-            }
-            if (rightRows.length >= 2) {
-                detectedDirs[rightRows[0].row] = 'southeast';  // front-right
-                detectedDirs[rightRows[1].row] = 'northeast';  // back-right
-            } else if (rightRows.length === 1) {
-                detectedDirs[rightRows[0].row] = 'southeast';
-            }
-
-            // Fallback: any unassigned rows get remaining directions
-            const allDirs = ['southwest', 'northeast', 'northwest', 'southeast'];
-            const usedDirs = new Set(Object.values(detectedDirs));
-            const unusedDirs = allDirs.filter(d => !usedDirs.has(d));
-            let ui = 0;
-            for (let r = 0; r < 4; r++) {
-                if (!detectedDirs[r]) detectedDirs[r] = unusedDirs[ui++];
-            }
+            detectedDirs[leftRows[0].row] = 'southwest';   // front-left (face visible, lean left)
+            detectedDirs[leftRows[1].row] = 'northwest';   // back-left
+            detectedDirs[rightRows[0].row] = 'southeast';  // front-right (face visible, lean right)
+            detectedDirs[rightRows[1].row] = 'northeast';  // back-right
 
             const rowDirs = [detectedDirs[0], detectedDirs[1], detectedDirs[2], detectedDirs[3]];
             console.log('Auto-detected sprite row directions:', rowDirs);
-            console.log('Row analysis:', rowInfo.map((r, i) => `Row ${i}: lean=${r.leansRight ? 'R' : 'L'}, bright=${r.avgBright.toFixed(1)}, feetY=${r.feetY}`));
+            console.log('Row analysis:', rowInfo.map((r, i) =>
+                `Row ${i}: comX=${r.comX.toFixed(1)}/${fitW} var=${r.colorVariance.toFixed(0)} skin=${r.skinPixels} front=${r.frontScore.toFixed(1)} feet=${r.feetY} → ${rowDirs[i]}`
+            ));
 
-            // Slice each cell from the sheet with auto-detected feet alignment
+            // Slice each cell from the sheet with per-row feet alignment
             const cells = {};
             for (let row = 0; row < 4; row++) {
                 const dir = rowDirs[row];
