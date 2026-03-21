@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>The Last Light</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-wrap">
+    <canvas id="canvas"></canvas>
+    <!-- Text input overlay for character name -->
+    <div id="name-input-wrap" style="display:none">
+      <input id="name-input" type="text" maxlength="16" placeholder="Enter name..." autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <!-- Core -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/state.js"></script>
+  <!-- Data -->
+  <script src="js/data/items.js"></script>
+  <script src="js/data/recipes.js"></script>
+  <script src="js/data/events.js"></script>
+  <script src="js/data/locations.js"></script>
+  <!-- Systems -->
+  <script src="js/systems/stats.js"></script>
+  <script src="js/systems/inventory.js"></script>
+  <script src="js/systems/crafting.js"></script>
+  <script src="js/systems/combat.js"></script>
+  <!-- Render -->
+  <script src="js/render/sprites.js"></script>
+  <script src="js/render/ui.js"></script>
+  <!-- Screens -->
+  <script src="js/screens/intro.js"></script>
+  <script src="js/screens/charCreate.js"></script>
+  <script src="js/screens/shelter.js"></script>
+  <script src="js/screens/explore.js"></script>
+  <script src="js/screens/combatScreen.js"></script>
+  <script src="js/screens/eventScreen.js"></script>
+  <!-- Main -->
+  <script src="js/main.js"></script>
+</body>
+</html>
