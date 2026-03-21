@@ -7879,7 +7879,11 @@ class IsometricRenderer {
             try {
             console.log('Player sprite sheet loaded:', img.width, 'x', img.height);
             const cellW = 256, cellH = 384;
-            const targetW = 72, targetH = 108;
+            // Scale to fit within procedural humanoid canvas (72x82), maintain aspect ratio, bottom-align
+            const canvasW = 72, canvasH = 82;
+            const fitScale = Math.min(canvasW / cellW, canvasH / cellH);
+            const fitW = Math.round(cellW * fitScale);
+            const fitH = Math.round(cellH * fitScale);
 
             // Row layout: 0=SW, 1=NE, 2=NW, 3=SE
             const rowDirs = ['southwest', 'northeast', 'northwest', 'southeast'];
@@ -7890,17 +7894,25 @@ class IsometricRenderer {
                 const dir = rowDirs[row];
                 cells[dir] = [];
                 for (let col = 0; col < 4; col++) {
-                    const cell = this._extractSpriteCell(img, col * cellW, row * cellH, cellW, cellH, targetW, targetH);
-                    cells[dir].push(cell);
+                    // Extract and remove background at intermediate size
+                    const extracted = this._extractSpriteCell(img, col * cellW, row * cellH, cellW, cellH, fitW, fitH);
+                    // Center horizontally, bottom-align into 72x82 canvas
+                    const finalCanvas = document.createElement('canvas');
+                    finalCanvas.width = canvasW;
+                    finalCanvas.height = canvasH;
+                    const fctx = finalCanvas.getContext('2d');
+                    fctx.drawImage(extracted, Math.round((canvasW - fitW) / 2), canvasH - fitH);
+                    cells[dir].push(finalCanvas);
                 }
             }
 
             // Map 4 sprite directions to all 8 game directions
+            // Each cardinal uses a unique diagonal to maximize visual distinction
             const dirMap = {
                 south: 'southwest',
-                north: 'northwest',
+                north: 'northeast',
                 east: 'southeast',
-                west: 'southwest',
+                west: 'northwest',
                 southwest: 'southwest',
                 southeast: 'southeast',
                 northwest: 'northwest',
