@@ -7885,27 +7885,101 @@ class IsometricRenderer {
             const fitH = Math.round(canvasH * charScale);
             const fitW = Math.round(fitH * cellW / cellH);
 
-            // Row layout: 0=SW, 1=NE, 2=NW, 3=SE
-            const rowDirs = ['southwest', 'northeast', 'northwest', 'southeast'];
-
-            // Character feet are at ~91% of cell height in the source sheet
-            const feetProportion = 0.91;
-            const feetInSprite = Math.round(fitH * feetProportion);
             const targetFeetY = canvasH - 4; // match procedural baseY = h-4
 
-            // Slice each cell from the sheet
+            // Auto-detect row directions by analyzing pixel center-of-mass
+            // and brightness to determine facing for each row
+            const rowInfo = [];
+            for (let row = 0; row < 4; row++) {
+                const extracted = this._extractSpriteCell(img, 0, row * cellH, cellW, cellH, fitW, fitH);
+                const ectx = extracted.getContext('2d');
+                const edata = ectx.getImageData(0, 0, fitW, fitH).data;
+
+                // Horizontal center of mass to detect left vs right lean
+                let totalA = 0, weightX = 0;
+                for (let y = 0; y < fitH; y++) {
+                    for (let x = 0; x < fitW; x++) {
+                        const a = edata[(y * fitW + x) * 4 + 3];
+                        if (a > 20) { totalA += a; weightX += x * a; }
+                    }
+                }
+                const comX = totalA > 0 ? weightX / totalA : fitW / 2;
+                const leansRight = comX > fitW / 2;
+
+                // Upper-body brightness to detect front (brighter face) vs back
+                let upperBright = 0, upperN = 0;
+                const headEnd = Math.floor(fitH * 0.4);
+                for (let y = 0; y < headEnd; y++) {
+                    for (let x = 0; x < fitW; x++) {
+                        const idx = (y * fitW + x) * 4;
+                        if (edata[idx + 3] > 20) {
+                            upperBright += (edata[idx] + edata[idx + 1] + edata[idx + 2]) / 3;
+                            upperN++;
+                        }
+                    }
+                }
+                const avgBright = upperN > 0 ? upperBright / upperN : 0;
+
+                // Find feet position (lowest non-transparent pixel in center columns)
+                let feetY = fitH - 1;
+                const margin = Math.floor(fitW * 0.2);
+                for (let y = fitH - 1; y >= 0; y--) {
+                    let found = false;
+                    for (let x = margin; x < fitW - margin; x++) {
+                        if (edata[(y * fitW + x) * 4 + 3] > 30) { found = true; break; }
+                    }
+                    if (found) { feetY = y; break; }
+                }
+
+                rowInfo.push({ row, leansRight, avgBright, feetY });
+            }
+
+            // Classify: left-leaning rows are SW/NW, right-leaning are SE/NE
+            // Within each pair, brighter upper = front (SW/SE), darker = back (NW/NE)
+            const leftRows = rowInfo.filter(r => !r.leansRight).sort((a, b) => b.avgBright - a.avgBright);
+            const rightRows = rowInfo.filter(r => r.leansRight).sort((a, b) => b.avgBright - a.avgBright);
+
+            const detectedDirs = {};
+            if (leftRows.length >= 2) {
+                detectedDirs[leftRows[0].row] = 'southwest';  // front-left
+                detectedDirs[leftRows[1].row] = 'northwest';  // back-left
+            } else if (leftRows.length === 1) {
+                detectedDirs[leftRows[0].row] = 'southwest';
+            }
+            if (rightRows.length >= 2) {
+                detectedDirs[rightRows[0].row] = 'southeast';  // front-right
+                detectedDirs[rightRows[1].row] = 'northeast';  // back-right
+            } else if (rightRows.length === 1) {
+                detectedDirs[rightRows[0].row] = 'southeast';
+            }
+
+            // Fallback: any unassigned rows get remaining directions
+            const allDirs = ['southwest', 'northeast', 'northwest', 'southeast'];
+            const usedDirs = new Set(Object.values(detectedDirs));
+            const unusedDirs = allDirs.filter(d => !usedDirs.has(d));
+            let ui = 0;
+            for (let r = 0; r < 4; r++) {
+                if (!detectedDirs[r]) detectedDirs[r] = unusedDirs[ui++];
+            }
+
+            const rowDirs = [detectedDirs[0], detectedDirs[1], detectedDirs[2], detectedDirs[3]];
+            console.log('Auto-detected sprite row directions:', rowDirs);
+            console.log('Row analysis:', rowInfo.map((r, i) => `Row ${i}: lean=${r.leansRight ? 'R' : 'L'}, bright=${r.avgBright.toFixed(1)}, feetY=${r.feetY}`));
+
+            // Slice each cell from the sheet with auto-detected feet alignment
             const cells = {};
             for (let row = 0; row < 4; row++) {
                 const dir = rowDirs[row];
                 cells[dir] = [];
+                const rowFeetY = rowInfo[row].feetY;
                 for (let col = 0; col < 4; col++) {
                     const extracted = this._extractSpriteCell(img, col * cellW, row * cellH, cellW, cellH, fitW, fitH);
                     const finalCanvas = document.createElement('canvas');
                     finalCanvas.width = canvasW;
                     finalCanvas.height = canvasH;
                     const fctx = finalCanvas.getContext('2d');
-                    // Align sprite feet with procedural feet position
-                    const yPos = targetFeetY - feetInSprite;
+                    // Align auto-detected feet position with target
+                    const yPos = targetFeetY - rowFeetY;
                     fctx.drawImage(extracted, Math.round((canvasW - fitW) / 2), yPos);
                     cells[dir].push(finalCanvas);
                 }
