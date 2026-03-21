@@ -7881,8 +7881,7 @@ class IsometricRenderer {
             const cellW = 256, cellH = 384;
             // Match procedural humanoid canvas (72x82)
             const canvasW = 72, canvasH = 82;
-            // Scale character to match procedural humanoid proportions
-            const charScale = 0.65;
+            const charScale = 0.75;
             const fitH = Math.round(canvasH * charScale);
             const fitW = Math.round(fitH * cellW / cellH);
 
@@ -7896,26 +7895,40 @@ class IsometricRenderer {
                 cells[dir] = [];
                 for (let col = 0; col < 4; col++) {
                     const extracted = this._extractSpriteCell(img, col * cellW, row * cellH, cellW, cellH, fitW, fitH);
-                    // Center horizontally, place near bottom (matching procedural baseY = h-4)
+                    // Find actual sprite bottom (last row with non-transparent pixels)
+                    const eCtx = extracted.getContext('2d');
+                    const eData = eCtx.getImageData(0, 0, fitW, fitH).data;
+                    let actualBottom = fitH;
+                    for (let y = fitH - 1; y >= 0; y--) {
+                        let hasContent = false;
+                        for (let x = 0; x < fitW; x++) {
+                            if (eData[(y * fitW + x) * 4 + 3] > 10) { hasContent = true; break; }
+                        }
+                        if (hasContent) { actualBottom = y + 1; break; }
+                    }
+                    // Align actual sprite bottom with procedural baseY (canvas pixel 78 = h-4)
+                    const targetFeetY = canvasH - 4;
+                    const yPos = targetFeetY - actualBottom;
                     const finalCanvas = document.createElement('canvas');
                     finalCanvas.width = canvasW;
                     finalCanvas.height = canvasH;
                     const fctx = finalCanvas.getContext('2d');
-                    fctx.drawImage(extracted, Math.round((canvasW - fitW) / 2), canvasH - fitH - 2);
+                    fctx.drawImage(extracted, Math.round((canvasW - fitW) / 2), yPos);
                     cells[dir].push(finalCanvas);
                 }
             }
 
             // Map 4 sprite directions to all 8 game directions
-            // Procedural south has bodyDx=+0.6 (faces right) -> SE (face right)
-            // Procedural north has bodyDx=-0.6 (faces left, back) -> NW (back left)
-            // Procedural west has bodyDx=-1.5 (faces left) -> SW (face left)
-            // Procedural east has bodyDx=+1.5 (faces right) -> SE (face right)
+            // Isometric projection: gridX-gridY for screenX, gridX+gridY for screenY
+            // Grid south (dy+1) = screen lower-left = screen SW -> sprite SW (Row 0)
+            // Grid north (dy-1) = screen upper-right = screen NE -> sprite NE (Row 1)
+            // Grid east (dx+1) = screen lower-right = screen SE -> sprite SE (Row 3)
+            // Grid west (dx-1) = screen upper-left = screen NW -> sprite NW (Row 2)
             const dirMap = {
-                south: 'southeast',
-                north: 'northwest',
+                south: 'southwest',
+                north: 'northeast',
                 east: 'southeast',
-                west: 'southwest',
+                west: 'northwest',
                 southwest: 'southwest',
                 southeast: 'southeast',
                 northwest: 'northwest',
