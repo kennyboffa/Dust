@@ -967,17 +967,23 @@ class Game {
         else if (atLeft) this.player.facing = 'west';
         else if (atRight) this.player.facing = 'east';
 
-        this.loadArea(transition.targetArea);
-        this.addMessage(`Entered: ${this.currentArea.name}`, 'info');
-        this.hud.update();
-
         // Advance time: 2 hours for high-difficulty areas, 1 for others
         const highDiffAreas = ['cave', 'wasteland', 'bunker'];
         const travelHours = highDiffAreas.includes(transition.targetArea) ? 2 : 1;
-        this.advanceTime(travelHours);
+        const destAreaName = targetArea.name;
+        const destAreaId = transition.targetArea;
 
-        // Auto-save on area transition
-        try { this.saveGame(); } catch (e) { /* silent fail */ }
+        // Zoom out → title card → load area → zoom in
+        this.animateZoom(0.65, 300, () => {
+            this.showAreaTitleCard(destAreaName, () => {
+                this.loadArea(destAreaId);
+                this.addMessage(`Entered: ${this.currentArea.name}`, 'info');
+                this.hud.update();
+                this.advanceTime(travelHours);
+                try { this.saveGame(); } catch (e) { /* silent fail */ }
+                this.animateZoom(1.0, 350, null);
+            });
+        });
     }
 
     checkTransition(x, y) {
@@ -1091,13 +1097,17 @@ class Game {
         this.player.x = start.x;
         this.player.y = start.y;
 
-        this.loadArea(targetAreaId);
-        this.hideScreen('map-screen');
-        this.addMessage(`Arrived at: ${this.currentArea.name}`, 'info');
-        this.hud.update();
-
-        // Fast travel advances more time
-        this.advanceTime(Utils.randInt(2, 5));
+        const destName = targetArea.name;
+        this.animateZoom(0.65, 300, () => {
+            this.showAreaTitleCard(destName, () => {
+                this.loadArea(targetAreaId);
+                this.hideScreen('map-screen');
+                this.addMessage(`Arrived at: ${this.currentArea.name}`, 'info');
+                this.hud.update();
+                this.advanceTime(Utils.randInt(2, 5));
+                this.animateZoom(1.0, 350, null);
+            });
+        });
     }
 
     // ---- Entity Management ----
@@ -1671,6 +1681,70 @@ class Game {
 
         // Show updated modal
         this.showRoomUpgradeModal(building);
+    }
+
+    useBunkerMedStation() {
+        if (!this.player || !this.currentArea || this.currentArea.id !== 'bunker') return;
+        const missing = this.player.stats.maxHp - this.player.stats.hp;
+        if (missing <= 0) {
+            this.addMessage('You are already at full health.', 'info');
+            return;
+        }
+        const healAmt = Math.floor(this.player.stats.maxHp * 0.5);
+        CharacterSystem.heal(this.player, healAmt);
+        this.advanceTime(2);
+        this.addMessage(`Medical station: treated for ${healAmt} HP. 2 hours used.`, 'info');
+        this.audio.playSfx('heal');
+        this.hud.update();
+        this.hud.updateCharacterScreen();
+    }
+
+    // ---- Zoom & Title Card Transitions ----
+
+    animateZoom(targetZoom, duration, callback) {
+        const startZoom = this.renderer.camera.zoom;
+        const startTime = performance.now();
+        const step = (now) => {
+            const elapsed = now - startTime;
+            const t = Math.min(elapsed / duration, 1);
+            const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+            this.renderer.camera.zoom = startZoom + (targetZoom - startZoom) * ease;
+            if (t < 1) {
+                requestAnimationFrame(step);
+            } else {
+                this.renderer.camera.zoom = targetZoom;
+                if (callback) callback();
+            }
+        };
+        requestAnimationFrame(step);
+    }
+
+    showAreaTitleCard(name, callback) {
+        const card = document.getElementById('area-title-card');
+        const textEl = document.getElementById('area-title-text');
+        if (!card || !textEl) { if (callback) callback(); return; }
+
+        textEl.textContent = name;
+        card.style.background = 'rgba(0,0,0,0)';
+        textEl.style.color = 'rgba(196,148,58,0)';
+        textEl.style.textShadow = '0 0 0px rgba(196,148,58,0)';
+
+        // Trigger fade in on next frame
+        requestAnimationFrame(() => {
+            card.style.background = 'rgba(0,0,0,0.9)';
+            textEl.style.color = 'rgba(196,148,58,1)';
+            textEl.style.textShadow = '0 0 30px rgba(196,148,58,0.6)';
+        });
+
+        // Hold then fade out, then call callback
+        setTimeout(() => {
+            card.style.background = 'rgba(0,0,0,0)';
+            textEl.style.color = 'rgba(196,148,58,0)';
+            textEl.style.textShadow = '0 0 0px rgba(196,148,58,0)';
+            setTimeout(() => {
+                if (callback) callback();
+            }, 460);
+        }, 1100);
     }
 
     // ---- Save/Load ----

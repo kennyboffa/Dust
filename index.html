@@ -105,6 +105,18 @@
                     </div>
                 </div>
 
+                <!-- Exploration status overlay (HP/AP, below top bar) -->
+                <div id="exploration-status">
+                    <div class="expl-bar-wrap">
+                        <div id="expl-hp-fill" class="expl-fill hp"></div>
+                        <span id="expl-hp-text" class="expl-label">HP</span>
+                    </div>
+                    <div class="expl-bar-wrap">
+                        <div id="expl-ap-fill" class="expl-fill ap"></div>
+                        <span id="expl-ap-text" class="expl-label">AP</span>
+                    </div>
+                </div>
+
                 <!-- Message log -->
                 <div id="message-log">
                     <div id="message-log-content"></div>
@@ -218,6 +230,11 @@
                         <button id="btn-death-quit" class="menu-btn">Main Menu</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Area Title Card (cinematic, appears over everything) -->
+            <div id="area-title-card">
+                <div id="area-title-text"></div>
             </div>
 
             <!-- Intro Narrative Screen -->

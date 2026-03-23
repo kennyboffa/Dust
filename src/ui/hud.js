@@ -53,6 +53,18 @@ class HUDManager {
         document.getElementById('hud-time').textContent =
             `Day ${this.game.gameTime.day} - ${String(this.game.gameTime.hour).padStart(2,'0')}:00`;
 
+        // Update exploration status overlay (compact HP/AP bars)
+        const explHpFill = document.getElementById('expl-hp-fill');
+        if (explHpFill) {
+            explHpFill.style.width = hpPercent + '%';
+            document.getElementById('expl-hp-text').textContent = `HP ${player.stats.hp}/${player.stats.maxHp}`;
+        }
+        const explApFill = document.getElementById('expl-ap-fill');
+        if (explApFill) {
+            explApFill.style.width = apPercent + '%';
+            document.getElementById('expl-ap-text').textContent = `AP ${player.stats.ap}/${player.stats.maxAp}`;
+        }
+
         // Update tiredness/mood bars if they exist
         if (player.wellbeing) {
             const tiredBar = document.getElementById('tired-bar');
@@ -252,6 +264,21 @@ class HUDManager {
             statsHtml += `<div class="cs-stat"><span>Tiredness</span><span class="cs-val" style="color:${tiredColor}">${Math.round(player.wellbeing.tiredness)}%</span></div>`;
             statsHtml += `<div class="cs-stat"><span>Mood</span><span class="cs-val" style="color:${moodColor}">${player.wellbeing.mood >= 90 ? 'Depressed' : player.wellbeing.mood >= 60 ? 'Low' : player.wellbeing.mood >= 30 ? 'OK' : 'Good'}</span></div>`;
         }
+        // Bunker medical station option
+        if (this.game.currentArea && this.game.currentArea.id === 'bunker') {
+            const healAmount = Math.floor(player.stats.maxHp * 0.5);
+            const missing = player.stats.maxHp - player.stats.hp;
+            statsHtml += '<div style="margin-top:12px;border-top:1px solid #205840;padding-top:10px">';
+            statsHtml += '<div style="font-size:11px;color:#50b090;letter-spacing:0.1em;margin-bottom:6px">[ MEDICAL STATION ]</div>';
+            if (missing > 0) {
+                statsHtml += `<button onclick="window.game.useBunkerMedStation()" style="width:100%;padding:7px 6px;background:#0a1f18;border:1px solid #205840;color:#50b090;cursor:pointer;font-family:inherit;font-size:12px">`;
+                statsHtml += `Treat Wounds (+${healAmount} HP) &mdash; 2 hrs</button>`;
+            } else {
+                statsHtml += '<div style="font-size:11px;color:#307050">No injuries &mdash; HP Full</div>';
+            }
+            statsHtml += '</div>';
+        }
+
         statsEl.innerHTML = statsHtml;
 
         // Skills
