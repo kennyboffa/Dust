@@ -251,18 +251,24 @@ class ScreenManager {
         this.game.renderer.drawWorldMap(ctx, this.worldMapLocations, this.game.currentArea?.id || 'village');
 
         // Set up click handler for fast travel
+        // Remove previous handler to avoid stacking
+        canvas.onclick = null;
         canvas.onclick = (e) => {
+            e.stopPropagation();
             const rect = canvas.getBoundingClientRect();
+            // Correctly map click coords to canvas pixel space
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const mx = (e.clientX - rect.left) * scaleX;
             const my = (e.clientY - rect.top) * scaleY;
 
+            // Larger hit radius (28px) for easier clicking
+            const HIT_RADIUS_SQ = 28 * 28;
             for (const loc of this.worldMapLocations) {
                 if (!loc.discovered || loc.id === (this.game.currentArea?.id || 'village')) continue;
                 const dx = mx - loc.mapX;
                 const dy = my - loc.mapY;
-                if (dx * dx + dy * dy < 20 * 20) {
+                if (dx * dx + dy * dy < HIT_RADIUS_SQ) {
                     this.game.fastTravel(loc.id);
                     return;
                 }

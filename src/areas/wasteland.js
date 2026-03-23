@@ -64,13 +64,13 @@ function createWastelandArea() {
     // Boss inside the main building
     entities.push(CharacterSystem.createEnemy(EnemyTemplates.raider_boss, 14, 15));
 
-    // Loot containers
+    // Loot containers (quantities reduced ~30%)
     entities.push(CharacterSystem.createContainer(
         'raider_chest1', 'Raider Stash', 14, 7,
         [
-            { ...ItemDatabase.stimpak, quantity: 2 },
-            { ...ItemDatabase.ammo_9mm, quantity: 15 },
-            { ...ItemDatabase.bottle_caps, quantity: 40 },
+            { ...ItemDatabase.stimpak, quantity: 1 },
+            { ...ItemDatabase.ammo_9mm, quantity: 10 },
+            { ...ItemDatabase.bottle_caps, quantity: 28 },
             { ...ItemDatabase.jet, quantity: 1 },
         ],
         'crate'
@@ -80,7 +80,7 @@ function createWastelandArea() {
         'raider_chest2', 'Weapon Rack', 15, 15,
         [
             { ...ItemDatabase.pipe_pistol, quantity: 1 },
-            { ...ItemDatabase.ammo_12ga, quantity: 8 },
+            { ...ItemDatabase.ammo_12ga, quantity: 5 },
             { ...ItemDatabase.buffout, quantity: 1 },
         ],
         'crate'
@@ -90,9 +90,9 @@ function createWastelandArea() {
         'raider_main_chest', 'Warlord\'s Strongbox', 13, 14,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
-            { ...ItemDatabase.ammo_308, quantity: 15 },
-            { ...ItemDatabase.stimpak, quantity: 3 },
-            { ...ItemDatabase.bottle_caps, quantity: 200 },
+            { ...ItemDatabase.ammo_308, quantity: 10 },
+            { ...ItemDatabase.stimpak, quantity: 2 },
+            { ...ItemDatabase.bottle_caps, quantity: 140 },
             { ...ItemDatabase.metal_armor, quantity: 1 },
             { ...ItemDatabase.lucky_charm, quantity: 1 },
         ],
@@ -106,10 +106,10 @@ function createWastelandArea() {
     const lockedAmmo = CharacterSystem.createContainer(
         'raider_locked_ammo', 'Locked Ammo Box', 16, 8,
         [
-            { ...ItemDatabase.ammo_9mm, quantity: 24 },
-            { ...ItemDatabase.ammo_12ga, quantity: 12 },
-            { ...ItemDatabase.ammo_308, quantity: 8 },
-            { ...ItemDatabase.lockpick, quantity: 2 },
+            { ...ItemDatabase.ammo_9mm, quantity: 16 },
+            { ...ItemDatabase.ammo_12ga, quantity: 8 },
+            { ...ItemDatabase.ammo_308, quantity: 5 },
+            { ...ItemDatabase.lockpick, quantity: 1 },
         ],
         'crate'
     );
@@ -121,8 +121,8 @@ function createWastelandArea() {
     entities.push(CharacterSystem.createContainer(
         'rubble_cache', 'Rubble Pile', 8, 10,
         [
-            { ...ItemDatabase.scrap_metal, quantity: 3 },
-            { ...ItemDatabase.healing_powder, quantity: 2 },
+            { ...ItemDatabase.scrap_metal, quantity: 2 },
+            { ...ItemDatabase.healing_powder, quantity: 1 },
             { ...ItemDatabase.scout_goggles, quantity: 1 },
         ],
         'crate'

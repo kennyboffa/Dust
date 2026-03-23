@@ -73,13 +73,13 @@ function createCaveArea() {
     // Boss chamber - Mutant Brute
     entities.push(CharacterSystem.createEnemy(EnemyTemplates.mutant_brute, 9, 16));
 
-    // Loot containers
+    // Loot containers (quantities reduced ~30%)
     entities.push(CharacterSystem.createContainer(
         'cave_chest1', 'Old Footlocker', 14, 2,
         [
-            { ...ItemDatabase.ammo_9mm, quantity: 12 },
+            { ...ItemDatabase.ammo_9mm, quantity: 8 },
             { ...ItemDatabase.healing_powder, quantity: 1 },
-            { ...ItemDatabase.bottle_caps, quantity: 25 },
+            { ...ItemDatabase.bottle_caps, quantity: 17 },
         ],
         'chest'
     ));
@@ -96,8 +96,8 @@ function createCaveArea() {
     entities.push(CharacterSystem.createContainer(
         'cave_chest3', 'Crystal Cache', 6, 14,
         [
-            { ...ItemDatabase.cave_mushroom, quantity: 3 },
-            { ...ItemDatabase.antidote, quantity: 2 },
+            { ...ItemDatabase.cave_mushroom, quantity: 2 },
+            { ...ItemDatabase.antidote, quantity: 1 },
         ],
         'crate'
     ));
@@ -106,10 +106,10 @@ function createCaveArea() {
         'cave_boss_chest', 'Ancient Strongbox', 9, 17,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
-            { ...ItemDatabase.ammo_308, quantity: 20 },
-            { ...ItemDatabase.stimpak, quantity: 3 },
+            { ...ItemDatabase.ammo_308, quantity: 14 },
+            { ...ItemDatabase.stimpak, quantity: 2 },
             { ...ItemDatabase.metal_armor, quantity: 1 },
-            { ...ItemDatabase.bottle_caps, quantity: 150 },
+            { ...ItemDatabase.bottle_caps, quantity: 105 },
             { ...ItemDatabase.old_map, quantity: 1 },
             { ...ItemDatabase.electronic_lockpick, quantity: 1 },
         ],

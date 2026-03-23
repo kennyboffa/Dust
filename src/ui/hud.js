@@ -53,6 +53,24 @@ class HUDManager {
         document.getElementById('hud-time').textContent =
             `Day ${this.game.gameTime.day} - ${String(this.game.gameTime.hour).padStart(2,'0')}:00`;
 
+        // Update tiredness/mood bars if they exist
+        if (player.wellbeing) {
+            const tiredBar = document.getElementById('tired-bar');
+            if (tiredBar) {
+                tiredBar.style.width = player.wellbeing.tiredness + '%';
+                tiredBar.style.background = player.wellbeing.tiredness >= 70 ? '#c44a30' : player.wellbeing.tiredness >= 40 ? '#b87820' : '#5a8a30';
+                const tiredLabel = document.getElementById('tired-label');
+                if (tiredLabel) tiredLabel.textContent = `Tired: ${Math.round(player.wellbeing.tiredness)}%`;
+            }
+            const moodBar = document.getElementById('mood-bar');
+            if (moodBar) {
+                moodBar.style.width = player.wellbeing.mood + '%';
+                moodBar.style.background = player.wellbeing.mood >= 90 ? '#8830c0' : player.wellbeing.mood >= 60 ? '#5040a0' : '#3060a0';
+                const moodLabel = document.getElementById('mood-label');
+                if (moodLabel) moodLabel.textContent = `Mood: ${player.wellbeing.mood >= 90 ? 'Depressed' : player.wellbeing.mood >= 60 ? 'Low' : player.wellbeing.mood >= 30 ? 'OK' : 'Good'}`;
+            }
+        }
+
         // Update action button states
         const btns = document.querySelectorAll('.action-btn');
         btns.forEach(btn => {
@@ -227,6 +245,13 @@ class HUDManager {
         statsHtml += `<div class="cs-stat"><span>Dmg Resist</span><span class="cs-val">${player.stats.damageResist}%</span></div>`;
         statsHtml += `<div class="cs-stat"><span>XP</span><span class="cs-val">${player.xp}/${player.xpToNext}</span></div>`;
         statsHtml += `<div class="cs-stat"><span>Level</span><span class="cs-val">${player.level}</span></div>`;
+        if (player.wellbeing) {
+            statsHtml += '<h3 style="margin-top:10px">Wellbeing</h3>';
+            const tiredColor = player.wellbeing.tiredness >= 70 ? '#c44a30' : player.wellbeing.tiredness >= 40 ? '#c4a44a' : '#6a9a40';
+            const moodColor = player.wellbeing.mood >= 90 ? '#8030b0' : player.wellbeing.mood >= 60 ? '#5040a0' : '#4080c0';
+            statsHtml += `<div class="cs-stat"><span>Tiredness</span><span class="cs-val" style="color:${tiredColor}">${Math.round(player.wellbeing.tiredness)}%</span></div>`;
+            statsHtml += `<div class="cs-stat"><span>Mood</span><span class="cs-val" style="color:${moodColor}">${player.wellbeing.mood >= 90 ? 'Depressed' : player.wellbeing.mood >= 60 ? 'Low' : player.wellbeing.mood >= 30 ? 'OK' : 'Good'}</span></div>`;
+        }
         statsEl.innerHTML = statsHtml;
 
         // Skills

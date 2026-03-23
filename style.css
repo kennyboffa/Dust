@@ -1316,3 +1316,70 @@ canvas {
     border-color: #d4a44a;
     background: rgba(80, 60, 25, 0.9);
 }
+
+/* Scrollbar styling for game menus */
+#inventory-list::-webkit-scrollbar,
+#loot-items::-webkit-scrollbar,
+#char-skills-display::-webkit-scrollbar,
+#barter-merchant-items::-webkit-scrollbar,
+#barter-player-items::-webkit-scrollbar {
+    width: 6px;
+}
+
+#inventory-list::-webkit-scrollbar-track,
+#loot-items::-webkit-scrollbar-track,
+#char-skills-display::-webkit-scrollbar-track,
+#barter-merchant-items::-webkit-scrollbar-track,
+#barter-player-items::-webkit-scrollbar-track {
+    background: #0a0804;
+}
+
+#inventory-list::-webkit-scrollbar-thumb,
+#loot-items::-webkit-scrollbar-thumb,
+#char-skills-display::-webkit-scrollbar-thumb,
+#barter-merchant-items::-webkit-scrollbar-thumb,
+#barter-player-items::-webkit-scrollbar-thumb {
+    background: #4a3a1a;
+    border-radius: 3px;
+}
+
+#inventory-list::-webkit-scrollbar-thumb:hover,
+#loot-items::-webkit-scrollbar-thumb:hover,
+#char-skills-display::-webkit-scrollbar-thumb:hover,
+#barter-merchant-items::-webkit-scrollbar-thumb:hover,
+#barter-player-items::-webkit-scrollbar-thumb:hover {
+    background: #6a5a2a;
+}
+
+/* Inventory list increased height for more items visible */
+#inventory-list {
+    max-height: 300px;
+}
+
+/* Char skills scroll */
+#char-skills-display {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+/* Status bars for wellbeing */
+.status-bar-container {
+    position: relative;
+    height: 16px;
+    background: #0a0804;
+    border: 1px solid #2a1a08;
+    margin-bottom: 2px;
+    overflow: hidden;
+}
+
+.status-bar {
+    height: 100%;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 4px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.85);
+    white-space: nowrap;
+    overflow: hidden;
+}

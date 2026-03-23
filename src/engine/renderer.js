@@ -427,8 +427,8 @@ class SpriteGenerator {
             if (lightAdj !== undefined && shadowAdj !== undefined) {
                 // Light from top-left
                 adj = lightAdj * (1 - (px - cx + 4) / 12) + shadowAdj * ((px - cx + 4) / 12);
-                // Vertical gradient (top lighter)
-                adj += (baseY - py) * 0.3;
+                // Vertical gradient (top lighter, more pronounced for 3D)
+                adj += (baseY - py) * 0.5;
             }
             // Dither: shift color slightly based on pattern for pre-rendered look
             const ditherShift = (dither === 0 ? -4 : dither === 3 ? 4 : dither === 1 ? -2 : 2);
@@ -438,10 +438,10 @@ class SpriteGenerator {
             setPixel(x, y, r, g, b, 255);
         };
 
-        // Fill ellipse with dithered pixels
+        // Fill ellipse with dithered pixels - stronger lighting for more 3D look
         const fillEllipse = (ecx, ecy, rx, ry, color, lightAdj, shadowAdj) => {
-            const lAdj = lightAdj !== undefined ? lightAdj : 8;
-            const sAdj = shadowAdj !== undefined ? shadowAdj : -12;
+            const lAdj = lightAdj !== undefined ? lightAdj : 14;
+            const sAdj = shadowAdj !== undefined ? shadowAdj : -22;
             for (let py = Math.floor(ecy - ry); py <= Math.ceil(ecy + ry); py++) {
                 for (let px = Math.floor(ecx - rx); px <= Math.ceil(ecx + rx); px++) {
                     const dx = (px - ecx) / rx, dy = (py - ecy) / ry;
@@ -2495,9 +2495,23 @@ class IsometricRenderer {
             ctx.fill();
         }
 
-        // Ambient occlusion fake on ground tiles near walls
-        if (height === 0 && n3 > 0.65) {
-            ctx.fillStyle = `rgba(0,0,0,${0.03 + n * 0.03})`;
+        // Ambient occlusion: stronger near walls and corners for depth
+        if (height === 0 && n3 > 0.55) {
+            ctx.fillStyle = `rgba(0,0,0,${0.06 + n * 0.06})`;
+            ctx.beginPath();
+            ctx.moveTo(screen.x, screen.y - th - hOffset);
+            ctx.lineTo(screen.x + tw, screen.y - hOffset);
+            ctx.lineTo(screen.x, screen.y + th - hOffset);
+            ctx.lineTo(screen.x - tw, screen.y - hOffset);
+            ctx.closePath();
+            ctx.fill();
+        }
+        // Edge shadow on all ground tiles (south and east edges are darker)
+        if (height === 0 && tileType !== 'void') {
+            const edgeGrad = ctx.createLinearGradient(screen.x - tw, screen.y, screen.x + tw, screen.y + th);
+            edgeGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            edgeGrad.addColorStop(1, 'rgba(0,0,0,0.08)');
+            ctx.fillStyle = edgeGrad;
             ctx.beginPath();
             ctx.moveTo(screen.x, screen.y - th - hOffset);
             ctx.lineTo(screen.x + tw, screen.y - hOffset);
@@ -2602,7 +2616,7 @@ class IsometricRenderer {
         ctx.lineTo(screen.x, screen.y + th);
         ctx.lineTo(screen.x + tw, screen.y);
         ctx.closePath();
-        ctx.fillStyle = this.adjustColor(colors.right, -5); // slightly darker shadow side
+        ctx.fillStyle = this.adjustColor(colors.right, -20); // darker shadow side for stronger 3D look
         ctx.fill();
 
         ctx.save();
@@ -3295,15 +3309,25 @@ class IsometricRenderer {
         const ctx = this.ctx;
         const z = this.camera.zoom;
 
-        // Entity shadow (darker, more defined than before)
-        if (entityType !== 'chest' && entityType !== 'crate' && entityType !== 'bones') {
+        // Entity shadow - stronger, more realistic drop shadow offset to the right/south
+        if (entityType !== 'bones') {
             const isSmall = ['rat', 'scorpion', 'cave_spider'].includes(entityType);
             const isMutant = entityType === 'mutant';
-            const sw = (isSmall ? 8 : isMutant ? 12 : 9) * z;
-            const sh = (isSmall ? 3 : isMutant ? 5 : 4) * z;
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            const isContainer = entityType === 'chest' || entityType === 'crate';
+            const isEnv = ['dead_tree','ruins','wreckage','cactus','rock_formation','campfire','signpost','building'].includes(entityType);
+            const sw = (isSmall ? 7 : isMutant ? 14 : isContainer ? 10 : isEnv ? 10 : 10) * z;
+            const sh = (isSmall ? 3 : isMutant ? 6 : isContainer ? 3 : isEnv ? 3 : 4) * z;
+            // Outer soft shadow
+            const grad = ctx.createRadialGradient(
+                screen.x + 3 * z, screen.y + 1.5 * z, 0,
+                screen.x + 3 * z, screen.y + 1.5 * z, sw
+            );
+            grad.addColorStop(0, 'rgba(0,0,0,0.55)');
+            grad.addColorStop(0.6, 'rgba(0,0,0,0.25)');
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.ellipse(screen.x + 2 * z, screen.y + z, sw, sh, 0.2, 0, Math.PI * 2);
+            ctx.ellipse(screen.x + 3 * z, screen.y + 1.5 * z, sw, sh, 0.2, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -3321,10 +3345,17 @@ class IsometricRenderer {
                 const sprite = sprites[variant];
                 const sw = sprite.width * z * scale;
                 const sh = sprite.height * z * scale;
-                // Large shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                // Large shadow with gradient
+                const lsGrad = ctx.createRadialGradient(
+                    screen.x + 4 * z, screen.y + 2 * z, 0,
+                    screen.x + 4 * z, screen.y + 2 * z, 18 * z * scale
+                );
+                lsGrad.addColorStop(0, 'rgba(0,0,0,0.55)');
+                lsGrad.addColorStop(0.7, 'rgba(0,0,0,0.2)');
+                lsGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = lsGrad;
                 ctx.beginPath();
-                ctx.ellipse(screen.x + 3 * z, screen.y + 2 * z, 18 * z * scale, 6 * z * scale, 0.2, 0, Math.PI * 2);
+                ctx.ellipse(screen.x + 4 * z, screen.y + 2 * z, 18 * z * scale, 6 * z * scale, 0.2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.drawImage(sprite, screen.x - sw / 2, screen.y - sh + 8 * z, sw, sh);
             }
@@ -4445,6 +4476,11 @@ class IsometricRenderer {
                 const ey = ent.renderY !== undefined ? ent.renderY : ent.y;
                 this.drawEntity(ex, ey, ent.spriteType || ent.type, ent.facing || 'south',
                     ent === gameState.selectedEntity, ent.stats ? ent.stats.hp : null, ent.stats ? ent.stats.maxHp : null, ent.animState || 'idle', gameState.inCombat, ent.variantIndex || 0);
+                // Draw upgrade badge for building entities
+                if (ent.type === 'building' && gameState.roomUpgrades) {
+                    const level = gameState.roomUpgrades[ent.id] || 0;
+                    this.drawBuildingUpgradeIndicator(ex, ey, ent.name, level);
+                }
             }
         }
 
@@ -4610,6 +4646,45 @@ class IsometricRenderer {
             this.ctx.fillStyle = `rgba(180,150,100,${shimmer})`;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height * 0.3);
         }
+    }
+
+    drawBuildingUpgradeIndicator(gx, gy, buildingName, level) {
+        const screen = this.worldToScreen(gx, gy);
+        const ctx = this.ctx;
+        const z = this.camera.zoom;
+        const yOff = -22 * z;
+
+        // Draw small name label and upgrade level badge above building marker
+        ctx.save();
+        ctx.font = `bold ${Math.max(8, 9 * z)}px "Courier New", monospace`;
+        ctx.textAlign = 'center';
+
+        const labelY = screen.y + yOff;
+        const textW = ctx.measureText(buildingName).width + 8;
+
+        // Background pill
+        ctx.fillStyle = 'rgba(10,8,4,0.75)';
+        const pillH = 12 * z;
+        ctx.fillRect(screen.x - textW / 2, labelY - pillH + 2, textW, pillH);
+
+        // Building name
+        ctx.fillStyle = '#c4a44a';
+        ctx.fillText(buildingName, screen.x, labelY - 1);
+
+        // Upgrade stars below name
+        if (level > 0) {
+            const starY = labelY + 10 * z;
+            ctx.font = `${Math.max(7, 8 * z)}px "Courier New", monospace`;
+            const stars = '★'.repeat(level);
+            ctx.fillStyle = '#d4b050';
+            ctx.fillText(stars, screen.x, starY);
+        } else {
+            ctx.font = `${Math.max(7, 8 * z)}px "Courier New", monospace`;
+            ctx.fillStyle = '#6a5030';
+            ctx.fillText('[click to upgrade]', screen.x, labelY + 10 * z);
+        }
+
+        ctx.restore();
     }
 
     updateAnimation() {

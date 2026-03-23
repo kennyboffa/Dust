@@ -54,13 +54,13 @@ function createBunkerArea() {
     entities.push(CharacterSystem.createEnemy(EnemyTemplates.rad_scorpion, 8, 19));
     entities.push(CharacterSystem.createEnemy(EnemyTemplates.cave_spider, 14, 19));
 
-    // Loot containers - mostly locked
+    // Loot containers - mostly locked (quantities reduced ~30%)
     const techCache = CharacterSystem.createContainer(
         'bunker_tech', 'Pre-War Terminal Cache', 6, 2,
         [
             { ...ItemDatabase.electronic_lockpick, quantity: 1 },
-            { ...ItemDatabase.stimpak, quantity: 4 },
-            { ...ItemDatabase.bottle_caps, quantity: 300 },
+            { ...ItemDatabase.stimpak, quantity: 3 },
+            { ...ItemDatabase.bottle_caps, quantity: 210 },
         ],
         'chest'
     );
@@ -72,8 +72,8 @@ function createBunkerArea() {
         'bunker_armory', 'Military Armory Locker', 15, 6,
         [
             { ...ItemDatabase.hunting_rifle, quantity: 1 },
-            { ...ItemDatabase.ammo_308, quantity: 30 },
-            { ...ItemDatabase.ammo_9mm, quantity: 40 },
+            { ...ItemDatabase.ammo_308, quantity: 21 },
+            { ...ItemDatabase.ammo_9mm, quantity: 28 },
             { ...ItemDatabase.metal_armor, quantity: 1 },
         ],
         'chest'
@@ -85,10 +85,10 @@ function createBunkerArea() {
     entities.push(CharacterSystem.createContainer(
         'bunker_supplies', 'Emergency Supplies', 3, 6,
         [
-            { ...ItemDatabase.stimpak, quantity: 3 },
-            { ...ItemDatabase.nuka_cola, quantity: 4 },
-            { ...ItemDatabase.water_flask, quantity: 2 },
-            { ...ItemDatabase.lockpick, quantity: 4 },
+            { ...ItemDatabase.stimpak, quantity: 2 },
+            { ...ItemDatabase.nuka_cola, quantity: 3 },
+            { ...ItemDatabase.water_flask, quantity: 1 },
+            { ...ItemDatabase.lockpick, quantity: 3 },
         ],
         'crate'
     ));
@@ -97,8 +97,8 @@ function createBunkerArea() {
         'bunker_vault', 'Sealed Vault Container', 8, 17,
         [
             { ...ItemDatabase.sledgehammer, quantity: 1 },
-            { ...ItemDatabase.stimpak, quantity: 5 },
-            { ...ItemDatabase.bottle_caps, quantity: 500 },
+            { ...ItemDatabase.stimpak, quantity: 3 },
+            { ...ItemDatabase.bottle_caps, quantity: 350 },
             { ...ItemDatabase.lucky_charm, quantity: 1 },
         ],
         'chest'
@@ -110,10 +110,10 @@ function createBunkerArea() {
     entities.push(CharacterSystem.createContainer(
         'bunker_lab', 'Research Samples', 14, 17,
         [
-            { ...ItemDatabase.antidote, quantity: 3 },
-            { ...ItemDatabase.cave_mushroom, quantity: 5 },
-            { ...ItemDatabase.jet, quantity: 2 },
-            { ...ItemDatabase.buffout, quantity: 2 },
+            { ...ItemDatabase.antidote, quantity: 2 },
+            { ...ItemDatabase.cave_mushroom, quantity: 3 },
+            { ...ItemDatabase.jet, quantity: 1 },
+            { ...ItemDatabase.buffout, quantity: 1 },
         ],
         'crate'
     ));

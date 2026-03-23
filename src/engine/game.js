@@ -2,6 +2,40 @@
 // Dustwalker - Main Game Controller
 // ============================================
 
+// Room upgrade definitions
+const ROOM_UPGRADE_DEFS = {
+    clinic: {
+        name: 'Clinic / Elder\'s Hall',
+        maxLevel: 3,
+        desc: 'Improves healing from rest. Higher levels restore more HP when resting.',
+        levels: [
+            { cost: 50,  label: 'Basic Clinic',     effect: '+10% rest healing' },
+            { cost: 150, label: 'Proper Clinic',    effect: '+25% rest healing' },
+            { cost: 400, label: 'Medical Center',   effect: '+50% rest healing' },
+        ],
+    },
+    traders: {
+        name: 'Old Hall / Supply Room',
+        maxLevel: 3,
+        desc: 'Improves trade and storage. Higher levels unlock better barter prices.',
+        levels: [
+            { cost: 60,  label: 'Storage Room',     effect: '-10% purchase prices' },
+            { cost: 180, label: 'Trading Post',     effect: '-20% purchase prices' },
+            { cost: 450, label: 'Trade Hub',        effect: '-30% purchase prices' },
+        ],
+    },
+    barracks: {
+        name: 'Merchant Post',
+        maxLevel: 3,
+        desc: 'Fortifies the settlement. Higher levels reduce random encounter chance.',
+        levels: [
+            { cost: 75,  label: 'Defended Post',    effect: '-5% encounter chance' },
+            { cost: 200, label: 'Guard Barracks',   effect: '-10% encounter chance' },
+            { cost: 500, label: 'Fortified Base',   effect: '-15% encounter chance' },
+        ],
+    },
+};
+
 class Game {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -31,6 +65,8 @@ class Game {
         this.areaStates = {}; // Persist entity states when switching areas
         this.npcHomes = {}; // Store NPC home positions for wandering
         this.wanderTimer = 0;
+
+        this.roomUpgrades = {}; // Building upgrade levels: { buildingId: level }
 
         this.setupUI();
         this.setupInput();
@@ -251,6 +287,14 @@ class Game {
                 }
                 return;
             }
+            if (target.type === 'building' && dist <= 3) {
+                this.showRoomUpgradeModal(target);
+                return;
+            }
+            if (target.type === 'building') {
+                this.walkToAndInteract(target);
+                return;
+            }
             if ((target.type === 'npc' && target.dialogueId) || target.type === 'container') {
                 this.walkToAndInteract(target);
                 return;
@@ -376,8 +420,8 @@ class Game {
                         return;
                     }
 
-                    // Pause between tile steps for natural pace
-                    setTimeout(tweenStep, 60);
+                    // Pause between tile steps for natural pace (67ms = ~10% slower than 60ms)
+                    setTimeout(tweenStep, 67);
                 }
             };
             requestAnimationFrame(tweenSub);
@@ -423,6 +467,8 @@ class Game {
                     } else {
                         this.hud.showLootScreen(target);
                     }
+                } else if (target.type === 'building') {
+                    this.showRoomUpgradeModal(target);
                 }
                 return;
             }
@@ -436,7 +482,7 @@ class Game {
             this.renderer.centerOn(this.player.x, this.player.y);
             this.audio.playSfx('step');
             step++;
-            setTimeout(animate, 180);
+            setTimeout(animate, 200);
         };
         animate();
     }
@@ -537,6 +583,14 @@ class Game {
                     info += ` (Container - ${target.items.length} items)`;
                 }
             }
+            if (target.type === 'building') {
+                const level = this.roomUpgrades[target.id] || 0;
+                const upgDef = ROOM_UPGRADE_DEFS[target.buildingType];
+                info += ` - ${target.desc || ''}`;
+                if (upgDef) {
+                    info += ` | Upgrade Level: ${level}/${upgDef.maxLevel}. Click to manage upgrades.`;
+                }
+            }
             this.addMessage(info, 'info');
         } else {
             const tile = this.getTileAt(gridX, gridY);
@@ -548,6 +602,15 @@ class Game {
 
     handleUse(gridX, gridY) {
         const target = this.getEntityAt(gridX, gridY);
+        if (target && target.type === 'building') {
+            const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
+            if (dist <= 3) {
+                this.showRoomUpgradeModal(target);
+            } else {
+                this.addMessage('Move closer to the building.', 'info');
+            }
+            return;
+        }
         if (target && target.type === 'container') {
             const dist = Utils.gridDistance(this.player.x, this.player.y, gridX, gridY);
             if (dist <= 2) {
@@ -579,8 +642,16 @@ class Game {
         const hoursToMorning = this.gameTime.hour >= 7 && this.gameTime.hour < 20
             ? 1 : (24 - this.gameTime.hour + 7) % 24 || 8;
         this.advanceTime(Math.max(1, hoursToMorning));
-        const healAmt = Math.floor(this.player.stats.maxHp * 0.3);
+        // Apply clinic upgrade bonus to heal amount
+        const clinicLevel = this.roomUpgrades['building_clinic'] || 0;
+        const healBonus = clinicLevel === 1 ? 0.1 : clinicLevel === 2 ? 0.25 : clinicLevel >= 3 ? 0.5 : 0;
+        const healAmt = Math.floor(this.player.stats.maxHp * (0.3 + healBonus));
         CharacterSystem.heal(this.player, healAmt);
+        // Restore wellbeing on rest
+        if (this.player.wellbeing) {
+            this.player.wellbeing.tiredness = Math.max(0, this.player.wellbeing.tiredness - 40);
+            this.player.wellbeing.mood = Math.max(0, this.player.wellbeing.mood - 20);
+        }
         this.addMessage(`You rest by the fire. Healed ${healAmt} HP. ${this.getTimeString()}`, 'info');
         this.audio.playSfx('heal');
         this.hud.update();
@@ -595,6 +666,11 @@ class Game {
         this.advanceTime(8);
         const healAmt = Math.floor(this.player.stats.maxHp * 0.5);
         CharacterSystem.heal(this.player, healAmt);
+        // Fully restore wellbeing on long rest
+        if (this.player.wellbeing) {
+            this.player.wellbeing.tiredness = Math.max(0, this.player.wellbeing.tiredness - 70);
+            this.player.wellbeing.mood = Math.max(0, this.player.wellbeing.mood - 35);
+        }
         this.addMessage(`You make camp and rest for 8 hours. Healed ${healAmt} HP. ${this.getTimeString()}`, 'info');
         this.audio.playSfx('heal');
         this.hud.update();
@@ -787,8 +863,12 @@ class Game {
         const toId = transition.targetArea;
         const isFromEncounter = this.currentArea.isEncounter;
         if (!isFromEncounter && fromId !== toId && fromId !== 'encounter') {
-            // 40% chance of random encounter between major areas
-            if (Utils.percentCheck(40)) {
+            // Base encounter chance, increased at night
+            let baseEncounterChance = 40;
+            const barracksLevel = this.roomUpgrades['building_barracks'] || 0;
+            baseEncounterChance -= barracksLevel * 5;
+            if (this.isNightTime()) baseEncounterChance = Math.min(90, baseEncounterChance + 20);
+            if (Utils.percentCheck(baseEncounterChance)) {
                 const encounterTypes = ['combat', 'combat', 'trader', 'empty'];
                 const encType = Utils.randChoice(encounterTypes);
                 const encounterArea = generateEncounterArea(fromId, toId, encType);
@@ -891,8 +971,10 @@ class Game {
         this.addMessage(`Entered: ${this.currentArea.name}`, 'info');
         this.hud.update();
 
-        // Advance time
-        this.advanceTime(1);
+        // Advance time: 2 hours for high-difficulty areas, 1 for others
+        const highDiffAreas = ['cave', 'wasteland', 'bunker'];
+        const travelHours = highDiffAreas.includes(transition.targetArea) ? 2 : 1;
+        this.advanceTime(travelHours);
 
         // Auto-save on area transition
         try { this.saveGame(); } catch (e) { /* silent fail */ }
@@ -914,10 +996,30 @@ class Game {
             this.combat.endCombat();
         }
 
+        // Block exploration if player is too tired or depressed
+        if (this.player.wellbeing) {
+            if (this.player.wellbeing.tiredness >= 70) {
+                this.addMessage('You are too exhausted to explore. Rest first.', 'combat');
+                return;
+            }
+            if (this.player.wellbeing.mood >= 90) {
+                this.addMessage('You are too depressed to go out there. Rest and recover your spirits.', 'combat');
+                return;
+            }
+        }
+
         // Check for random encounter based on outdoorsman skill
         const outdoorsman = (this.player.skills && this.player.skills.outdoorsman) || 0;
-        // Base 50% encounter chance, reduced by outdoorsman skill
-        const encounterChance = Utils.clamp(50 - outdoorsman, 10, 80);
+        // Base 50% encounter chance, reduced by outdoorsman skill, increased at night
+        let encounterChance = Utils.clamp(50 - outdoorsman, 10, 80);
+        // Barracks upgrade reduces encounter chance
+        const barracksLevel = this.roomUpgrades['building_barracks'] || 0;
+        encounterChance -= barracksLevel * 5;
+        if (this.isNightTime()) {
+            encounterChance = Math.min(95, encounterChance + 20);
+            this.addMessage('Traveling at night is dangerous — encounters more likely!', 'combat');
+        }
+        encounterChance = Utils.clamp(encounterChance, 5, 95);
 
         if (Utils.percentCheck(encounterChance)) {
             // Random encounter! Show a prompt
@@ -1193,6 +1295,9 @@ class Game {
             container.items.splice(index, 1);
             this.addMessage(`Picked up: ${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''}`, 'loot');
             this.audio.playSfx('pickup');
+            // Small XP for looting
+            const leveled = CharacterSystem.addXP(this.player, 2);
+            if (leveled) this.showLevelUp();
 
             // Check if it's the cave crystal (quest item)
             if (item.id === 'cave_crystal') {
@@ -1207,11 +1312,13 @@ class Game {
 
     takeAllItems(container) {
         const toRemove = [];
+        let totalXp = 0;
         for (let i = 0; i < container.items.length; i++) {
             const item = container.items[i];
             const result = InventorySystem.addItem(this.player, item, item.quantity || 1);
             if (result.success) {
                 toRemove.push(i);
+                totalXp += 2;
                 this.addMessage(`Picked up: ${item.name}${item.quantity > 1 ? ' x' + item.quantity : ''}`, 'loot');
 
                 if (item.id === 'cave_crystal') {
@@ -1225,7 +1332,14 @@ class Game {
         for (let i = toRemove.length - 1; i >= 0; i--) {
             container.items.splice(toRemove[i], 1);
         }
-        if (toRemove.length > 0) this.audio.playSfx('pickup');
+        if (toRemove.length > 0) {
+            this.audio.playSfx('pickup');
+            // XP for looting
+            if (totalXp > 0) {
+                const leveled = CharacterSystem.addXP(this.player, totalXp);
+                if (leveled) this.showLevelUp();
+            }
+        }
     }
 
     attemptLockpick(container) {
@@ -1401,6 +1515,12 @@ class Game {
             // Heal on rest/day change
             CharacterSystem.heal(this.player, this.player.stats.healRate);
         }
+        // Increase tiredness with travel/exploration
+        if (this.player && this.player.wellbeing) {
+            this.player.wellbeing.tiredness = Math.min(100, this.player.wellbeing.tiredness + hours * 5);
+            // Mood slowly improves over time (resilience)
+            this.player.wellbeing.mood = Math.max(0, this.player.wellbeing.mood - hours * 2);
+        }
     }
 
     // Returns 0.0 (pitch black) to 1.0 (full daylight)
@@ -1454,6 +1574,105 @@ class Game {
         };
     }
 
+    // ---- Room Upgrades ----
+
+    showRoomUpgradeModal(building) {
+        const upgDef = ROOM_UPGRADE_DEFS[building.buildingType];
+        if (!upgDef) {
+            this.addMessage(`${building.name}: No upgrades available.`, 'info');
+            return;
+        }
+
+        const currentLevel = this.roomUpgrades[building.id] || 0;
+        const caps = (this.player.inventory.find(i => i.id === 'bottle_caps')?.quantity) || 0;
+
+        // Remove existing modal if any
+        const existing = document.getElementById('room-upgrade-modal');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'room-upgrade-modal';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:1000;';
+
+        let html = `<div style="background:#1a1408;border:2px solid #5a4a20;padding:24px;max-width:420px;width:90%;font-family:inherit;color:#c4a44a;">`;
+        html += `<h3 style="color:#d4a44a;margin:0 0 6px">${building.name}</h3>`;
+        html += `<p style="color:#8a7060;font-size:12px;margin:0 0 12px">${upgDef.desc}</p>`;
+        html += `<div style="margin-bottom:12px;font-size:13px">Current Level: <strong style="color:#d4a44a">${currentLevel}/${upgDef.maxLevel}</strong> | Caps: <strong style="color:#8ab060">${caps}</strong></div>`;
+
+        // Show current upgrade effects
+        if (currentLevel > 0) {
+            html += `<div style="background:#2a1a08;border:1px solid #3a2a10;padding:8px;margin-bottom:12px;font-size:12px;color:#a09060">`;
+            html += `<strong>Active:</strong> ${upgDef.levels[currentLevel - 1].label} — ${upgDef.levels[currentLevel - 1].effect}`;
+            html += `</div>`;
+        }
+
+        if (currentLevel < upgDef.maxLevel) {
+            const next = upgDef.levels[currentLevel];
+            const canAfford = caps >= next.cost;
+            const btnStyle = `padding:8px 18px;background:${canAfford ? '#2a3a10' : '#1a1408'};border:1px solid ${canAfford ? '#6a8a30' : '#3a2a10'};color:${canAfford ? '#a8c060' : '#5a4a30'};cursor:${canAfford ? 'pointer' : 'not-allowed'};font-family:inherit;font-size:13px;margin-top:8px;`;
+            html += `<div style="padding:10px;background:#2a1a08;border:1px solid #3a2a10;">`;
+            html += `<div style="color:#c4a44a;font-size:13px"><strong>Next:</strong> ${next.label}</div>`;
+            html += `<div style="color:#8a9060;font-size:12px;margin:4px 0">${next.effect}</div>`;
+            html += `<div style="color:#a08040;font-size:12px">Cost: ${next.cost} caps</div>`;
+            html += `<button id="btn-do-upgrade" style="${btnStyle}" ${canAfford ? '' : 'disabled'}>`;
+            html += canAfford ? `Upgrade (${next.cost} caps)` : `Not enough caps (need ${next.cost})`;
+            html += `</button></div>`;
+        } else {
+            html += `<div style="color:#6a8a50;padding:8px;font-size:13px">✓ Fully Upgraded</div>`;
+        }
+
+        html += `<br><button id="btn-close-upgrade" style="padding:6px 16px;background:#2a1a08;border:1px solid #5a3a20;color:#c4a44a;cursor:pointer;font-family:inherit;">Close</button>`;
+        html += `</div>`;
+        overlay.innerHTML = html;
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.remove();
+        });
+
+        const closeBtn = document.getElementById('btn-close-upgrade');
+        if (closeBtn) closeBtn.addEventListener('click', () => overlay.remove());
+
+        const upgradeBtn = document.getElementById('btn-do-upgrade');
+        if (upgradeBtn) {
+            upgradeBtn.addEventListener('click', () => {
+                overlay.remove();
+                this.upgradeRoom(building);
+            });
+        }
+    }
+
+    upgradeRoom(building) {
+        const upgDef = ROOM_UPGRADE_DEFS[building.buildingType];
+        if (!upgDef) return;
+
+        const currentLevel = this.roomUpgrades[building.id] || 0;
+        if (currentLevel >= upgDef.maxLevel) {
+            this.addMessage(`${building.name} is already fully upgraded.`, 'info');
+            return;
+        }
+
+        const next = upgDef.levels[currentLevel];
+        const capsItem = this.player.inventory.find(i => i.id === 'bottle_caps');
+        const caps = capsItem ? capsItem.quantity : 0;
+
+        if (caps < next.cost) {
+            this.addMessage(`Not enough caps. Need ${next.cost} caps.`, 'combat');
+            return;
+        }
+
+        // Deduct caps
+        InventorySystem.removeItem(this.player, capsItem.uid || 'bottle_caps', next.cost);
+        this.roomUpgrades[building.id] = currentLevel + 1;
+
+        this.addMessage(`${building.name} upgraded to ${next.label}! (${next.effect})`, 'xp');
+        this.audio.playSfx('pickup');
+        this.hud.update();
+
+        // Show updated modal
+        this.showRoomUpgradeModal(building);
+    }
+
     // ---- Save/Load ----
 
     saveGame() {
@@ -1473,6 +1692,7 @@ class Game {
             currentAreaId: this.currentArea.id,
             areaStates: Utils.deepClone(this.areaStates),
             gameTime: { ...this.gameTime },
+            roomUpgrades: { ...this.roomUpgrades },
             version: 1
         };
 
@@ -1497,6 +1717,7 @@ class Game {
             this.player = saveData.player;
             this.areaStates = saveData.areaStates || {};
             this.gameTime = saveData.gameTime || { day: 1, hour: 8 };
+            this.roomUpgrades = saveData.roomUpgrades || {};
 
             // Regenerate areas (maps are procedural)
             this.areas = {
@@ -1599,6 +1820,7 @@ class Game {
                 inCombat: this.combat.active,
                 lightLevel: this.getLightLevel(),
                 timeString: this.getTimeString(),
+                roomUpgrades: this.roomUpgrades,
             };
 
             this.renderer.renderArea(

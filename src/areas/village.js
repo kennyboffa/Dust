@@ -101,12 +101,12 @@ function createVillageArea() {
         }),
     ];
 
-    // Containers - place inside buildings
+    // Containers - place inside buildings (loot reduced by ~30%)
     entities.push(CharacterSystem.createContainer(
         'village_crate1', 'Supply Crate', 4, 5,
         [
-            { ...ItemDatabase.healing_powder, quantity: 2 },
-            { ...ItemDatabase.bottle_caps, quantity: 30 },
+            { ...ItemDatabase.healing_powder, quantity: 1 },
+            { ...ItemDatabase.bottle_caps, quantity: 20 },
         ],
         'crate'
     ));
@@ -116,8 +116,8 @@ function createVillageArea() {
         [
             { ...ItemDatabase.knife, quantity: 1 },
             { ...ItemDatabase.ragged_clothes, quantity: 1 },
-            { ...ItemDatabase.nuka_cola, quantity: 2 },
-            { ...ItemDatabase.lockpick, quantity: 2 },
+            { ...ItemDatabase.nuka_cola, quantity: 1 },
+            { ...ItemDatabase.lockpick, quantity: 1 },
         ],
         'chest'
     );
@@ -127,16 +127,25 @@ function createVillageArea() {
     const lockedSupply = CharacterSystem.createContainer(
         'village_locked_chest', 'Merchant\'s Lockbox', 21, 16,
         [
-            { ...ItemDatabase.stimpak, quantity: 2 },
-            { ...ItemDatabase.bottle_caps, quantity: 100 },
-            { ...ItemDatabase.lockpick, quantity: 3 },
-            { ...ItemDatabase.ammo_9mm, quantity: 10 },
+            { ...ItemDatabase.stimpak, quantity: 1 },
+            { ...ItemDatabase.bottle_caps, quantity: 70 },
+            { ...ItemDatabase.lockpick, quantity: 2 },
+            { ...ItemDatabase.ammo_9mm, quantity: 7 },
         ],
         'chest'
     );
     lockedSupply.locked = true;
     lockedSupply.lockDifficulty = 40;
     entities.push(lockedSupply);
+
+    // Building upgrade zones (interactive, non-blocking)
+    const mkBuilding = (id, buildingType, name, x, y, desc) => ({
+        id, name, type: 'building', spriteType: 'signpost',
+        buildingType, x, y, facing: 'south', isHostile: false, blocking: false, desc,
+    });
+    entities.push(mkBuilding('building_clinic',   'clinic',   'Elder\'s Hall',    6,  4,  'Community hall and rest clinic. Can be upgraded to improve healing.'));
+    entities.push(mkBuilding('building_traders',  'traders',  'Old Hall',        19,  4,  'Storage hall. Can be upgraded into a trade hub.'));
+    entities.push(mkBuilding('building_barracks', 'barracks', 'Merchant Post',   19, 17,  'Main trading post. Can be fortified to reduce danger.'));
 
     // Environmental objects - trees, signposts, etc.
     const env = (id, sprite, x, y, name, blocking = true) => ({

@@ -72,6 +72,11 @@ class CharacterSystem {
 
             questFlags: {},
             killedEnemies: {},
+
+            wellbeing: {
+                tiredness: 0,  // 0-100: 0=fully rested, 100=exhausted (can't explore at 70+)
+                mood: 0,       // 0-100: 0=great mood, 100=severe depression (can't explore at 90+)
+            },
         };
 
         CharacterSystem.recalcStats(player);

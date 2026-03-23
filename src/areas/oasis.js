@@ -88,14 +88,14 @@ function createOasisArea() {
     entities.push(CharacterSystem.createEnemy(EnemyTemplates.giant_rat, 21, 3));
     entities.push(CharacterSystem.createEnemy(EnemyTemplates.giant_rat, 22, 5));
 
-    // Containers
+    // Containers (quantities reduced ~30%)
     entities.push(CharacterSystem.createContainer(
         'oasis_crate1', 'Trader Supplies', 6, 12,
         [
-            { ...ItemDatabase.stimpak, quantity: 2 },
-            { ...ItemDatabase.healing_powder, quantity: 3 },
-            { ...ItemDatabase.water_flask, quantity: 3 },
-            { ...ItemDatabase.lockpick, quantity: 2 },
+            { ...ItemDatabase.stimpak, quantity: 1 },
+            { ...ItemDatabase.healing_powder, quantity: 2 },
+            { ...ItemDatabase.water_flask, quantity: 2 },
+            { ...ItemDatabase.lockpick, quantity: 1 },
         ],
         'crate'
     ));
@@ -104,8 +104,8 @@ function createOasisArea() {
         'oasis_locked', 'Zara\'s Personal Chest', 5, 14,
         [
             { ...ItemDatabase.pipe_pistol, quantity: 1 },
-            { ...ItemDatabase.ammo_9mm, quantity: 20 },
-            { ...ItemDatabase.bottle_caps, quantity: 150 },
+            { ...ItemDatabase.ammo_9mm, quantity: 14 },
+            { ...ItemDatabase.bottle_caps, quantity: 105 },
             { ...ItemDatabase.electronic_lockpick, quantity: 1 },
         ],
         'chest'
@@ -117,10 +117,10 @@ function createOasisArea() {
     entities.push(CharacterSystem.createContainer(
         'oasis_hermit_box', 'Ezra\'s Trunk', 19, 13,
         [
-            { ...ItemDatabase.healing_powder, quantity: 4 },
-            { ...ItemDatabase.antidote, quantity: 2 },
-            { ...ItemDatabase.cave_mushroom, quantity: 3 },
-            { ...ItemDatabase.nuka_cola, quantity: 2 },
+            { ...ItemDatabase.healing_powder, quantity: 3 },
+            { ...ItemDatabase.antidote, quantity: 1 },
+            { ...ItemDatabase.cave_mushroom, quantity: 2 },
+            { ...ItemDatabase.nuka_cola, quantity: 1 },
         ],
         'chest'
     ));
